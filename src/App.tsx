@@ -517,8 +517,8 @@ function AnnouncerPanel({ events, appState, navigate, onStart, dqs }: any) {
   let canGoNext = true; let blockReason = "";
 
   if (activeIdx > -1 && callIdx > -1) {
-    if (activeIdx > callIdx) { canGoNext = false; blockReason = "Menunggu Call Room"; } 
-    else if (activeIdx === callIdx && appState.currentSeries >= appState.callRoomSeries) { canGoNext = false; blockReason = "Menunggu Call Room"; }
+    if (activeIdx > callIdx) { canGoNext = false; blockReason = "Menunggu Pengatur Peserta"; } 
+    else if (activeIdx === callIdx && appState.currentSeries >= appState.callRoomSeries) { canGoNext = false; blockReason = "Menunggu Pengatur Peserta"; }
   }
 
   const handleNav = async (dir: string) => { setLoading(true); await navigate(dir); setLoading(false); };
@@ -639,7 +639,7 @@ function PublicPanel({ appState, dqs, onBack, onLoginRequest }: any) {
                                     <h2 className="text-white text-2xl md:text-3xl font-bold flex items-center gap-2">
                                         <Users className="text-blue-400" /> Pemanggilan
                                     </h2>
-                                    <span className="text-blue-200/60 text-sm">Call Room</span>
+                                    <span className="text-blue-200/60 text-sm">Pengatur Peserta</span>
                                 </div>
                                 <div className="text-right">
                                     <span className="text-blue-200/40 text-[10px] uppercase block">Terakhir Update</span>
