@@ -25,7 +25,8 @@ import {
   RotateCcw,
   Wifi,
   Play, 
-  Key 
+  Key,
+  AlertTriangle 
 } from 'lucide-react';
 
 // --- FIREBASE IMPORTS ---
@@ -266,6 +267,19 @@ export default function App() {
       }
   };
 
+  const fbResetProgress = async () => {
+      if (!user) return;
+      const statusDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'status', 'global');
+      await updateDoc(statusDocRef, {
+          currentEventId: null,
+          currentSeries: 1,
+          callRoomEventId: null,
+          callRoomSeries: 1,
+          lastUpdate: '-',
+          callRoomLastUpdate: '-'
+      });
+  };
+
   const fbAddDQ = async (newDQ: Omit<DQRecord, 'id'>) => {
       if (!user) return;
       await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'dqs'), newDQ);
@@ -381,7 +395,7 @@ export default function App() {
                       events={events} appState={appState} dqs={dqs} 
                       onAddEvent={fbAddEvent} onEditEvent={fbEditEvent} onDeleteEvent={fbDeleteEvent}
                       onUpdateSettings={updateGlobalState} onAddDQ={fbAddDQ} onDeleteDQ={fbDeleteDQ}
-                      onUpdatePin={updatePin} 
+                      onUpdatePin={updatePin} onResetProgress={fbResetProgress}
                     />
                   )}
                   {role === 'announcer' && (
@@ -483,7 +497,7 @@ function LoginModal({ targetRole, onClose, onSuccess, authConfig }: any) {
   );
 }
 
-function AdminPanel({ events, appState, dqs, onAddEvent, onEditEvent, onDeleteEvent, onUpdateSettings, onAddDQ, onDeleteDQ, onUpdatePin }: any) {
+function AdminPanel({ events, appState, dqs, onAddEvent, onEditEvent, onDeleteEvent, onUpdateSettings, onAddDQ, onDeleteDQ, onUpdatePin, onResetProgress }: any) {
   const [newEvent, setNewEvent] = useState({ number: '', name: '', totalSeries: '' });
   const [newDQ, setNewDQ] = useState({ eventNumber: '', series: '', lane: '', reason: '' });
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -502,6 +516,12 @@ function AdminPanel({ events, appState, dqs, onAddEvent, onEditEvent, onDeleteEv
       onUpdatePin(pinRole, newPinCode);
       alert(`PIN untuk ${pinRole} berhasil diubah!`);
       setNewPinCode('');
+  };
+
+  const handleReset = () => {
+    if(window.confirm("Yakin ingin MERESET SEMUA PROGRESS?\nAnnouncer dan Call Room akan kembali ke awal (belum mulai). Data acara TIDAK akan dihapus.")) {
+      onResetProgress();
+    }
   };
 
   return (
@@ -524,6 +544,13 @@ function AdminPanel({ events, appState, dqs, onAddEvent, onEditEvent, onDeleteEv
                  <input type="text" value={newPinCode} onChange={e => setNewPinCode(e.target.value)} placeholder="PIN Baru" className="flex-1 p-2 border rounded text-sm" pattern="\d*" />
                  <button type="submit" className="bg-slate-800 text-white px-3 py-2 rounded text-xs font-bold hover:bg-slate-700">SIMPAN</button>
              </form>
+          </div>
+          <div className="mt-6 pt-4 border-t border-slate-200">
+             <h3 className="font-bold text-red-600 flex items-center gap-2 mb-3"><AlertTriangle size={16} /> Zona Bahaya</h3>
+             <button onClick={handleReset} className="w-full bg-red-50 text-red-600 hover:bg-red-100 py-3 rounded-lg font-bold flex items-center justify-center gap-2 transition border border-red-200">
+                <RotateCcw size={18} /> RESET PROGRESS LOMBA
+             </button>
+             <p className="text-xs text-slate-400 mt-2 text-center">Mengembalikan status ke "Belum Dimulai"</p>
           </div>
         </div>
 
