@@ -19,6 +19,7 @@ import {
   MapPin,
   ArrowRight,
   X,
+  AlertTriangle,
   Home,
   Edit2,
   Save,
@@ -673,7 +674,7 @@ function CallRoomPanel({ events, appState, navigate, onStart }: any) {
   );
 }
 
-function PublicPanel({ events, appState, setRole, dqs, onBack, onLoginRequest }: any) {
+function PublicPanel({ events, appState, dqs, onBack, onLoginRequest }: any) {
     const getEventNumber = (id: string | null) => events.find((e: any) => e.id === id)?.number || '-';
     const getEventName = (id: string | null) => events.find((e: any) => e.id === id)?.name || 'Menunggu...';
     const recentDQs = dqs.slice(0, 5);
