@@ -19,7 +19,6 @@ import {
   MapPin,
   ArrowRight,
   X,
-  AlertTriangle,
   Home,
   Edit2,
   Save,
