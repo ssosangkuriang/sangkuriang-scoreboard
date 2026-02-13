@@ -25,8 +25,6 @@ import {
   RotateCcw,
   Wifi,
   Play, 
-  Key,
-  AlertTriangle,
   Loader2
 } from 'lucide-react';
 
@@ -37,6 +35,7 @@ import {
   signInAnonymously, 
   onAuthStateChanged
 } from 'firebase/auth';
+// FIX: Import type User secara terpisah untuk menghindari error TS1484
 import type { User } from 'firebase/auth';
 
 import { 
@@ -61,6 +60,7 @@ const firebaseConfig = {
   appId: "1:833562093721:web:36308c9770eb8e94c37008"
 };
 
+// Inisialisasi Firebase
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
@@ -131,12 +131,16 @@ type AppState = {
 
 export default function App() {
   const [user, setUser] = useState<User | null>(null);
+  
+  // State Navigasi
   const [viewMode, setViewMode] = useState<'landing' | 'app'>('landing');
   const [role, setRole] = useState<'admin' | 'announcer' | 'callroom' | 'public' | null>(null);
+  
+  // Modal Login
   const [showLoginModal, setShowLoginModal] = useState<boolean>(false);
   const [targetLoginRole, setTargetLoginRole] = useState<'admin' | 'announcer' | 'callroom' | null>(null);
 
-  // Data State
+  // --- STATE DATA ---
   const [events, setEvents] = useState<EventItem[]>([]);
   const [dqs, setDqs] = useState<DQRecord[]>([]);
   const [appState, setAppState] = useState<AppState>({
@@ -152,146 +156,322 @@ export default function App() {
   
   const [authConfig, setAuthConfig] = useState<any>(DEFAULT_AUTH_DB);
 
-  // Auth
+  // --- 1. INITIALIZE AUTH ---
   useEffect(() => {
-    signInAnonymously(auth).catch(err => console.error("Login gagal:", err));
-    return onAuthStateChanged(auth, setUser);
+    const initAuth = async () => {
+      try {
+        await signInAnonymously(auth);
+      } catch (error) {
+        console.error("Login Error:", error);
+      }
+    };
+    initAuth();
+    const unsubscribe = onAuthStateChanged(auth, setUser);
+    return () => unsubscribe();
   }, []);
 
-  // Data Listeners
+  // --- 2. DATA LISTENERS ---
   useEffect(() => {
     if (!user) return;
 
-    const unsubStatus = onSnapshot(doc(db, 'artifacts', appId, 'public', 'data', 'status', 'global'), (docSnap) => {
-      if (docSnap.exists()) setAppState(docSnap.data() as AppState);
-      else setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'status', 'global'), appState);
+    // A. Listen EVENTS
+    const eventsRef = collection(db, 'artifacts', appId, 'public', 'data', 'events');
+    const unsubEvents = onSnapshot(query(eventsRef), (snapshot) => {
+      const loadedEvents: EventItem[] = [];
+      snapshot.forEach((doc) => {
+        loadedEvents.push({ id: doc.id, ...doc.data() } as EventItem);
+      });
+      loadedEvents.sort((a, b) => a.number - b.number);
+      setEvents(loadedEvents);
+    }, (error) => console.error("Error events:", error));
+
+    // B. Listen STATUS
+    const statusDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'status', 'global');
+    const unsubStatus = onSnapshot(statusDocRef, (docSnap) => {
+      if (docSnap.exists()) {
+        setAppState(docSnap.data() as AppState);
+      } else {
+        const defaultState: AppState = {
+            title: 'KEJUARAAN RENANG 2026',
+            venue: 'Kolam Renang UPI, Bandung',
+            currentEventId: null,
+            currentSeries: 1,
+            callRoomEventId: null,
+            callRoomSeries: 1,
+            lastUpdate: new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }),
+            callRoomLastUpdate: '-'
+        };
+        setDoc(statusDocRef, defaultState);
+      }
+    }, (error) => console.error("Error status:", error));
+
+    // C. Listen PIN CONFIG
+    const authDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'auth', 'config');
+    const unsubAuth = onSnapshot(authDocRef, (docSnap) => {
+        if (docSnap.exists()) {
+            setAuthConfig(docSnap.data());
+        } else {
+            setDoc(authDocRef, DEFAULT_AUTH_DB);
+        }
     });
 
-    const unsubDqs = onSnapshot(query(collection(db, 'artifacts', appId, 'public', 'data', 'dqs')), (snapshot) => {
-      setDqs(snapshot.docs.map(d => ({ id: d.id, ...d.data() } as DQRecord)).sort((a, b) => b.createdAt - a.createdAt));
-    });
+    // D. Listen DQs
+    const dqRef = collection(db, 'artifacts', appId, 'public', 'data', 'dqs');
+    const unsubDqs = onSnapshot(query(dqRef), (snapshot) => {
+      const loadedDqs: DQRecord[] = [];
+      snapshot.forEach((doc) => {
+        loadedDqs.push({ id: doc.id, ...doc.data() } as DQRecord);
+      });
+      loadedDqs.sort((a, b) => b.createdAt - a.createdAt);
+      setDqs(loadedDqs);
+    }, (error) => console.error("Error DQs:", error));
 
-    let unsubEvents = () => {};
-    let unsubAuth = () => {};
+    return () => {
+      unsubEvents();
+      unsubStatus();
+      unsubDqs();
+      unsubAuth();
+    };
+  }, [user]);
 
-    if (role && role !== 'public') {
-        unsubEvents = onSnapshot(query(collection(db, 'artifacts', appId, 'public', 'data', 'events')), (snapshot) => {
-            setEvents(snapshot.docs.map(d => ({ id: d.id, ...d.data() } as EventItem)).sort((a, b) => a.number - b.number));
-        });
-        unsubAuth = onSnapshot(doc(db, 'artifacts', appId, 'public', 'data', 'auth', 'config'), (docSnap) => {
-            if (docSnap.exists()) setAuthConfig(docSnap.data());
-            else setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'auth', 'config'), DEFAULT_AUTH_DB);
-        });
-    }
 
-    return () => { unsubStatus(); unsubDqs(); unsubEvents(); unsubAuth(); };
-  }, [user, role]);
+  // --- FIRESTORE ACTIONS ---
 
-  // Actions
   const updateGlobalState = async (newState: Partial<AppState>) => {
-    if (!user) return;
-    await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'status', 'global'), {
-      ...newState,
-      lastUpdate: getWIBTime() 
-    });
-  };
-
-  const fbAddEvent = async (newItem: Omit<EventItem, 'id'>) => { if (!user) return; await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'events'), newItem); };
-  const fbEditEvent = async (id: string, updatedData: Partial<EventItem>) => { if (!user) return; await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'events', id), updatedData); };
-  const fbDeleteEvent = async (id: string) => { if (!user) return; await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'events', id)); };
-  
-  const fbResetProgress = async () => {
       if (!user) return;
-      await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'status', 'global'), {
-          currentEventId: null, currentEventName: null, currentEventNumber: null, currentSeries: 1,
-          callRoomEventId: null, callRoomEventName: null, callRoomEventNumber: null, callRoomSeries: 1,
-          lastUpdate: '-', callRoomLastUpdate: '-'
+      const statusDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'status', 'global');
+      await updateDoc(statusDocRef, {
+          ...newState,
+          lastUpdate: getWIBTime()
       });
   };
 
-  const fbAddDQ = async (newDQ: Omit<DQRecord, 'id'>) => { if (!user) return; await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'dqs'), newDQ); };
-  const fbDeleteDQ = async (id: string) => { if (!user) return; await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'dqs', id)); };
-  const fbUpdatePin = async (r: string, p: string) => { if(!user) return; await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'auth', 'config'), { [r]: simpleHash(p) }); };
+  const updatePin = async (role: string, newPin: string) => {
+      if (!user) return;
+      const hashed = simpleHash(newPin);
+      const authDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'auth', 'config');
+      await updateDoc(authDocRef, {
+          [role]: hashed
+      });
+  };
+
+  const fbAddEvent = async (newItem: Omit<EventItem, 'id'>) => {
+      if (!user) return;
+      await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'events'), newItem);
+  };
+
+  const fbEditEvent = async (id: string, updatedData: Partial<EventItem>) => {
+      if (!user) return;
+      await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'events', id), updatedData);
+  };
+
+  const fbDeleteEvent = async (id: string) => {
+      if (!user) return;
+      await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'events', id));
+      if (appState.currentEventId === id || appState.callRoomEventId === id) {
+          const remainingEvents = events.filter(e => e.id !== id);
+          const fallbackId = remainingEvents.length > 0 ? remainingEvents[0].id : null;
+          await updateGlobalState({
+             currentEventId: appState.currentEventId === id ? fallbackId : appState.currentEventId,
+             callRoomEventId: appState.callRoomEventId === id ? fallbackId : appState.callRoomEventId,
+             currentSeries: 1, 
+             callRoomSeries: 1,
+          });
+      }
+  };
+
+  const fbResetProgress = async () => {
+      if (!user) return;
+      const statusDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'status', 'global');
+      await updateDoc(statusDocRef, {
+          currentEventId: null,
+          currentEventName: null,
+          currentEventNumber: null,
+          currentSeries: 1,
+          callRoomEventId: null,
+          callRoomEventName: null,
+          callRoomEventNumber: null,
+          callRoomSeries: 1,
+          lastUpdate: '-',
+          callRoomLastUpdate: '-'
+      });
+  };
+
+  const fbAddDQ = async (newDQ: Omit<DQRecord, 'id'>) => {
+      if (!user) return;
+      await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'dqs'), newDQ);
+  };
+
+  const fbDeleteDQ = async (id: string) => {
+      if (!user) return;
+      await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'dqs', id));
+  };
+
+  // --- NAVIGATION LOGIC ---
 
   const handleStartSequence = async (type: 'announcer' | 'callroom') => {
       if (events.length === 0) return;
-      const first = events[0]; 
-      const updateData = {
-          [`${type === 'announcer' ? 'current' : 'callRoom'}EventId`]: first.id,
-          [`${type === 'announcer' ? 'current' : 'callRoom'}EventName`]: first.name,
-          [`${type === 'announcer' ? 'current' : 'callRoom'}EventNumber`]: first.number,
-          [`${type === 'announcer' ? 'current' : 'callRoom'}EventTotalSeries`]: first.totalSeries,
-          [`${type === 'announcer' ? 'current' : 'callRoom'}Series`]: 1,
-      };
-      if (type === 'callroom') updateData['callRoomLastUpdate'] = getWIBTime();
-      await updateGlobalState(updateData);
-  };
-
-  const navigate = async (type: 'current' | 'callRoom', direction: 'next' | 'prev') => {
-      const idKey = type === 'current' ? 'currentEventId' : 'callRoomEventId';
-      const seriesKey = type === 'current' ? 'currentSeries' : 'callRoomSeries';
-      const currentId = appState[idKey];
-      const idx = events.findIndex(e => e.id === currentId);
-      if (idx === -1) return;
-
-      let nextSeries = appState[seriesKey];
-      let targetEvent = events[idx];
-
-      if (direction === 'next') {
-          if (nextSeries < targetEvent.totalSeries) {
-              nextSeries++;
-          } else if (idx < events.length - 1) {
-              targetEvent = events[idx + 1];
-              nextSeries = 1;
-          }
+      const firstEventId = events[0].id;
+      const firstEvent = events[0];
+      
+      if (type === 'announcer') {
+          await updateGlobalState({ 
+            currentEventId: firstEventId, 
+            currentSeries: 1,
+            currentEventName: firstEvent.name,
+            currentEventNumber: firstEvent.number
+          });
       } else {
-          if (nextSeries > 1) {
-              nextSeries--;
-          } else if (idx > 0) {
-              targetEvent = events[idx - 1];
-              nextSeries = targetEvent.totalSeries;
-          }
+          await updateGlobalState({ 
+            callRoomEventId: firstEventId, 
+            callRoomSeries: 1, 
+            callRoomEventName: firstEvent.name,
+            callRoomEventNumber: firstEvent.number,
+            callRoomLastUpdate: getWIBTime()
+          });
       }
-
-      const updateData = {
-          [idKey]: targetEvent.id,
-          [`${type}EventName`]: targetEvent.name,
-          [`${type}EventNumber`]: targetEvent.number,
-          [`${type}EventTotalSeries`]: targetEvent.totalSeries,
-          [seriesKey]: nextSeries
-      };
-      if (type === 'callRoom') updateData['callRoomLastUpdate'] = getWIBTime();
-      await updateGlobalState(updateData);
   };
 
+  const navigateLive = async (direction: 'next' | 'prev') => {
+    const currentEventIndex = events.findIndex(e => e.id === appState.currentEventId);
+    if (currentEventIndex === -1) return;
+    let newSeries = appState.currentSeries;
+    let newEventId = appState.currentEventId;
+    let targetEvent = events[currentEventIndex];
+
+    if (direction === 'next') {
+      if (newSeries < events[currentEventIndex].totalSeries) { newSeries++; } 
+      else if (currentEventIndex < events.length - 1) { 
+        targetEvent = events[currentEventIndex + 1];
+        newEventId = targetEvent.id; 
+        newSeries = 1; 
+      }
+    } else {
+      if (newSeries > 1) { newSeries--; } 
+      else if (currentEventIndex > 0) { 
+        targetEvent = events[currentEventIndex - 1];
+        newEventId = targetEvent.id; 
+        newSeries = targetEvent.totalSeries; 
+      }
+    }
+    await updateGlobalState({ 
+      currentEventId: newEventId, 
+      currentSeries: newSeries,
+      currentEventName: targetEvent.name,
+      currentEventNumber: targetEvent.number
+    });
+  };
+
+  const navigateCallRoom = async (direction: 'next' | 'prev') => {
+    const currentEventIndex = events.findIndex(e => e.id === appState.callRoomEventId);
+    if (currentEventIndex === -1) return;
+    let newSeries = appState.callRoomSeries;
+    let newEventId = appState.callRoomEventId;
+    let targetEvent = events[currentEventIndex];
+
+    if (direction === 'next') {
+      if (newSeries < events[currentEventIndex].totalSeries) { newSeries++; } 
+      else if (currentEventIndex < events.length - 1) { 
+        targetEvent = events[currentEventIndex + 1];
+        newEventId = targetEvent.id; 
+        newSeries = 1; 
+      }
+    } else {
+      if (newSeries > 1) { newSeries--; } 
+      else if (currentEventIndex > 0) { 
+        targetEvent = events[currentEventIndex - 1];
+        newEventId = targetEvent.id; 
+        newSeries = targetEvent.totalSeries; 
+      }
+    }
+    await updateGlobalState({ 
+      callRoomEventId: newEventId, 
+      callRoomSeries: newSeries, 
+      callRoomEventName: targetEvent.name,
+      callRoomEventNumber: targetEvent.number,
+      callRoomLastUpdate: getWIBTime()
+    });
+  };
+
+  // --- AUTH HANDLERS ---
+  const handleEnterEvent = () => { setViewMode('app'); setRole('public'); };
+  const handleOfficialLogin = () => { setViewMode('app'); setRole(null); };
+  const handleLoginRequest = (r: any) => { setTargetLoginRole(r); setShowLoginModal(true); };
+
+  // --- RENDER UTAMA ---
   if (!user) return <div className="h-screen flex items-center justify-center text-slate-500 font-sans gap-2"><Loader2 className="animate-spin"/> Menghubungkan...</div>;
 
   return (
     <>
       {showLoginModal && (
         <LoginModal 
-          targetRole={targetLoginRole} authConfig={authConfig}
+          targetRole={targetLoginRole} 
+          authConfig={authConfig}
           onClose={() => setShowLoginModal(false)}
-          onSuccess={(r: any) => { setRole(r); setViewMode('app'); setShowLoginModal(false); }}
+          onSuccess={(role: any) => { setRole(role); setViewMode('app'); setShowLoginModal(false); }}
         />
       )}
 
       {viewMode === 'landing' ? (
-        <LandingPage onEnter={() => {setViewMode('app'); setRole('public');}} onOfficialLogin={() => {setViewMode('app'); setRole(null);}} appState={appState} />
+        <LandingPage 
+            onEnter={handleEnterEvent} 
+            onOfficialLogin={handleOfficialLogin} 
+            appState={appState} 
+        />
       ) : (
         <div className="min-h-screen bg-slate-50 font-sans text-slate-900">
           {role === 'public' ? (
             <PublicPanel appState={appState} dqs={dqs} onBack={() => setViewMode('landing')} onLoginRequest={() => setRole(null)} />
           ) : !role ? (
-            <RoleSelectionPanel onBack={() => setViewMode('landing')} onLoginRequest={(r:any) => {setTargetLoginRole(r); setShowLoginModal(true);}} />
+            <RoleSelectionPanel onBack={() => setViewMode('landing')} onLoginRequest={handleLoginRequest} />
           ) : (
             <div className="flex flex-col min-h-screen">
-               <Header role={role} title={appState.title} venue={appState.venue} onHome={()=>{setRole(null); setViewMode('landing')}} onLogout={()=>setRole(null)} />
-               <main className="flex-1 max-w-7xl mx-auto w-full p-4 md:p-6">
-                  {role === 'admin' && <AdminPanel events={events} appState={appState} dqs={dqs} onAddEvent={fbAddEvent} onEditEvent={fbEditEvent} onDeleteEvent={fbDeleteEvent} onUpdateSettings={updateGlobalState} onAddDQ={fbAddDQ} onDeleteDQ={fbDeleteDQ} onUpdatePin={fbUpdatePin} onResetProgress={fbResetProgress} />}
-                  {role === 'announcer' && <AnnouncerPanel events={events} appState={appState} navigate={(dir: any) => navigate('current', dir)} onStart={() => handleStartSequence('announcer')} dqs={dqs} />}
-                  {role === 'callroom' && <CallRoomPanel events={events} appState={appState} navigate={(dir: any) => navigate('callRoom', dir)} onStart={() => handleStartSequence('callroom')} />}
-               </main>
+              <header className="bg-slate-900 text-white p-4 shadow-lg sticky top-0 z-50">
+                  <div className="max-w-7xl mx-auto flex justify-between items-center">
+                    <div className="flex items-center gap-2">
+                      {role === 'admin' && <Settings className="text-blue-400" />}
+                      {role === 'announcer' && <Mic className="text-purple-400" />}
+                      {role === 'callroom' && <Users className="text-emerald-400" />}
+                      <div className="flex flex-col">
+                        <span className="font-bold text-lg tracking-wide uppercase leading-none">
+                            {role === 'admin' ? 'Admin' : role === 'announcer' ? 'Announcer' : 'Call Room'}
+                        </span>
+                        <span className="text-[10px] text-emerald-400 flex items-center gap-1"><Wifi size={10} /> ONLINE</span>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <button onClick={() => { setRole(null); setViewMode('landing'); }} className="text-xs bg-slate-700 hover:bg-slate-600 px-3 py-1.5 rounded-full flex items-center gap-1 transition">
+                        <Home size={12} /> Home
+                      </button>
+                      <button onClick={() => setRole(null)} className="text-xs bg-red-600 hover:bg-red-700 px-3 py-1.5 rounded-full flex items-center gap-1 transition">
+                        <LogOut size={12} /> Logout
+                      </button>
+                    </div>
+                  </div>
+                </header>
+
+                <main className="flex-1 max-w-7xl mx-auto w-full p-4 md:p-6">
+                  {role === 'admin' && (
+                    <AdminPanel 
+                      events={events} appState={appState} dqs={dqs} 
+                      onAddEvent={fbAddEvent} onEditEvent={fbEditEvent} onDeleteEvent={fbDeleteEvent}
+                      onUpdateSettings={updateGlobalState} onAddDQ={fbAddDQ} onDeleteDQ={fbDeleteDQ}
+                      onUpdatePin={updatePin} onResetProgress={fbResetProgress}
+                    />
+                  )}
+                  {role === 'announcer' && (
+                    <AnnouncerPanel 
+                      events={events} appState={appState} 
+                      navigate={navigateLive} onStart={() => handleStartSequence('announcer')} dqs={dqs}
+                    />
+                  )}
+                  {role === 'callroom' && (
+                    <CallRoomPanel 
+                      events={events} appState={appState} 
+                      navigate={navigateCallRoom} onStart={() => handleStartSequence('callroom')}
+                    />
+                  )}
+                </main>
             </div>
           )}
         </div>
@@ -302,62 +482,38 @@ export default function App() {
 
 // --- SUB-COMPONENTS ---
 
-const Header = ({ role, title, venue, onHome, onLogout }: any) => (
-  <header className="bg-slate-900 text-white p-4 shadow-lg sticky top-0 z-50">
-    <div className="max-w-7xl mx-auto flex justify-between items-center">
-      <div className="flex items-center gap-3">
-        {role === 'admin' && <Settings className="text-blue-400" />}
-        {role === 'announcer' && <Mic className="text-purple-400" />}
-        {role === 'callroom' && <Users className="text-emerald-400" />}
-        <div>
-          <span className="font-bold text-lg uppercase leading-none block">{role}</span>
-          <span className="text-[10px] text-emerald-400 flex items-center gap-1"><Wifi size={10} /> ONLINE</span>
-        </div>
-      </div>
-      <div className="flex items-center gap-3">
-         <div className="hidden md:block text-right mr-2">
-            <div className="text-xs font-bold text-slate-300">{title}</div>
-            <div className="text-[10px] text-slate-500">{venue}</div>
-         </div>
-         <button onClick={onHome} className="p-2 bg-slate-800 hover:bg-slate-700 rounded-full transition"><Home size={16} /></button>
-         <button onClick={onLogout} className="p-2 bg-red-600 hover:bg-red-700 rounded-full transition"><LogOut size={16} /></button>
-      </div>
-    </div>
-  </header>
-);
-
 function LandingPage({ onEnter, onOfficialLogin, appState }: any) {
   return (
-    <div className="min-h-screen bg-slate-900 text-white font-sans flex flex-col relative overflow-hidden">
+    <div className="min-h-screen bg-slate-900 text-white font-sans selection:bg-blue-500 selection:text-white flex flex-col relative overflow-hidden">
       <div className="absolute inset-0 opacity-20 bg-[url('https://images.unsplash.com/photo-1530549387789-4c1017266635?ixlib=rb-1.2.1&auto=format&fit=crop&w=1920&q=80')] bg-cover bg-center" />
-      
-      {/* HEADER Landing Page dengan Logo */}
       <nav className="border-b border-white/10 bg-slate-900/80 backdrop-blur-md sticky top-0 z-50 p-4">
         <div className="max-w-6xl mx-auto flex justify-between items-center">
           <div className="flex items-center gap-3">
-             {/* Menggunakan %20 untuk spasi agar aman */}
+             {/* Menggunakan %20 untuk spasi pada URL gambar */}
              <img src="/sangkuriang%201.png" alt="Logo SSO" className="h-10 w-auto object-contain" onError={(e:any) => e.target.style.display='none'} />
              <div className="font-bold text-xl leading-tight">
                <div>SANGKURIANG</div>
                <div className="text-blue-400 text-sm tracking-widest">SWIM ORGANIZER</div>
              </div>
           </div>
-          <button onClick={onOfficialLogin} className="text-sm text-slate-400 hover:text-white flex gap-1 items-center"><Lock size={14}/> Login</button>
+          <button onClick={onOfficialLogin} className="text-sm text-slate-400 hover:text-white transition flex items-center gap-1">
+            <Lock size={14} /> Official Login
+          </button>
         </div>
       </nav>
-
       <div className="flex-1 flex flex-col justify-center items-center text-center p-6 z-10">
-        <h1 className="text-4xl md:text-6xl font-extrabold mb-4 bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-emerald-400">Event Management</h1>
-        <p className="text-slate-400 text-lg mb-8 max-w-xl mx-auto">Real-time scoreboard & race management system.</p>
-        <div className="bg-slate-800/80 backdrop-blur border border-slate-700 p-6 rounded-2xl shadow-2xl max-w-sm w-full hover:border-blue-500 transition-colors">
-            <div className="flex justify-between mb-4"><span className="bg-emerald-500/20 text-emerald-400 text-xs px-2 py-1 rounded font-bold animate-pulse">LIVE NOW</span><Calendar size={16} className="text-slate-500"/></div>
-            <h3 className="text-xl font-bold mb-1">{appState.title}</h3>
-            <div className="text-sm text-slate-400 mb-6 flex items-center justify-center gap-1"><MapPin size={12}/> {appState.venue || 'Venue TBD'}</div>
-            <button onClick={onEnter} className="w-full py-3 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-bold flex justify-center items-center gap-2 transition active:scale-95">Lihat Scoreboard <ArrowRight size={18}/></button>
+        <h1 className="text-5xl md:text-7xl font-extrabold tracking-tight mb-6 bg-clip-text text-transparent bg-gradient-to-r from-blue-400 via-emerald-400 to-teal-400">Event Management</h1>
+        <p className="text-slate-400 text-lg md:text-xl leading-relaxed mb-8">Platform manajemen lomba renang real-time.</p>
+        <div className="max-w-md mx-auto group bg-slate-800 rounded-2xl p-6 border border-slate-700 hover:border-blue-500/50 transition shadow-2xl">
+            <div className="flex justify-between items-start mb-4">
+              <span className="bg-emerald-500/10 text-emerald-400 text-xs font-bold px-3 py-1 rounded-full animate-pulse">LIVE NOW</span>
+              <Calendar className="text-slate-500" size={20} />
+            </div>
+            <h3 className="text-2xl font-bold mb-2 group-hover:text-blue-400 transition">{appState.title}</h3>
+            <div className="flex items-center gap-2 text-slate-400 text-sm mb-6"><MapPin size={16} /> {appState.venue || 'Venue TBD'}</div>
+            <button onClick={onEnter} className="w-full py-3 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-bold flex items-center justify-center gap-2 transition active:scale-95">Lihat Live Score <ArrowRight size={18} /></button>
         </div>
       </div>
-
-      {/* FOOTER Landing Page */}
       <footer className="bg-slate-950 text-slate-600 py-4 text-center text-xs border-t border-slate-800 z-10 relative">
          &copy; anak magang SSO 2026
       </footer>
@@ -367,15 +523,18 @@ function LandingPage({ onEnter, onOfficialLogin, appState }: any) {
 
 function RoleSelectionPanel({ onBack, onLoginRequest }: any) {
     return (
-      <div className="min-h-screen bg-slate-900 flex items-center justify-center p-4">
-        <div className="max-w-4xl w-full">
-            <button onClick={onBack} className="mb-8 text-slate-400 hover:text-white flex gap-2 items-center"><ChevronLeft size={20}/> Kembali</button>
-            <h2 className="text-2xl font-bold text-white text-center mb-8">Pilih Akses Petugas</h2>
-            <div className="grid md:grid-cols-3 gap-4">
+      <div className="min-h-screen bg-slate-900 flex items-center justify-center p-4 font-sans">
+        <div className="max-w-4xl w-full relative">
+            <button onClick={onBack} className="absolute -top-16 left-0 bg-slate-800 text-white px-4 py-2 rounded-lg flex items-center gap-2"><Home size={18} /> Kembali ke Beranda</button>
+            <div className="text-center mb-8">
+                <h2 className="text-2xl font-bold text-white">Login Petugas</h2>
+                <p className="text-slate-400 text-sm">Silakan pilih peran tugas Anda</p>
+            </div>
+            <div className="grid md:grid-cols-3 gap-4 mt-8">
                 {['admin', 'announcer', 'callroom'].map(r => (
-                    <button key={r} onClick={() => onLoginRequest(r)} className="p-8 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-2xl capitalize font-bold text-white transition hover:scale-105 group">
-                        {r==='admin'?<Settings size={32} className="mb-4 text-blue-500 group-hover:scale-110 transition"/>:r==='announcer'?<Mic size={32} className="mb-4 text-purple-500 group-hover:scale-110 transition"/>:<Users size={32} className="mb-4 text-emerald-500 group-hover:scale-110 transition"/>}
-                        <div className="text-xl">{r}</div>
+                    <button key={r} onClick={() => onLoginRequest(r)} className="p-8 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-2xl text-center capitalize font-bold text-white text-lg transition transform hover:scale-105">
+                        {r === 'admin' ? <Settings size={32} className="mx-auto mb-2 text-blue-500"/> : r === 'announcer' ? <Mic size={32} className="mx-auto mb-2 text-purple-500"/> : <Users size={32} className="mx-auto mb-2 text-emerald-500"/>}
+                        {r}
                     </button>
                 ))}
             </div>
@@ -388,18 +547,19 @@ function LoginModal({ targetRole, onClose, onSuccess, authConfig }: any) {
   const [pin, setPin] = useState(''); const [error, setError] = useState(false);
   const handleSubmit = (e: React.FormEvent) => { 
       e.preventDefault(); 
-      if (simpleHash(pin) === authConfig[targetRole]) onSuccess(targetRole); 
+      const h = simpleHash(pin); 
+      if (h === authConfig[targetRole]) onSuccess(targetRole); 
       else { setError(true); setPin(''); }
   };
   return (
     <div className="fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-[60]">
-      <div className="bg-white rounded-2xl w-full max-w-sm p-8 relative animate-in zoom-in-95 duration-200">
-        <button onClick={onClose} className="absolute top-4 right-4 text-slate-400 hover:text-slate-800"><X size={20} /></button>
-        <h2 className="text-xl font-bold text-center mb-6 capitalize">Login {targetRole}</h2>
+      <div className="bg-white rounded-2xl w-full max-w-md p-8 relative animate-in fade-in zoom-in duration-200">
+        <button onClick={onClose} className="absolute top-4 right-4 text-slate-400 hover:text-slate-800"><X size={24} /></button>
+        <h2 className="text-2xl font-bold text-center mb-6 text-slate-900 capitalize">Akses {targetRole}</h2>
         <form onSubmit={handleSubmit}>
-          <input autoFocus type="password" value={pin} onChange={e=>{setPin(e.target.value);setError(false)}} className="w-full text-center text-3xl font-bold p-4 border rounded-xl mb-4 outline-none focus:ring-2 focus:ring-blue-500" placeholder="PIN" />
-          {error && <p className="text-red-500 text-center mb-4 text-sm font-bold">PIN Salah</p>}
-          <button className="w-full bg-slate-900 text-white py-3 rounded-xl font-bold hover:bg-slate-800 transition">Masuk</button>
+          <input autoFocus type="password" value={pin} onChange={e=>{setPin(e.target.value);setError(false)}} className="w-full text-center text-3xl font-bold p-4 border rounded-xl mb-4 focus:ring-4 focus:ring-blue-100 outline-none" placeholder="PIN" />
+          {error && <p className="text-red-500 text-center mb-4 font-bold">PIN Salah!</p>}
+          <button className="w-full bg-slate-900 text-white py-3 rounded-xl font-bold">Masuk</button>
         </form>
       </div>
     </div>
@@ -407,48 +567,63 @@ function LoginModal({ targetRole, onClose, onSuccess, authConfig }: any) {
 }
 
 function AdminPanel({ events, appState, dqs, onAddEvent, onEditEvent, onDeleteEvent, onUpdateSettings, onAddDQ, onDeleteDQ, onUpdatePin, onResetProgress }: any) {
-  const [loading, setLoading] = useState(false);
   const [newEvent, setNewEvent] = useState({ number: '', name: '', totalSeries: '' });
   const [newDQ, setNewDQ] = useState({ eventNumber: '', series: '', lane: '', reason: '' });
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editForm, setEditForm] = useState({ number: '', name: '', totalSeries: '' });
+  
   const [pinRole, setPinRole] = useState('announcer');
   const [newPinCode, setNewPinCode] = useState('');
 
-  const wrapAsync = async (fn: () => Promise<void>) => { setLoading(true); try { await fn(); } finally { setLoading(false); }};
-  const handleAddEvent = (e: React.FormEvent) => { e.preventDefault(); if(!newEvent.number) return; wrapAsync(async () => { await onAddEvent({ number: parseInt(newEvent.number), name: newEvent.name, totalSeries: parseInt(newEvent.totalSeries) }); setNewEvent({ number: '', name: '', totalSeries: '' }); }); };
-  const handleUpdatePin = (e: React.FormEvent) => { e.preventDefault(); if(newPinCode.length < 4) return alert("Min 4 digit"); wrapAsync(async () => { await onUpdatePin(pinRole, newPinCode); alert("PIN Berhasil Diubah!"); setNewPinCode(''); }); };
-  const handleReset = () => { if(!window.confirm("RESET PROGRESS?")) return; wrapAsync(async () => { await onResetProgress(); }); };
+  const handleAddEvent = (e: React.FormEvent) => { e.preventDefault(); if(!newEvent.number) return; onAddEvent({ number: parseInt(newEvent.number), name: newEvent.name, totalSeries: parseInt(newEvent.totalSeries) }); setNewEvent({ number: '', name: '', totalSeries: '' }); };
+  const handleAddDQ = (e: React.FormEvent) => { e.preventDefault(); onAddDQ({ eventNumber: parseInt(newDQ.eventNumber), series: parseInt(newDQ.series), lane: parseInt(newDQ.lane), reason: newDQ.reason, timestamp: new Date().toLocaleTimeString(), createdAt: Date.now() }); setNewDQ({ eventNumber: '', series: '', lane: '', reason: '' }); };
+  const saveEdit = () => { if(!editingId) return; onEditEvent(editingId, { number: parseInt(editForm.number), name: editForm.name, totalSeries: parseInt(editForm.totalSeries) }); setEditingId(null); };
+  
+  const handleChangePin = (e: React.FormEvent) => {
+      e.preventDefault();
+      if(newPinCode.length < 4) return alert("PIN minimal 4 angka");
+      onUpdatePin(pinRole, newPinCode);
+      alert(`PIN untuk ${pinRole} berhasil diubah!`);
+      setNewPinCode('');
+  };
+  const handleReset = () => { if(window.confirm("RESET PROGRESS?")) { onResetProgress(); }};
 
   return (
-    <div className="grid md:grid-cols-2 gap-6 relative">
-      {loading && <div className="absolute inset-0 bg-white/50 z-50 flex items-center justify-center"><Loader2 className="animate-spin text-blue-600" size={40}/></div>}
+    <div className="grid md:grid-cols-2 gap-6">
       <div className="space-y-6">
         <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
-          <h2 className="font-bold mb-4 flex gap-2"><Settings className="text-blue-600"/> Pengaturan</h2>
-          <div className="space-y-2 mb-6">
-             <input type="text" value={appState.title} onChange={(e) => onUpdateSettings({ title: e.target.value })} className="w-full p-2 border rounded text-sm" placeholder="Nama Kejuaraan" />
-             <input type="text" value={appState.venue} onChange={(e) => onUpdateSettings({ venue: e.target.value })} className="w-full p-2 border rounded text-sm" placeholder="Venue" />
+          <h2 className="text-xl font-bold mb-4 text-slate-800 flex items-center gap-2"><Settings className="text-blue-600"/> Pengaturan</h2>
+          <div className="space-y-3">
+             <input type="text" value={appState.title} onChange={(e) => onUpdateSettings({ title: e.target.value })} className="w-full p-2 border border-slate-300 rounded" placeholder="Nama Kejuaraan" />
+             <input type="text" value={appState.venue} onChange={(e) => onUpdateSettings({ venue: e.target.value })} className="w-full p-2 border border-slate-300 rounded" placeholder="Venue" />
           </div>
-          <div className="pt-4 border-t border-slate-100">
-             <h3 className="font-bold text-slate-700 text-sm mb-2">Ganti PIN <Key size={14} className="inline ml-1"/></h3>
-             <form onSubmit={handleUpdatePin} className="flex gap-2">
-                 <select value={pinRole} onChange={e => setPinRole(e.target.value)} className="p-2 border rounded bg-slate-50 text-sm"><option value="admin">Admin</option><option value="announcer">Announcer</option><option value="callroom">Call Room</option></select>
+          <div className="mt-6 pt-4 border-t border-slate-200">
+             <h3 className="font-bold text-slate-700 flex items-center gap-2 mb-3"><Lock size={16} /> Ganti PIN Petugas</h3>
+             <form onSubmit={handleChangePin} className="flex gap-2">
+                 <select value={pinRole} onChange={e => setPinRole(e.target.value)} className="p-2 border rounded bg-slate-50 text-sm">
+                     <option value="admin">Admin</option>
+                     <option value="announcer">Announcer</option>
+                     <option value="callroom">Call Room</option>
+                 </select>
                  <input type="text" value={newPinCode} onChange={e => setNewPinCode(e.target.value)} placeholder="PIN Baru" className="flex-1 p-2 border rounded text-sm" pattern="\d*" />
-                 <button className="bg-slate-800 text-white px-3 rounded text-xs font-bold">UBAH</button>
+                 <button type="submit" className="bg-slate-800 text-white px-3 py-2 rounded text-xs font-bold hover:bg-slate-700">SIMPAN</button>
              </form>
           </div>
-          <div className="pt-4 mt-4 border-t border-slate-100">
-             <button onClick={handleReset} className="w-full bg-red-50 text-red-600 hover:bg-red-100 py-2 rounded border border-red-200 text-sm font-bold flex justify-center gap-2"><RotateCcw size={16} /> RESET LOMBA</button>
+          <div className="mt-6 pt-4 border-t border-slate-200">
+             <h3 className="font-bold text-red-600 flex items-center gap-2 mb-3"><RotateCcw size={16} /> Zona Bahaya</h3>
+             <button onClick={handleReset} className="w-full bg-red-50 text-red-600 hover:bg-red-100 py-3 rounded-lg font-bold flex items-center justify-center gap-2 transition border border-red-200">
+                RESET PROGRESS LOMBA
+             </button>
           </div>
         </div>
+
         <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
-          <h2 className="font-bold mb-4 flex gap-2"><List className="text-blue-600"/> Events</h2>
+          <h2 className="text-xl font-bold mb-4 text-slate-800 flex items-center gap-2"><List className="text-blue-600"/> Events</h2>
           <form onSubmit={handleAddEvent} className="flex gap-2 mb-4">
-            <input type="number" placeholder="No" value={newEvent.number} onChange={e => setNewEvent({...newEvent, number: e.target.value})} className="w-14 p-2 border rounded text-sm" />
-            <input type="text" placeholder="Nama Acara" value={newEvent.name} onChange={e => setNewEvent({...newEvent, name: e.target.value})} className="flex-1 p-2 border rounded text-sm" />
-            <input type="number" placeholder="Seri" value={newEvent.totalSeries} onChange={e => setNewEvent({...newEvent, totalSeries: e.target.value})} className="w-14 p-2 border rounded text-sm" />
-            <button className="bg-blue-600 text-white p-2 rounded"><Plus size={16}/></button>
+            <input type="number" placeholder="No" value={newEvent.number} onChange={e => setNewEvent({...newEvent, number: e.target.value})} className="w-16 p-2 border rounded" />
+            <input type="text" placeholder="Nama Acara" value={newEvent.name} onChange={e => setNewEvent({...newEvent, name: e.target.value})} className="flex-1 p-2 border rounded" />
+            <input type="number" placeholder="Seri" value={newEvent.totalSeries} onChange={e => setNewEvent({...newEvent, totalSeries: e.target.value})} className="w-16 p-2 border rounded" />
+            <button className="bg-blue-600 text-white p-2 rounded"><Plus/></button>
           </form>
           <div className="max-h-60 overflow-y-auto">
             <table className="w-full text-sm text-left">
@@ -460,19 +635,16 @@ function AdminPanel({ events, appState, dqs, onAddEvent, onEditEvent, onDeleteEv
                         <td className="p-2"><input type="number" value={editForm.number} onChange={e => setEditForm({...editForm, number: e.target.value})} className="w-full border rounded" /></td>
                         <td className="p-2"><input type="text" value={editForm.name} onChange={e => setEditForm({...editForm, name: e.target.value})} className="w-full border rounded" /></td>
                         <td className="p-2"><input type="number" value={editForm.totalSeries} onChange={e => setEditForm({...editForm, totalSeries: e.target.value})} className="w-full border rounded" /></td>
-                        <td className="p-2 flex gap-1">
-                            <button onClick={() => wrapAsync(async() => { await onEditEvent(ev.id, { number: parseInt(editForm.number), name: editForm.name, totalSeries: parseInt(editForm.totalSeries) }); setEditingId(null); })} className="text-green-600"><Save size={16}/></button>
-                            <button onClick={() => setEditingId(null)} className="text-slate-500"><RotateCcw size={16}/></button>
-                        </td>
+                        <td className="p-2 flex gap-1"><button onClick={saveEdit} className="text-green-600"><Save size={16}/></button><button onClick={() => setEditingId(null)} className="text-slate-500"><RotateCcw size={16}/></button></td>
                       </>
                     ) : (
                       <>
-                        <td className="p-2 font-bold w-10">{ev.number}</td>
+                        <td className="p-2 font-bold">{ev.number}</td>
                         <td className="p-2">{ev.name}</td>
-                        <td className="p-2 text-center w-10 bg-slate-100 rounded">{ev.totalSeries}</td>
-                        <td className="p-2 text-right w-16">
+                        <td className="p-2 text-center bg-slate-100 rounded">{ev.totalSeries}</td>
+                        <td className="p-2 text-right">
                           <button onClick={() => { setEditingId(ev.id); setEditForm({ number: ev.number, name: ev.name, totalSeries: ev.totalSeries }); }} className="mr-2 text-blue-500"><Edit2 size={16}/></button>
-                          <button onClick={() => { if(confirm('Hapus?')) wrapAsync(async()=> await onDeleteEvent(ev.id)); }} className="text-red-500"><Trash2 size={16}/></button>
+                          <button onClick={() => { if(confirm('Hapus?')) onDeleteEvent(ev.id); }} className="text-red-500"><Trash2 size={16}/></button>
                         </td>
                       </>
                     )}
@@ -484,21 +656,21 @@ function AdminPanel({ events, appState, dqs, onAddEvent, onEditEvent, onDeleteEv
         </div>
       </div>
       <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
-          <h2 className="font-bold mb-4 text-red-600 flex gap-2"><AlertOctagon /> Diskualifikasi</h2>
-          <form onSubmit={(e) => { e.preventDefault(); wrapAsync(async()=> { await onAddDQ({ eventNumber: parseInt(newDQ.eventNumber), series: parseInt(newDQ.series), lane: parseInt(newDQ.lane), reason: newDQ.reason, timestamp: getWIBTime(), createdAt: Date.now() }); setNewDQ({ eventNumber: '', series: '', lane: '', reason: '' }); }) }} className="bg-red-50 p-4 rounded mb-4">
+          <h2 className="text-xl font-bold mb-4 text-red-600 flex items-center gap-2"><AlertOctagon /> Diskualifikasi</h2>
+          <form onSubmit={handleAddDQ} className="bg-red-50 p-4 rounded mb-4">
             <div className="flex gap-2 mb-2">
-              <input required type="number" placeholder="Acara" value={newDQ.eventNumber} onChange={e => setNewDQ({...newDQ, eventNumber: e.target.value})} className="w-1/3 p-2 border rounded text-sm" />
-              <input required type="number" placeholder="Seri" value={newDQ.series} onChange={e => setNewDQ({...newDQ, series: e.target.value})} className="w-1/3 p-2 border rounded text-sm" />
-              <input required type="number" placeholder="Lin" value={newDQ.lane} onChange={e => setNewDQ({...newDQ, lane: e.target.value})} className="w-1/3 p-2 border rounded text-sm" />
+              <input required type="number" placeholder="Acara" value={newDQ.eventNumber} onChange={e => setNewDQ({...newDQ, eventNumber: e.target.value})} className="w-1/3 p-2 border rounded" />
+              <input required type="number" placeholder="Seri" value={newDQ.series} onChange={e => setNewDQ({...newDQ, series: e.target.value})} className="w-1/3 p-2 border rounded" />
+              <input required type="number" placeholder="Lin" value={newDQ.lane} onChange={e => setNewDQ({...newDQ, lane: e.target.value})} className="w-1/3 p-2 border rounded" />
             </div>
-            <input required type="text" placeholder="Alasan" value={newDQ.reason} onChange={e => setNewDQ({...newDQ, reason: e.target.value})} className="w-full p-2 border rounded mb-2 text-sm" />
-            <button className="w-full bg-red-600 text-white font-bold py-2 rounded text-sm">SUBMIT DQ</button>
+            <input required type="text" placeholder="Alasan" value={newDQ.reason} onChange={e => setNewDQ({...newDQ, reason: e.target.value})} className="w-full p-2 border rounded mb-2" />
+            <button className="w-full bg-red-600 text-white font-bold py-2 rounded">SUBMIT DQ</button>
           </form>
-          <div className="max-h-80 overflow-y-auto space-y-2">
+          <div className="max-h-60 overflow-y-auto space-y-2">
             {dqs.map((dq: any) => (
-              <div key={dq.id} className="p-2 border rounded flex justify-between items-center text-sm bg-white">
+              <div key={dq.id} className="p-2 border rounded flex justify-between items-center text-sm">
                 <div><span className="font-bold text-red-600">#{dq.eventNumber}</span> S:{dq.series} L:{dq.lane} - {dq.reason}</div>
-                <button onClick={() => wrapAsync(async() => await onDeleteDQ(dq.id))} className="text-slate-400 hover:text-red-500"><Trash2 size={14}/></button>
+                <button onClick={() => onDeleteDQ(dq.id)} className="text-slate-400 hover:text-red-500"><Trash2 size={14}/></button>
               </div>
             ))}
           </div>
@@ -512,13 +684,13 @@ function AnnouncerPanel({ events, appState, navigate, onStart, dqs }: any) {
   const activeEvent = events.find((e: any) => e.id === appState.currentEventId);
   const needsStart = !activeEvent && events.length > 0;
   
-  const activeIdx = events.findIndex((e: any) => e.id === appState.currentEventId);
-  const callIdx = events.findIndex((e: any) => e.id === appState.callRoomEventId);
+  const activeEventIndex = events.findIndex((e: any) => e.id === appState.currentEventId);
+  const callRoomEventIndex = events.findIndex((e: any) => e.id === appState.callRoomEventId);
   let canGoNext = true; let blockReason = "";
 
-  if (activeIdx > -1 && callIdx > -1) {
-    if (activeIdx > callIdx) { canGoNext = false; blockReason = "Menunggu Pengatur Peserta"; } 
-    else if (activeIdx === callIdx && appState.currentSeries >= appState.callRoomSeries) { canGoNext = false; blockReason = "Menunggu Pengatur Peserta"; }
+  if (activeEventIndex > -1 && callRoomEventIndex > -1) {
+    if (activeEventIndex > callRoomEventIndex) { canGoNext = false; blockReason = "Menunggu Pengatur Peserta (Event Belum Siap)"; } 
+    else if (activeEventIndex === callRoomEventIndex && appState.currentSeries >= appState.callRoomSeries) { canGoNext = false; blockReason = "Menunggu Pengatur Peserta"; }
   }
 
   const handleNav = async (dir: string) => { setLoading(true); await navigate(dir); setLoading(false); };
@@ -697,7 +869,7 @@ function PublicPanel({ appState, dqs, onBack, onLoginRequest }: any) {
                                 <div className="col-span-2">No. Acara</div>
                                 <div className="col-span-2 text-center">Seri</div>
                                 <div className="col-span-2 text-center">Lintasan</div>
-                                <div className="col-span-6">Keterangan / Alasan</div>
+                                <div className="col-span-6">Deskripsi Pelanggaran / Pasal</div>
                             </div>
                             <div className="overflow-y-auto flex-1 p-0">
                                 {recentDQs.length === 0 ? (
