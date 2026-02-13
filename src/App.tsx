@@ -19,7 +19,6 @@ import {
   MapPin,
   ArrowRight,
   X,
-  AlertTriangle,
   Home,
   Edit2,
   Save,
@@ -349,6 +348,7 @@ export default function App() {
           {role === 'public' ? (
             <PublicPanel events={events} appState={appState} dqs={dqs} onBack={() => setViewMode('landing')} onLoginRequest={() => setRole(null)} />
           ) : !role ? (
+            // Jika role null, tampilkan pilihan Admin/Announcer/CallRoom
             <RoleSelectionPanel onBack={() => setViewMode('landing')} onLoginRequest={handleLoginRequest} />
           ) : (
             <div className="flex flex-col min-h-screen">
@@ -593,6 +593,7 @@ function AdminPanel({ events, appState, dqs, onAddEvent, onEditEvent, onDeleteEv
 function AnnouncerPanel({ events, appState, navigate, onStart, dqs }: any) {
   const activeEvent = events.find((e: any) => e.id === appState.currentEventId);
   const needsStart = !activeEvent && events.length > 0;
+  
   const activeEventIndex = events.findIndex((e: any) => e.id === appState.currentEventId);
   const callRoomEventIndex = events.findIndex((e: any) => e.id === appState.callRoomEventId);
   let canGoNext = true; let blockReason = "";
@@ -674,7 +675,6 @@ function CallRoomPanel({ events, appState, navigate, onStart }: any) {
   );
 }
 
-// FIX: Menghapus setRole dari props karena tidak dipakai
 function PublicPanel({ events, appState, dqs, onBack, onLoginRequest }: any) {
     const getEventNumber = (id: string | null) => events.find((e: any) => e.id === id)?.number || '-';
     const getEventName = (id: string | null) => events.find((e: any) => e.id === id)?.name || 'Menunggu...';
