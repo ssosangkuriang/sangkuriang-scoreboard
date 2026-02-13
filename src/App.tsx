@@ -490,7 +490,7 @@ function LandingPage({ onEnter, onOfficialLogin, appState }: any) {
         <div className="max-w-6xl mx-auto flex justify-between items-center">
           <div className="flex items-center gap-3">
              {/* Menggunakan %20 untuk spasi pada URL gambar */}
-             <img src="/sangkuriang%201.png" alt="Logo SSO" className="h-10 w-auto object-contain" onError={(e:any) => e.target.style.display='none'} />
+             <img src="/logosso.png" alt="Logo SSO" className="h-10 w-auto object-contain" onError={(e:any) => e.target.style.display='none'} />
              <div className="font-bold text-xl leading-tight">
                <div>SANGKURIANG</div>
                <div className="text-blue-400 text-sm tracking-widest">SWIM ORGANIZER</div>
@@ -780,7 +780,7 @@ function PublicPanel({ appState, dqs, onBack, onLoginRequest }: any) {
             <header className="bg-slate-900 text-white h-16 shrink-0 flex items-center justify-between px-6 border-b border-slate-800 shadow-xl z-50">
                 <div className="flex items-center gap-4">
                     {/* LOGO: Gunakan %20 untuk spasi */}
-                    <img src="/sangkuriang%201.png" alt="Logo" className="h-10 w-auto object-contain" onError={(e:any) => e.target.style.display='none'} />
+                    <img src="/logosso.png" alt="Logo" className="h-10 w-auto object-contain" onError={(e:any) => e.target.style.display='none'} />
                     <div className="flex flex-col justify-center">
                         <h1 className="font-extrabold text-lg leading-none tracking-wide uppercase">Sangkuriang</h1>
                         <p className="text-xs text-blue-400 font-bold tracking-[0.2em] uppercase">Swim Organizer</p>
