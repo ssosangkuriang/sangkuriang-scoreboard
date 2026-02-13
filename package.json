@@ -1,0 +1,35 @@
+{
+  "name": "swimming-app",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  
+  "homepage": "https://sangkuriang-sso.github.io/sangkuriang-scoreboard",
+
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -b && vite build",
+    "lint": "eslint .",
+    "preview": "vite preview",
+    
+    "predeploy": "npm run build",
+    "deploy": "gh-pages -d dist"
+  },
+  "dependencies": {
+    "firebase": "^10.x.x",
+    "lucide-react": "^0.x.x",
+    "react": "^18.x.x",
+    "react-dom": "^18.x.x"
+  },
+  "devDependencies": {
+    "@types/react": "^18.x.x",
+    "@types/react-dom": "^18.x.x",
+    "@vitejs/plugin-react": "^4.x.x",
+    "autoprefixer": "^10.x.x",
+    "gh-pages": "^6.x.x",
+    "postcss": "^8.x.x",
+    "tailwindcss": "^3.x.x",
+    "typescript": "^5.x.x",
+    "vite": "^5.x.x"
+  }
+}
