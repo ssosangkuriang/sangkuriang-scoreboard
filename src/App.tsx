@@ -25,7 +25,6 @@ import {
   RotateCcw,
   Wifi,
   Play, 
-  Key,
   Loader2 // Icon Loading
 } from 'lucide-react';
 
@@ -35,7 +34,7 @@ import {
   getAuth, 
   signInAnonymously, 
   onAuthStateChanged,
-  User
+  type User // FIX: Menambahkan kata 'type' agar TypeScript tidak error
 } from 'firebase/auth';
 import { 
   getFirestore, 
@@ -108,26 +107,19 @@ type DQRecord = {
   createdAt: number;
 };
 
-// OPTIMASI: Menambahkan cache detail acara ke status global
-// Penonton hanya baca ini, tidak perlu download daftar acara.
 type AppState = {
   title: string;
   venue: string;
-  
-  // Data Live
   currentEventId: string | null;
-  currentEventNumber?: number; // Cached
-  currentEventName?: string;   // Cached
-  currentEventTotalSeries?: number; // Cached
+  currentEventNumber?: number; 
+  currentEventName?: string;   
+  currentEventTotalSeries?: number;
   currentSeries: number;
-  
-  // Data Call Room
   callRoomEventId: string | null;
-  callRoomEventNumber?: number; // Cached
-  callRoomEventName?: string;   // Cached
-  callRoomEventTotalSeries?: number; // Cached
+  callRoomEventNumber?: number;
+  callRoomEventName?: string;
+  callRoomEventTotalSeries?: number;
   callRoomSeries: number;
-  
   lastUpdate: string; 
   callRoomLastUpdate: string; 
 };
@@ -168,18 +160,15 @@ export default function App() {
   useEffect(() => {
     if (!user) return;
 
-    // A. Always listen to Status (Semua user baca ini - 1 Dokumen)
     const unsubStatus = onSnapshot(doc(db, 'artifacts', appId, 'public', 'data', 'status', 'global'), (docSnap) => {
       if (docSnap.exists()) setAppState(docSnap.data() as AppState);
       else setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'status', 'global'), appState);
     });
 
-    // B. Always listen to DQ (Biasanya sedikit)
     const unsubDqs = onSnapshot(query(collection(db, 'artifacts', appId, 'public', 'data', 'dqs')), (snapshot) => {
       setDqs(snapshot.docs.map(d => ({ id: d.id, ...d.data() } as DQRecord)).sort((a, b) => b.createdAt - a.createdAt));
     });
 
-    // C. CONDITIONAL: Hanya Petugas yang download Event List lengkap
     let unsubEvents = () => {};
     let unsubAuth = () => {};
 
@@ -223,10 +212,6 @@ export default function App() {
   const fbAddDQ = async (newDQ: Omit<DQRecord, 'id'>) => { if (!user) return; await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'dqs'), newDQ); };
   const fbDeleteDQ = async (id: string) => { if (!user) return; await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'dqs', id)); };
   const fbUpdatePin = async (r: string, p: string) => { if(!user) return; await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'auth', 'config'), { [r]: simpleHash(p) }); };
-
-  // --- NAVIGATION LOGIC (PUSH CACHE TO DB) ---
-  // Saat petugas klik next, detail acara langsung disimpan ke status global
-  // sehingga penonton tidak perlu mencari id event di database.
 
   const handleStartSequence = async (type: 'announcer' | 'callroom') => {
       if (events.length === 0) return;
@@ -318,7 +303,7 @@ export default function App() {
   );
 }
 
-// --- SUB-COMPONENTS (OPTIMIZED) ---
+// --- SUB-COMPONENTS ---
 
 const Header = ({ role, title, venue, onHome, onLogout }: any) => (
   <header className="bg-slate-900 text-white p-4 shadow-lg sticky top-0 z-50">
