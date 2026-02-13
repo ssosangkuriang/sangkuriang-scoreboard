@@ -19,6 +19,7 @@ import {
   MapPin,
   ArrowRight,
   X,
+  AlertTriangle, // Dipakai di AnnouncerPanel
   Home,
   Edit2,
   Save,
@@ -48,6 +49,7 @@ import {
 } from 'firebase/firestore';
 
 // --- FIREBASE CONFIGURATION ---
+// Config sesuai permintaan terakhir Anda
 const firebaseConfig = {
   apiKey: "AIzaSyBJfXbDljpyTdnbWjbNzGfAQE4TgKvTQf4",
   authDomain: "sangkuriang-swimorg.firebaseapp.com",
@@ -673,7 +675,8 @@ function CallRoomPanel({ events, appState, navigate, onStart }: any) {
   );
 }
 
-function PublicPanel({ events, appState, setRole, dqs, onBack, onLoginRequest }: any) {
+// Remove setRole from props here because it is unused
+function PublicPanel({ events, appState, dqs, onBack, onLoginRequest }: any) {
     const getEventNumber = (id: string | null) => events.find((e: any) => e.id === id)?.number || '-';
     const getEventName = (id: string | null) => events.find((e: any) => e.id === id)?.name || 'Menunggu...';
     const recentDQs = dqs.slice(0, 5);
