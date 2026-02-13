@@ -25,7 +25,9 @@ import {
   RotateCcw,
   Wifi,
   Play, 
-  Loader2 // Icon Loading
+  Key,
+  AlertTriangle,
+  Loader2
 } from 'lucide-react';
 
 // --- FIREBASE IMPORTS ---
@@ -33,9 +35,10 @@ import { initializeApp } from 'firebase/app';
 import { 
   getAuth, 
   signInAnonymously, 
-  onAuthStateChanged,
-  type User // FIX: Menambahkan kata 'type' agar TypeScript tidak error
+  onAuthStateChanged
 } from 'firebase/auth';
+import type { User } from 'firebase/auth';
+
 import { 
   getFirestore, 
   collection, 
@@ -130,7 +133,6 @@ export default function App() {
   const [user, setUser] = useState<User | null>(null);
   const [viewMode, setViewMode] = useState<'landing' | 'app'>('landing');
   const [role, setRole] = useState<'admin' | 'announcer' | 'callroom' | 'public' | null>(null);
-  
   const [showLoginModal, setShowLoginModal] = useState<boolean>(false);
   const [targetLoginRole, setTargetLoginRole] = useState<'admin' | 'announcer' | 'callroom' | null>(null);
 
@@ -150,13 +152,13 @@ export default function App() {
   
   const [authConfig, setAuthConfig] = useState<any>(DEFAULT_AUTH_DB);
 
-  // 1. Auth Listener
+  // Auth
   useEffect(() => {
     signInAnonymously(auth).catch(err => console.error("Login gagal:", err));
     return onAuthStateChanged(auth, setUser);
   }, []);
 
-  // 2. Data Listeners (OPTIMIZED)
+  // Data Listeners
   useEffect(() => {
     if (!user) return;
 
@@ -176,7 +178,6 @@ export default function App() {
         unsubEvents = onSnapshot(query(collection(db, 'artifacts', appId, 'public', 'data', 'events')), (snapshot) => {
             setEvents(snapshot.docs.map(d => ({ id: d.id, ...d.data() } as EventItem)).sort((a, b) => a.number - b.number));
         });
-        
         unsubAuth = onSnapshot(doc(db, 'artifacts', appId, 'public', 'data', 'auth', 'config'), (docSnap) => {
             if (docSnap.exists()) setAuthConfig(docSnap.data());
             else setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'auth', 'config'), DEFAULT_AUTH_DB);
@@ -186,8 +187,7 @@ export default function App() {
     return () => { unsubStatus(); unsubDqs(); unsubEvents(); unsubAuth(); };
   }, [user, role]);
 
-  // --- ACTIONS ---
-
+  // Actions
   const updateGlobalState = async (newState: Partial<AppState>) => {
     if (!user) return;
     await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'status', 'global'), {
@@ -224,7 +224,6 @@ export default function App() {
           [`${type === 'announcer' ? 'current' : 'callRoom'}Series`]: 1,
       };
       if (type === 'callroom') updateData['callRoomLastUpdate'] = getWIBTime();
-      
       await updateGlobalState(updateData);
   };
 
@@ -232,7 +231,6 @@ export default function App() {
       const idKey = type === 'current' ? 'currentEventId' : 'callRoomEventId';
       const seriesKey = type === 'current' ? 'currentSeries' : 'callRoomSeries';
       const currentId = appState[idKey];
-      
       const idx = events.findIndex(e => e.id === currentId);
       if (idx === -1) return;
 
@@ -262,7 +260,6 @@ export default function App() {
           [`${type}EventTotalSeries`]: targetEvent.totalSeries,
           [seriesKey]: nextSeries
       };
-      
       if (type === 'callRoom') updateData['callRoomLastUpdate'] = getWIBTime();
       await updateGlobalState(updateData);
   };
@@ -333,12 +330,22 @@ function LandingPage({ onEnter, onOfficialLogin, appState }: any) {
   return (
     <div className="min-h-screen bg-slate-900 text-white font-sans flex flex-col relative overflow-hidden">
       <div className="absolute inset-0 opacity-20 bg-[url('https://images.unsplash.com/photo-1530549387789-4c1017266635?ixlib=rb-1.2.1&auto=format&fit=crop&w=1920&q=80')] bg-cover bg-center" />
+      
+      {/* HEADER Landing Page dengan Logo */}
       <nav className="border-b border-white/10 bg-slate-900/80 backdrop-blur-md sticky top-0 z-50 p-4">
         <div className="max-w-6xl mx-auto flex justify-between items-center">
-          <div className="font-bold text-xl">SANGKURIANG <span className="text-blue-400">SWIM</span></div>
+          <div className="flex items-center gap-3">
+             {/* Menggunakan %20 untuk spasi agar aman */}
+             <img src="/sangkuriang%201.png" alt="Logo SSO" className="h-10 w-auto object-contain" onError={(e:any) => e.target.style.display='none'} />
+             <div className="font-bold text-xl leading-tight">
+               <div>SANGKURIANG</div>
+               <div className="text-blue-400 text-sm tracking-widest">SWIM ORGANIZER</div>
+             </div>
+          </div>
           <button onClick={onOfficialLogin} className="text-sm text-slate-400 hover:text-white flex gap-1 items-center"><Lock size={14}/> Login</button>
         </div>
       </nav>
+
       <div className="flex-1 flex flex-col justify-center items-center text-center p-6 z-10">
         <h1 className="text-4xl md:text-6xl font-extrabold mb-4 bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-emerald-400">Event Management</h1>
         <p className="text-slate-400 text-lg mb-8 max-w-xl mx-auto">Real-time scoreboard & race management system.</p>
@@ -349,6 +356,11 @@ function LandingPage({ onEnter, onOfficialLogin, appState }: any) {
             <button onClick={onEnter} className="w-full py-3 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-bold flex justify-center items-center gap-2 transition active:scale-95">Lihat Scoreboard <ArrowRight size={18}/></button>
         </div>
       </div>
+
+      {/* FOOTER Landing Page */}
+      <footer className="bg-slate-950 text-slate-600 py-4 text-center text-xs border-t border-slate-800 z-10 relative">
+         &copy; anak magang SSO 2026
+      </footer>
     </div>
   );
 }
@@ -400,36 +412,13 @@ function AdminPanel({ events, appState, dqs, onAddEvent, onEditEvent, onDeleteEv
   const [newDQ, setNewDQ] = useState({ eventNumber: '', series: '', lane: '', reason: '' });
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editForm, setEditForm] = useState({ number: '', name: '', totalSeries: '' });
-  
   const [pinRole, setPinRole] = useState('announcer');
   const [newPinCode, setNewPinCode] = useState('');
 
-  const wrapAsync = async (fn: () => Promise<void>) => {
-      setLoading(true); try { await fn(); } finally { setLoading(false); }
-  };
-
-  const handleAddEvent = (e: React.FormEvent) => { 
-      e.preventDefault(); 
-      if(!newEvent.number) return; 
-      wrapAsync(async () => {
-          await onAddEvent({ number: parseInt(newEvent.number), name: newEvent.name, totalSeries: parseInt(newEvent.totalSeries) }); 
-          setNewEvent({ number: '', name: '', totalSeries: '' }); 
-      });
-  };
-
-  const handleUpdatePin = (e: React.FormEvent) => {
-      e.preventDefault();
-      if(newPinCode.length < 4) return alert("Min 4 digit");
-      wrapAsync(async () => {
-          await onUpdatePin(pinRole, newPinCode);
-          alert("PIN Berhasil Diubah!"); setNewPinCode('');
-      });
-  };
-
-  const handleReset = () => { 
-      if(!window.confirm("RESET PROGRESS? Status akan kembali ke awal.")) return;
-      wrapAsync(async () => { await onResetProgress(); });
-  };
+  const wrapAsync = async (fn: () => Promise<void>) => { setLoading(true); try { await fn(); } finally { setLoading(false); }};
+  const handleAddEvent = (e: React.FormEvent) => { e.preventDefault(); if(!newEvent.number) return; wrapAsync(async () => { await onAddEvent({ number: parseInt(newEvent.number), name: newEvent.name, totalSeries: parseInt(newEvent.totalSeries) }); setNewEvent({ number: '', name: '', totalSeries: '' }); }); };
+  const handleUpdatePin = (e: React.FormEvent) => { e.preventDefault(); if(newPinCode.length < 4) return alert("Min 4 digit"); wrapAsync(async () => { await onUpdatePin(pinRole, newPinCode); alert("PIN Berhasil Diubah!"); setNewPinCode(''); }); };
+  const handleReset = () => { if(!window.confirm("RESET PROGRESS?")) return; wrapAsync(async () => { await onResetProgress(); }); };
 
   return (
     <div className="grid md:grid-cols-2 gap-6 relative">
@@ -442,7 +431,7 @@ function AdminPanel({ events, appState, dqs, onAddEvent, onEditEvent, onDeleteEv
              <input type="text" value={appState.venue} onChange={(e) => onUpdateSettings({ venue: e.target.value })} className="w-full p-2 border rounded text-sm" placeholder="Venue" />
           </div>
           <div className="pt-4 border-t border-slate-100">
-             <h3 className="font-bold text-slate-700 text-sm mb-2">Ganti PIN</h3>
+             <h3 className="font-bold text-slate-700 text-sm mb-2">Ganti PIN <Key size={14} className="inline ml-1"/></h3>
              <form onSubmit={handleUpdatePin} className="flex gap-2">
                  <select value={pinRole} onChange={e => setPinRole(e.target.value)} className="p-2 border rounded bg-slate-50 text-sm"><option value="admin">Admin</option><option value="announcer">Announcer</option><option value="callroom">Call Room</option></select>
                  <input type="text" value={newPinCode} onChange={e => setNewPinCode(e.target.value)} placeholder="PIN Baru" className="flex-1 p-2 border rounded text-sm" pattern="\d*" />
@@ -615,40 +604,126 @@ function PublicPanel({ appState, dqs, onBack, onLoginRequest }: any) {
 
     return (
         <div className="flex flex-col h-screen relative overflow-hidden bg-white">
-            <button onClick={onBack} className="absolute top-4 left-4 z-50 bg-white/10 backdrop-blur text-white px-3 py-1 rounded-full text-xs hover:bg-white/20 transition border border-white/20">&larr; Home</button>
-            <button onClick={onLoginRequest} className="absolute top-4 right-4 z-50 text-white/30 hover:text-white transition"><Settings size={20} /></button>
-            <div className="flex flex-col md:flex-row h-[65%] w-full">
-                <div className="h-1/2 md:h-full md:w-1/2 bg-slate-900 relative flex flex-col justify-center px-6 md:px-12 border-b md:border-b-0 md:border-r border-slate-700">
-                    <div className="absolute inset-0 bg-gradient-to-br from-blue-900/40 via-slate-900 to-slate-900 z-0"></div>
-                    <div className="relative z-10 w-full max-w-lg mx-auto">
-                        <div className="flex justify-between items-start mb-6"><div><h2 className="text-white text-2xl md:text-3xl font-bold flex items-center gap-2"><Users className="text-blue-400" /> Pemanggilan</h2><span className="text-blue-200/60 text-sm">Call Room</span></div><div className="text-right"><span className="text-blue-200/40 text-[10px] uppercase block">Terakhir Update</span><span className="text-white text-lg font-mono font-bold flex items-center gap-2"><Clock size={16} className="text-blue-400" /> {appState.callRoomLastUpdate || '-'}</span></div></div>
-                        <div className="flex gap-4">
-                            <div className="flex-1 bg-white/5 border border-white/10 rounded-2xl p-4 text-center"><div className="text-blue-200 text-sm uppercase mb-1">Acara</div><div className="text-white text-6xl md:text-8xl font-bold">{appState.callRoomEventNumber || '-'}</div></div>
-                             <div className="flex-1 bg-white/5 border border-white/10 rounded-2xl p-4 text-center"><div className="text-blue-200 text-sm uppercase mb-1">Seri</div><div className="text-white text-6xl md:text-8xl font-bold">{appState.callRoomSeries}</div></div>
-                        </div>
-                        <p className="text-center text-blue-200/50 mt-4 text-sm md:text-base truncate">{appState.callRoomEventName || 'Menunggu...'}</p>
+            {/* HEADER CUSTOM */}
+            <header className="bg-slate-900 text-white h-16 shrink-0 flex items-center justify-between px-6 border-b border-slate-800 shadow-xl z-50">
+                <div className="flex items-center gap-4">
+                    {/* LOGO: Gunakan %20 untuk spasi */}
+                    <img src="/sangkuriang%201.png" alt="Logo" className="h-10 w-auto object-contain" onError={(e:any) => e.target.style.display='none'} />
+                    <div className="flex flex-col justify-center">
+                        <h1 className="font-extrabold text-lg leading-none tracking-wide uppercase">Sangkuriang</h1>
+                        <p className="text-xs text-blue-400 font-bold tracking-[0.2em] uppercase">Swim Organizer</p>
                     </div>
                 </div>
-                <div className="h-1/2 md:h-full md:w-1/2 bg-white relative flex flex-col justify-center px-6 md:px-12">
-                     <div className="relative z-10 w-full max-w-lg mx-auto">
-                        <div className="flex justify-between items-center mb-6"><h2 className="text-slate-800 text-2xl md:text-3xl font-bold flex items-center gap-2"><MonitorPlay className="text-red-500" /> Sedang Berlomba</h2><span className="bg-red-500 text-white text-xs px-2 py-0.5 rounded animate-pulse">LIVE</span></div>
-                        <div className="flex gap-4">
-                            <div className="flex-1 bg-slate-50 border border-slate-200 rounded-2xl p-4 text-center shadow-inner"><div className="text-slate-400 text-sm uppercase mb-1">Acara</div><div className="text-slate-800 text-6xl md:text-8xl font-bold">{appState.currentEventNumber || '-'}</div></div>
-                             <div className="flex-1 bg-slate-50 border border-slate-200 rounded-2xl p-4 text-center shadow-inner"><div className="text-slate-400 text-sm uppercase mb-1">Seri</div><div className="text-slate-800 text-6xl md:text-8xl font-bold">{appState.currentSeries}</div></div>
+
+                <div className="flex items-center gap-3">
+                    <button onClick={onBack} className="text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 px-3 py-1.5 rounded-lg transition border border-slate-700 flex items-center gap-2">
+                        <Home size={14} /> Home
+                    </button>
+                    <button onClick={onLoginRequest} className="text-slate-500 hover:text-white transition p-2">
+                        <Settings size={20} />
+                    </button>
+                </div>
+            </header>
+
+            {/* CONTENT AREA (Mengisi sisa ruang) */}
+            <div className="flex-1 flex flex-col relative overflow-hidden">
+                
+                {/* SPLIT SCREEN UTAMA */}
+                <div className="flex-1 flex flex-col md:flex-row min-h-0">
+                    {/* KIRI: CALL ROOM */}
+                    <div className="w-full md:w-1/2 bg-slate-900 relative flex flex-col justify-center px-6 md:px-12 border-b md:border-b-0 md:border-r border-slate-700">
+                        <div className="absolute inset-0 bg-gradient-to-br from-blue-900/40 via-slate-900 to-slate-900 z-0"></div>
+                        <div className="relative z-10 w-full max-w-lg mx-auto py-4">
+                            <div className="flex justify-between items-start mb-6">
+                                <div>
+                                    <h2 className="text-white text-2xl md:text-3xl font-bold flex items-center gap-2">
+                                        <Users className="text-blue-400" /> Pemanggilan
+                                    </h2>
+                                    <span className="text-blue-200/60 text-sm">Call Room</span>
+                                </div>
+                                <div className="text-right">
+                                    <span className="text-blue-200/40 text-[10px] uppercase block">Terakhir Update</span>
+                                    <span className="text-white text-lg font-mono font-bold flex items-center gap-2">
+                                        <Clock size={16} className="text-blue-400" /> {appState.callRoomLastUpdate || '-'}
+                                    </span>
+                                </div>
+                            </div>
+                            <div className="flex gap-4">
+                                <div className="flex-1 bg-white/5 border border-white/10 rounded-2xl p-4 text-center">
+                                    <div className="text-blue-200 text-sm uppercase mb-1">Acara</div>
+                                    <div className="text-white text-6xl md:text-8xl font-bold tracking-tighter">{appState.callRoomEventNumber || '-'}</div>
+                                </div>
+                                <div className="flex-1 bg-white/5 border border-white/10 rounded-2xl p-4 text-center">
+                                    <div className="text-blue-200 text-sm uppercase mb-1">Seri</div>
+                                    <div className="text-white text-6xl md:text-8xl font-bold tracking-tighter">{appState.callRoomSeries}</div>
+                                </div>
+                            </div>
+                            <p className="text-center text-blue-200/50 mt-4 text-lg md:text-xl font-medium truncate">{appState.callRoomEventName || 'Menunggu...'}</p>
                         </div>
-                        <p className="text-center text-slate-500 mt-4 text-sm md:text-base truncate">{appState.currentEventName || 'Menunggu...'}</p>
+                    </div>
+
+                    {/* KANAN: LIVE POOL */}
+                    <div className="w-full md:w-1/2 bg-white relative flex flex-col justify-center px-6 md:px-12">
+                        <div className="relative z-10 w-full max-w-lg mx-auto py-4">
+                            <div className="flex justify-between items-center mb-6">
+                                <h2 className="text-slate-800 text-2xl md:text-3xl font-bold flex items-center gap-2">
+                                    <MonitorPlay className="text-red-500" /> Sedang Berlomba
+                                </h2>
+                                <span className="bg-red-500 text-white text-xs px-3 py-1 rounded-full font-bold animate-pulse">LIVE</span>
+                            </div>
+                            <div className="flex gap-4">
+                                <div className="flex-1 bg-slate-50 border border-slate-200 rounded-2xl p-4 text-center shadow-inner">
+                                    <div className="text-slate-400 text-sm uppercase mb-1">Acara</div>
+                                    <div className="text-slate-800 text-6xl md:text-8xl font-bold tracking-tighter">{appState.currentEventNumber || '-'}</div>
+                                </div>
+                                <div className="flex-1 bg-slate-50 border border-slate-200 rounded-2xl p-4 text-center shadow-inner">
+                                    <div className="text-slate-400 text-sm uppercase mb-1">Seri</div>
+                                    <div className="text-slate-800 text-6xl md:text-8xl font-bold tracking-tighter">{appState.currentSeries}</div>
+                                </div>
+                            </div>
+                            <p className="text-center text-slate-500 mt-4 text-lg md:text-xl font-medium truncate">{appState.currentEventName || 'Menunggu...'}</p>
+                        </div>
+                    </div>
+                </div>
+
+                {/* DQ TABLE (Height adjusted to 30%) */}
+                <div className="h-[30%] bg-slate-50 border-t border-slate-200 p-4 md:p-6 overflow-hidden flex flex-col shrink-0">
+                    <div className="max-w-7xl mx-auto w-full h-full flex flex-col">
+                        <h3 className="text-slate-700 font-bold mb-3 flex items-center gap-2">
+                            <AlertOctagon size={20} className="text-red-500" /> INFORMASI DISKUALIFIKASI TERKINI
+                        </h3>
+                        <div className="flex-1 bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden flex flex-col">
+                            <div className="grid grid-cols-12 bg-slate-800 text-white text-xs md:text-sm font-bold uppercase py-3 px-4">
+                                <div className="col-span-2">No. Acara</div>
+                                <div className="col-span-2 text-center">Seri</div>
+                                <div className="col-span-2 text-center">Lintasan</div>
+                                <div className="col-span-6">Keterangan / Alasan</div>
+                            </div>
+                            <div className="overflow-y-auto flex-1 p-0">
+                                {recentDQs.length === 0 ? (
+                                    <div className="h-full flex items-center justify-center text-slate-400 italic">Tidak ada informasi diskualifikasi saat ini.</div>
+                                ) : (
+                                    recentDQs.map((dq: any, idx: number) => (
+                                        <div key={dq.id} className={`grid grid-cols-12 text-sm py-3 px-4 border-b border-slate-100 items-center ${idx % 2 === 0 ? 'bg-white' : 'bg-slate-50'}`}>
+                                            <div className="col-span-2 font-bold text-slate-800">{dq.eventNumber}</div>
+                                            <div className="col-span-2 text-center text-slate-600">{dq.series}</div>
+                                            <div className="col-span-2 text-center">
+                                                <span className="bg-slate-200 text-slate-700 px-2 py-0.5 rounded font-mono font-bold">{dq.lane}</span>
+                                            </div>
+                                            <div className="col-span-6 text-red-600 font-medium">{dq.reason}</div>
+                                        </div>
+                                    ))
+                                )}
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
-            <div className="h-[35%] bg-slate-100 border-t border-slate-200 p-4 md:p-6 overflow-hidden flex flex-col">
-                <div className="max-w-7xl mx-auto w-full h-full flex flex-col">
-                    <h3 className="text-slate-700 font-bold mb-3 flex items-center gap-2"><AlertOctagon size={20} className="text-red-500" /> INFORMASI DISKUALIFIKASI TERKINI</h3>
-                    <div className="flex-1 bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden flex flex-col">
-                        <div className="grid grid-cols-12 bg-slate-800 text-white text-xs md:text-sm font-bold uppercase py-3 px-4"><div className="col-span-2">No. Acara</div><div className="col-span-2 text-center">Seri</div><div className="col-span-2 text-center">Lintasan</div><div className="col-span-6">Keterangan / Alasan</div></div>
-                        <div className="overflow-y-auto flex-1 p-0">{recentDQs.length === 0 ? <div className="h-full flex items-center justify-center text-slate-400 italic">Tidak ada informasi diskualifikasi saat ini.</div> : recentDQs.map((dq: any, idx: number) => (<div key={dq.id} className={`grid grid-cols-12 text-sm py-3 px-4 border-b border-slate-100 items-center ${idx % 2 === 0 ? 'bg-white' : 'bg-slate-50'}`}><div className="col-span-2 font-bold text-slate-800">{dq.eventNumber}</div><div className="col-span-2 text-center text-slate-600">{dq.series}</div><div className="col-span-2 text-center"><span className="bg-slate-200 text-slate-700 px-2 py-0.5 rounded font-mono font-bold">{dq.lane}</span></div><div className="col-span-6 text-red-600 font-medium">{dq.reason}</div></div>))}</div>
-                    </div>
-                </div>
-            </div>
+
+            {/* FOOTER CUSTOM */}
+            <footer className="bg-slate-900 text-slate-500 text-center py-3 text-xs font-mono tracking-widest border-t border-slate-800 h-10 shrink-0 flex items-center justify-center z-50">
+                &copy; anak magang SSO 2026
+            </footer>
         </div>
     )
 }
