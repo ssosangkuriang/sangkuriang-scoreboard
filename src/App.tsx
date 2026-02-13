@@ -13,22 +13,18 @@ import {
   LogOut,
   Megaphone,
   ClipboardList,
-  LayoutTemplate,
   Clock,
   Lock,
   Calendar,
   MapPin,
   ArrowRight,
-  ShieldCheck,
   X,
-  AlertTriangle,
   Home,
   Edit2,
   Save,
   RotateCcw,
   Wifi,
   Play, 
-  Power,
   Key 
 } from 'lucide-react';
 
@@ -37,8 +33,7 @@ import { initializeApp } from 'firebase/app';
 import { 
   getAuth, 
   signInAnonymously, 
-  onAuthStateChanged,
-  signInWithCustomToken
+  onAuthStateChanged
 } from 'firebase/auth';
 import { 
   getFirestore, 
@@ -52,15 +47,14 @@ import {
   query
 } from 'firebase/firestore';
 
-// --- FIREBASE CONFIGURATION (BERSIH & FIX) ---
-// Config ini disalin dari screenshot Anda. Pastikan tidak ada typo.
+// --- FIREBASE CONFIGURATION ---
 const firebaseConfig = {
-  apiKey: "AIzaSyBJfXbDljpyTdnbWjbNzGFAQE4TgKvTQf4", 
+  apiKey: "AIzaSyBJfXbDljpyTdnbWjbNzGfAQE4TgKvTQf4",
   authDomain: "sangkuriang-swimorg.firebaseapp.com",
   projectId: "sangkuriang-swimorg",
   storageBucket: "sangkuriang-swimorg.firebasestorage.app",
   messagingSenderId: "833562093721",
-  appId: "1:833562093721:web:9f450f4e0f8b7675c37008"
+  appId: "1:833562093721:web:36308c9770eb8e94c37008"
 };
 
 // Inisialisasi Firebase
@@ -68,7 +62,7 @@ const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 
-// ID Aplikasi (String biasa, bukan variabel)
+// ID Aplikasi
 const appId = 'sangkuriang-live-v1';
 
 // --- TIPE DATA ---
@@ -112,8 +106,7 @@ const simpleHash = (str: string) => {
   return hash.toString();
 };
 
-// Default Password saat pertama kali database dibuat
-// Admin: 20260214, Announcer: 2026, Callroom: 3030
+// Default Password (Admin: 20260214)
 const DEFAULT_AUTH_DB = {
   admin: simpleHash("20260214"),      
   announcer: "1537282",     
@@ -133,7 +126,7 @@ export default function App() {
   const [showLoginModal, setShowLoginModal] = useState<boolean>(false);
   const [targetLoginRole, setTargetLoginRole] = useState<'admin' | 'announcer' | 'callroom' | null>(null);
 
-  // --- STATE DATA (Dari Firebase) ---
+  // --- STATE DATA ---
   const [events, setEvents] = useState<EventItem[]>([]);
   const [dqs, setDqs] = useState<DQRecord[]>([]);
   const [appState, setAppState] = useState<AppState>({
@@ -149,11 +142,10 @@ export default function App() {
   
   const [authConfig, setAuthConfig] = useState<any>(DEFAULT_AUTH_DB);
 
-  // --- 1. INITIALIZE AUTH (Fixed for Localhost) ---
+  // --- 1. INITIALIZE AUTH ---
   useEffect(() => {
     const initAuth = async () => {
       try {
-        // Langsung login anonymous (standar untuk web app publik)
         await signInAnonymously(auth);
       } catch (error) {
         console.error("Login Error:", error);
@@ -185,7 +177,6 @@ export default function App() {
       if (docSnap.exists()) {
         setAppState(docSnap.data() as AppState);
       } else {
-        // Init Global Status jika belum ada
         const defaultState: AppState = {
             title: 'KEJUARAAN RENANG 2026',
             venue: 'Kolam Renang UPI, Bandung',
