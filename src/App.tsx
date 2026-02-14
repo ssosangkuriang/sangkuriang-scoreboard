@@ -26,8 +26,8 @@ import {
   Wifi,
   Play, 
   Loader2,
-  Zap,
-  WifiOff
+  WifiOff,
+  Key // FIX: Menambahkan Key, Menghapus Zap
 } from 'lucide-react';
 
 // --- FIREBASE IMPORTS ---
@@ -659,7 +659,6 @@ function CallRoomPanel({ events, appState, navigate, onStart }: any) {
 }
 
 function PublicPanel({ appState, dqs, onBack, onLoginRequest, isOnline }: any) {
-    // MODIFIED: Remove slice to show all DQs
     const recentDQs = dqs; // Removed .slice(0, 5)
 
     return (
@@ -760,7 +759,7 @@ function PublicPanel({ appState, dqs, onBack, onLoginRequest, isOnline }: any) {
                                 <div className="col-span-2">No. Acara</div>
                                 <div className="col-span-2 text-center">Seri</div>
                                 <div className="col-span-2 text-center">Lintasan</div>
-                                <div className="col-span-6">Keterangan / Alasan</div>
+                                <div className="col-span-6">Deskripsi Pelanggaran / Pasal</div>
                             </div>
                             <div className="overflow-y-auto flex-1 p-0">
                                 {recentDQs.length === 0 ? (
