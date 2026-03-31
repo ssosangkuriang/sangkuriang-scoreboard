@@ -17,17 +17,19 @@ import {
   Lock,
   Calendar,
   MapPin,
-  ArrowRight,
   X,
   Home,
   Edit2,
   Save,
-  RotateCcw,
   Wifi,
   Play, 
   Loader2,
   WifiOff,
-  Key // FIX: Menambahkan Key, Menghapus Zap
+  FileText, 
+  CheckCircle, 
+  Timer,
+  ShieldAlert,
+  Trophy
 } from 'lucide-react';
 
 // --- FIREBASE IMPORTS ---
@@ -35,6 +37,7 @@ import { initializeApp } from 'firebase/app';
 import { 
   getAuth, 
   signInAnonymously, 
+  signInWithCustomToken, 
   onAuthStateChanged
 } from 'firebase/auth';
 import type { User } from 'firebase/auth';
@@ -43,17 +46,15 @@ import {
   getFirestore, 
   collection, 
   doc, 
-  setDoc, 
   addDoc, 
   updateDoc, 
   deleteDoc, 
-  onSnapshot,
-  query,
-  enableIndexedDbPersistence 
+  onSnapshot
 } from 'firebase/firestore';
 
 // --- FIREBASE CONFIGURATION ---
-const firebaseConfig = {
+// Menyediakan fallback config agar tetap bisa berjalan saat di-clone ke lokal laptop Anda
+const fallbackConfig = {
   apiKey: "AIzaSyBJfXbDljpyTdnbWjbNzGfAQE4TgKvTQf4",
   authDomain: "sangkuriang-swimorg.firebaseapp.com",
   projectId: "sangkuriang-swimorg",
@@ -62,33 +63,33 @@ const firebaseConfig = {
   appId: "1:833562093721:web:36308c9770eb8e94c37008"
 };
 
-// Inisialisasi Firebase
+let firebaseConfig = fallbackConfig;
+try {
+  // @ts-ignore
+  if (typeof __firebase_config !== 'undefined' && __firebase_config) {
+    // @ts-ignore
+    firebaseConfig = typeof __firebase_config === 'string' ? JSON.parse(__firebase_config) : __firebase_config;
+  }
+} catch (e) {
+  console.error("Failed to parse config", e);
+}
+
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
-const appId = 'sangkuriang-live-v1';
 
-// Aktifkan Offline Persistence
-try {
-  enableIndexedDbPersistence(db).catch((err) => {
-      console.log('Persistence failed:', err.code);
-  });
-} catch (e) {
-  // Ignore error
-}
+// @ts-ignore
+// Format appId secara aman untuk mencegah error pembacaan path segment di Firestore
+const rawAppId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+const appId = rawAppId.includes('/') ? 'default-app-id' : rawAppId;
 
 // --- UTILS ---
 const getWIBTime = () => {
-  return new Date().toLocaleTimeString('id-ID', { 
-    hour: '2-digit', 
-    minute: '2-digit', 
-    second: '2-digit' 
-  }) + ' WIB';
+  return new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' }) + ' WIB';
 };
 
 const simpleHash = (str: string) => {
-  let hash = 0;
-  if (str.length === 0) return hash.toString();
+  let hash = 0; if (str.length === 0) return hash.toString();
   for (let i = 0; i < str.length; i++) {
     const char = str.charCodeAt(i);
     hash = ((hash << 5) - hash) + char;
@@ -97,33 +98,10 @@ const simpleHash = (str: string) => {
   return hash.toString();
 };
 
-const DEFAULT_AUTH_DB = {
-  admin: simpleHash("20260214"),      
-  announcer: "1537282",     
-  callroom: "1567098"       
-};
+const MASTER_PIN_HASH = simpleHash("master2026");
 
 // --- TIPE DATA ---
-type EventItem = {
-  id: string;
-  number: number;
-  name: string;
-  totalSeries: number;
-};
-
-type DQRecord = {
-  id: string;
-  eventNumber: number;
-  series: number;
-  lane: number;
-  reason: string;
-  timestamp: string;
-  createdAt: number;
-};
-
-type AppState = {
-  title: string;
-  venue: string;
+type LiveState = {
   currentEventId: string | null;
   currentEventNumber?: number; 
   currentEventName?: string;   
@@ -138,222 +116,236 @@ type AppState = {
   callRoomLastUpdate: string; 
 };
 
-// --- KOMPONEN UTAMA ---
+type Tournament = {
+  id: string;
+  title: string;
+  venue: string;
+  eventDate: string; 
+  status: 'upcoming' | 'live' | 'finished';
+  resultUrl: string; 
+  pins: { admin: string, announcer: string, callroom: string };
+  liveState: LiveState;
+  createdAt: number;
+};
 
+type EventItem = { id: string; tournamentId: string; number: number; name: string; totalSeries: number; };
+type DQRecord = { id: string; tournamentId: string; eventNumber: number; series: number; lane: number; reason: string; timestamp: string; createdAt: number; };
+
+// --- DEFAULT STATES ---
+const DEFAULT_LIVE_STATE: LiveState = {
+  currentEventId: null, currentSeries: 1, callRoomEventId: null, callRoomSeries: 1, lastUpdate: '-', callRoomLastUpdate: '-'
+};
+
+// --- MAIN COMPONENT ---
 export default function App() {
   const [user, setUser] = useState<User | null>(null);
-  const [viewMode, setViewMode] = useState<'landing' | 'app'>('landing');
-  const [role, setRole] = useState<'admin' | 'announcer' | 'callroom' | 'public' | null>(null);
-  const [showLoginModal, setShowLoginModal] = useState<boolean>(false);
-  const [targetLoginRole, setTargetLoginRole] = useState<'admin' | 'announcer' | 'callroom' | null>(null);
   const [isOnline, setIsOnline] = useState(navigator.onLine);
+  
+  // Navigation State
+  const [viewMode, setViewMode] = useState<'global' | 'tournament' | 'master_dashboard'>('global');
+  const [activeTournamentId, setActiveTournamentId] = useState<string | null>(null);
+  const [role, setRole] = useState<'master' | 'admin' | 'announcer' | 'callroom' | 'public' | null>(null);
+  
+  // Modal Login State
+  const [showLoginModal, setShowLoginModal] = useState<boolean>(false);
+  const [targetLoginRole, setTargetLoginRole] = useState<'master' | 'admin' | 'announcer' | 'callroom' | null>(null);
 
   // Data State
-  const [events, setEvents] = useState<EventItem[]>([]);
-  const [dqs, setDqs] = useState<DQRecord[]>([]);
-  const [appState, setAppState] = useState<AppState>({
-    title: 'Loading...',
-    venue: '',
-    currentEventId: null,
-    currentSeries: 1,
-    callRoomEventId: null,
-    callRoomSeries: 1,
-    lastUpdate: '-',
-    callRoomLastUpdate: '-'
-  });
-  
-  const [authConfig, setAuthConfig] = useState<any>(DEFAULT_AUTH_DB);
+  const [tournaments, setTournaments] = useState<Tournament[]>([]);
+  const [allEvents, setAllEvents] = useState<EventItem[]>([]);
+  const [allDqs, setAllDqs] = useState<DQRecord[]>([]);
 
-  // --- WAKE LOCK (Anti Tidur) ---
+  // Computed Active Data
+  const activeTournament = tournaments.find(t => t.id === activeTournamentId);
+  const activeEvents = allEvents.filter(e => e.tournamentId === activeTournamentId).sort((a, b) => a.number - b.number);
+  const activeDqs = allDqs.filter(d => d.tournamentId === activeTournamentId).sort((a, b) => b.createdAt - a.createdAt);
+
+  // Wake Lock & Network
   useEffect(() => {
     let wakeLock: any = null;
-    const requestWakeLock = async () => {
-      try {
-        if ('wakeLock' in navigator) {
-          wakeLock = await (navigator as any).wakeLock.request('screen');
-        }
-      } catch (err) {
-        console.log("Wake Lock error:", err);
-      }
-    };
-    if (viewMode === 'app') requestWakeLock();
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible' && viewMode === 'app') requestWakeLock();
-    };
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    return () => {
-      if (wakeLock) wakeLock.release();
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-    };
-  }, [viewMode]);
-
-  // Network Status Listener
-  useEffect(() => {
+    const requestWakeLock = async () => { try { if ('wakeLock' in navigator) wakeLock = await (navigator as any).wakeLock.request('screen'); } catch (err) { } };
+    if (viewMode === 'tournament' || viewMode === 'master_dashboard') requestWakeLock();
+    
+    const handleVis = () => { if (document.visibilityState === 'visible' && (viewMode === 'tournament' || viewMode === 'master_dashboard')) requestWakeLock(); };
+    document.addEventListener('visibilitychange', handleVis);
+    
     const handleOnline = () => setIsOnline(true);
     const handleOffline = () => setIsOnline(false);
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
+    
     return () => {
+      if (wakeLock) wakeLock.release();
+      document.removeEventListener('visibilitychange', handleVis);
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
     };
-  }, []);
+  }, [viewMode]);
 
-  // Auth
+  // Auth Init (Fallback yang aman untuk Autentikasi)
   useEffect(() => {
-    signInAnonymously(auth).catch(err => console.error("Login gagal:", err));
-    return onAuthStateChanged(auth, setUser);
+    const initAuth = async () => {
+      try {
+        // @ts-ignore
+        if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+           try {
+               // @ts-ignore
+               await signInWithCustomToken(auth, __initial_auth_token);
+           } catch (tokenErr) {
+               await signInAnonymously(auth);
+           }
+        } else {
+           await signInAnonymously(auth);
+        }
+      } catch (err) { 
+        console.warn("Auth inisialisasi: ", err); 
+      }
+    };
+    initAuth();
+    const unsubscribe = onAuthStateChanged(auth, setUser);
+    return () => unsubscribe();
   }, []);
 
   // Data Listeners
   useEffect(() => {
+    if (!user) return; // Strict guard
+    
+    const unsubTournaments = onSnapshot(
+      collection(db, 'artifacts', appId, 'public', 'data', 'tournaments'), 
+      (snapshot) => {
+        setTournaments(snapshot.docs.map(d => ({ id: d.id, ...d.data() } as Tournament)).sort((a,b) => b.createdAt - a.createdAt));
+      }, 
+      (error) => console.warn("Sinkronisasi Tournaments ditunda sementara waktu", error.message)
+    );
+
+    const unsubEvents = onSnapshot(
+      collection(db, 'artifacts', appId, 'public', 'data', 'events'), 
+      (snapshot) => {
+        setAllEvents(snapshot.docs.map(d => ({ id: d.id, ...d.data() } as EventItem)));
+      }, 
+      (error) => console.warn("Sinkronisasi Events ditunda sementara waktu", error.message)
+    );
+
+    const unsubDqs = onSnapshot(
+      collection(db, 'artifacts', appId, 'public', 'data', 'dqs'), 
+      (snapshot) => {
+        setAllDqs(snapshot.docs.map(d => ({ id: d.id, ...d.data() } as DQRecord)));
+      }, 
+      (error) => console.warn("Sinkronisasi DQs ditunda sementara waktu", error.message)
+    );
+
+    return () => { unsubTournaments(); unsubEvents(); unsubDqs(); };
+  }, [user]);
+
+  // --- ACTIONS ---
+  const handleCreateTournament = async (data: Partial<Tournament>) => {
     if (!user) return;
+    await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'tournaments'), {
+      ...data, status: 'upcoming', liveState: DEFAULT_LIVE_STATE, createdAt: Date.now()
+    });
+  };
 
-    // A. STATUS LISTENER
-    const unsubStatus = onSnapshot(doc(db, 'artifacts', appId, 'public', 'data', 'status', 'global'), (docSnap) => {
-      if (docSnap.exists()) {
-        setAppState(docSnap.data() as AppState);
-      } else {
-        if (role === 'admin') {
-           const defaultState: AppState = {
-              title: 'KEJUARAAN RENANG 2026',
-              venue: 'Kolam Renang UPI, Bandung',
-              currentEventId: null,
-              currentSeries: 1,
-              callRoomEventId: null,
-              callRoomSeries: 1,
-              lastUpdate: new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }),
-              callRoomLastUpdate: '-'
-          };
-          setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'status', 'global'), defaultState);
-        }
+  const handleUpdateTournament = async (id: string, data: Partial<Tournament>) => {
+    if (!user) return;
+    await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'tournaments', id), data);
+  };
+
+  const handleDeleteTournament = async (id: string) => {
+    if (!user) return;
+    await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'tournaments', id));
+  };
+
+  const updateLiveState = async (newState: Partial<LiveState>) => {
+    if (!user || !activeTournamentId || !activeTournament) return;
+    await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'tournaments', activeTournamentId), {
+      liveState: { ...activeTournament.liveState, ...newState, lastUpdate: getWIBTime() }
+    });
+  };
+
+  // Login Handler
+  const processLogin = (roleName: string, pin: string) => {
+    const hashed = simpleHash(pin);
+    if (roleName === 'master') {
+      if (hashed === MASTER_PIN_HASH) {
+        setRole('master'); setViewMode('master_dashboard'); setShowLoginModal(false); return true;
       }
-    });
-
-    const unsubDqs = onSnapshot(query(collection(db, 'artifacts', appId, 'public', 'data', 'dqs')), (snapshot) => {
-      setDqs(snapshot.docs.map(d => ({ id: d.id, ...d.data() } as DQRecord)).sort((a, b) => b.createdAt - a.createdAt));
-    });
-
-    let unsubEvents = () => {};
-    let unsubAuth = () => {};
-
-    if (role && role !== 'public') {
-        unsubEvents = onSnapshot(query(collection(db, 'artifacts', appId, 'public', 'data', 'events')), (snapshot) => {
-            setEvents(snapshot.docs.map(d => ({ id: d.id, ...d.data() } as EventItem)).sort((a, b) => a.number - b.number));
-        });
-        unsubAuth = onSnapshot(doc(db, 'artifacts', appId, 'public', 'data', 'auth', 'config'), (docSnap) => {
-            if (docSnap.exists()) setAuthConfig(docSnap.data());
-            else if (role === 'admin') setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'auth', 'config'), DEFAULT_AUTH_DB);
-        });
+    } else if (activeTournament) {
+      const pins: any = activeTournament.pins;
+      if (hashed === pins[roleName]) {
+        setRole(roleName as any); setViewMode('tournament'); setShowLoginModal(false); return true;
+      }
     }
-
-    return () => { unsubStatus(); unsubDqs(); unsubEvents(); unsubAuth(); };
-  }, [user, role]);
-
-  // Actions
-  const updateGlobalState = async (newState: Partial<AppState>) => {
-    if (!user) return;
-    await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'status', 'global'), {
-      ...newState,
-      lastUpdate: getWIBTime() 
-    });
+    return false;
   };
 
-  const fbAddEvent = async (newItem: Omit<EventItem, 'id'>) => { if (!user) return; await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'events'), newItem); };
-  const fbEditEvent = async (id: string, updatedData: Partial<EventItem>) => { if (!user) return; await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'events', id), updatedData); };
-  const fbDeleteEvent = async (id: string) => { if (!user) return; await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'events', id)); };
-  
-  const fbResetProgress = async () => {
-      if (!user) return;
-      await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'status', 'global'), {
-          currentEventId: null, currentEventName: null, currentEventNumber: null, currentSeries: 1,
-          callRoomEventId: null, callRoomEventName: null, callRoomEventNumber: null, callRoomSeries: 1,
-          lastUpdate: '-', callRoomLastUpdate: '-'
-      });
-  };
-
-  const fbAddDQ = async (newDQ: Omit<DQRecord, 'id'>) => { if (!user) return; await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'dqs'), newDQ); };
-  const fbDeleteDQ = async (id: string) => { if (!user) return; await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'dqs', id)); };
-  const fbUpdatePin = async (r: string, p: string) => { if(!user) return; await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'auth', 'config'), { [r]: simpleHash(p) }); };
-
-  const handleStartSequence = async (type: 'announcer' | 'callroom') => {
-      if (events.length === 0) return;
-      const first = events[0]; 
-      const updateData = {
-          [`${type === 'announcer' ? 'current' : 'callRoom'}EventId`]: first.id,
-          [`${type === 'announcer' ? 'current' : 'callRoom'}EventName`]: first.name,
-          [`${type === 'announcer' ? 'current' : 'callRoom'}EventNumber`]: first.number,
-          [`${type === 'announcer' ? 'current' : 'callRoom'}EventTotalSeries`]: first.totalSeries,
-          [`${type === 'announcer' ? 'current' : 'callRoom'}Series`]: 1,
-      };
-      if (type === 'callroom') updateData['callRoomLastUpdate'] = getWIBTime();
-      await updateGlobalState(updateData);
-  };
-
-  const navigate = async (type: 'current' | 'callRoom', direction: 'next' | 'prev') => {
-      const idKey = type === 'current' ? 'currentEventId' : 'callRoomEventId';
-      const seriesKey = type === 'current' ? 'currentSeries' : 'callRoomSeries';
-      const currentId = appState[idKey];
-      const idx = events.findIndex(e => e.id === currentId);
-      if (idx === -1) return;
-
-      let nextSeries = appState[seriesKey];
-      let targetEvent = events[idx];
-
-      if (direction === 'next') {
-          if (nextSeries < targetEvent.totalSeries) {
-              nextSeries++;
-          } else if (idx < events.length - 1) {
-              targetEvent = events[idx + 1];
-              nextSeries = 1;
-          }
-      } else {
-          if (nextSeries > 1) {
-              nextSeries--;
-          } else if (idx > 0) {
-              targetEvent = events[idx - 1];
-              nextSeries = targetEvent.totalSeries;
-          }
-      }
-
-      const updateData = {
-          [idKey]: targetEvent.id,
-          [`${type}EventName`]: targetEvent.name,
-          [`${type}EventNumber`]: targetEvent.number,
-          [`${type}EventTotalSeries`]: targetEvent.totalSeries,
-          [seriesKey]: nextSeries
-      };
-      if (type === 'callRoom') updateData['callRoomLastUpdate'] = getWIBTime();
-      await updateGlobalState(updateData);
-  };
-
-  if (!user) return <div className="h-screen flex items-center justify-center text-slate-500 font-sans gap-2"><Loader2 className="animate-spin"/> Menghubungkan...</div>;
+  if (!user) return <div className="h-screen flex items-center justify-center text-slate-500 font-sans gap-2"><Loader2 className="animate-spin"/> Menghubungkan ke Server...</div>;
 
   return (
     <>
       {showLoginModal && (
         <LoginModal 
-          targetRole={targetLoginRole} authConfig={authConfig}
+          targetRole={targetLoginRole} 
           onClose={() => setShowLoginModal(false)}
-          onSuccess={(r: any) => { setRole(r); setViewMode('app'); setShowLoginModal(false); }}
+          onLogin={processLogin}
         />
       )}
 
-      {viewMode === 'landing' ? (
-        <LandingPage onEnter={() => {setViewMode('app'); setRole('public');}} onOfficialLogin={() => {setViewMode('app'); setRole(null);}} appState={appState} />
-      ) : (
+      {viewMode === 'global' && (
+        <GlobalLandingPage 
+          tournaments={tournaments}
+          onSelectTournament={(id: string) => { setActiveTournamentId(id); setRole('public'); setViewMode('tournament'); }}
+          onMasterLogin={() => { setTargetLoginRole('master'); setShowLoginModal(true); }}
+        />
+      )}
+
+      {viewMode === 'master_dashboard' && role === 'master' && (
+        <MasterDashboard 
+          tournaments={tournaments}
+          onCreate={handleCreateTournament}
+          onEdit={(id: string) => { setActiveTournamentId(id); setRole('admin'); setViewMode('tournament'); }}
+          onDelete={handleDeleteTournament}
+          onLogout={() => { setRole(null); setViewMode('global'); }}
+          isOnline={isOnline}
+        />
+      )}
+
+      {viewMode === 'tournament' && activeTournament && (
         <div className="min-h-screen bg-slate-50 font-sans text-slate-900">
           {role === 'public' ? (
-            <PublicPanel appState={appState} dqs={dqs} onBack={() => setViewMode('landing')} onLoginRequest={() => setRole(null)} isOnline={isOnline} />
+            <TournamentPublicView 
+              tournament={activeTournament} dqs={activeDqs} isOnline={isOnline}
+              onBack={() => { setActiveTournamentId(null); setViewMode('global'); }}
+              onLoginRequest={() => { setRole(null); }}
+            />
           ) : !role ? (
-            <RoleSelectionPanel onBack={() => setViewMode('landing')} onLoginRequest={(r:any) => {setTargetLoginRole(r); setShowLoginModal(true);}} />
+            <RoleSelectionPanel 
+              tournament={activeTournament}
+              onBack={() => { setRole('public'); }} 
+              onLoginRequest={(r:any) => { setTargetLoginRole(r); setShowLoginModal(true); }} 
+            />
           ) : (
             <div className="flex flex-col min-h-screen">
-               <Header role={role} title={appState.title} venue={appState.venue} onHome={()=>{setRole(null); setViewMode('landing')}} onLogout={()=>setRole(null)} isOnline={isOnline} />
+               <Header role={role} title={activeTournament.title} venue={activeTournament.venue} onHome={() => { setRole('public'); }} onLogout={() => { setRole('public'); }} isOnline={isOnline} />
                <main className="flex-1 max-w-7xl mx-auto w-full p-4 md:p-6">
-                  {role === 'admin' && <AdminPanel events={events} appState={appState} dqs={dqs} onAddEvent={fbAddEvent} onEditEvent={fbEditEvent} onDeleteEvent={fbDeleteEvent} onUpdateSettings={updateGlobalState} onAddDQ={fbAddDQ} onDeleteDQ={fbDeleteDQ} onUpdatePin={fbUpdatePin} onResetProgress={fbResetProgress} />}
-                  {role === 'announcer' && <AnnouncerPanel events={events} appState={appState} navigate={(dir: any) => navigate('current', dir)} onStart={() => handleStartSequence('announcer')} dqs={dqs} />}
-                  {role === 'callroom' && <CallRoomPanel events={events} appState={appState} navigate={(dir: any) => navigate('callRoom', dir)} onStart={() => handleStartSequence('callroom')} />}
+                  {role === 'admin' && (
+                    <AdminPanel 
+                      tournament={activeTournament} events={activeEvents}
+                      onUpdateTournament={(data: any) => handleUpdateTournament(activeTournament.id, data)}
+                      onAddEvent={async (data: any) => { if(user) await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'events'), { ...data, tournamentId: activeTournament.id }); }}
+                      onEditEvent={async (id: string, data: any) => { if(user) await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'events', id), data); }}
+                      onDeleteEvent={async (id: string) => { if(user) await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'events', id)); }}
+                    />
+                  )}
+                  {role === 'announcer' && (
+                    <AnnouncerPanel 
+                      tournament={activeTournament} events={activeEvents} dqs={activeDqs} updateLiveState={updateLiveState}
+                      onAddDQ={async (data: any) => { if(user) await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'dqs'), { ...data, tournamentId: activeTournament.id, createdAt: Date.now() }); }}
+                      onDeleteDQ={async (id: string) => { if(user) await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'dqs', id)); }}
+                    />
+                  )}
+                  {role === 'callroom' && (
+                    <CallRoomPanel tournament={activeTournament} events={activeEvents} updateLiveState={updateLiveState} />
+                  )}
                </main>
             </div>
           )}
@@ -373,7 +365,7 @@ const Header = ({ role, title, venue, onHome, onLogout, isOnline }: any) => (
         {role === 'announcer' && <Mic className="text-purple-400" />}
         {role === 'callroom' && <Users className="text-emerald-400" />}
         <div>
-          <span className="font-bold text-lg uppercase leading-none block">{role}</span>
+          <span className="font-bold text-lg uppercase leading-none block">{role === 'admin' ? 'Admin Lomba' : role}</span>
           <span className={`text-[10px] flex items-center gap-1 ${isOnline ? 'text-emerald-400' : 'text-red-500'}`}>
             {isOnline ? <Wifi size={10} /> : <WifiOff size={10} />} {isOnline ? 'ONLINE' : 'OFFLINE'}
           </span>
@@ -384,57 +376,370 @@ const Header = ({ role, title, venue, onHome, onLogout, isOnline }: any) => (
             <div className="text-xs font-bold text-slate-300">{title}</div>
             <div className="text-[10px] text-slate-500">{venue}</div>
          </div>
-         <button onClick={onHome} className="p-2 bg-slate-800 hover:bg-slate-700 rounded-full transition"><Home size={16} /></button>
-         <button onClick={onLogout} className="p-2 bg-red-600 hover:bg-red-700 rounded-full transition"><LogOut size={16} /></button>
+         <button onClick={onHome} className="p-2 bg-slate-800 hover:bg-slate-700 rounded-full transition" title="Lihat Public View"><Home size={16} /></button>
+         <button onClick={onLogout} className="p-2 bg-red-600 hover:bg-red-700 rounded-full transition" title="Logout"><LogOut size={16} /></button>
       </div>
     </div>
   </header>
 );
 
-function LandingPage({ onEnter, onOfficialLogin, appState }: any) {
-  return (
-    <div className="min-h-screen bg-slate-900 text-white font-sans flex flex-col relative overflow-hidden">
-      <div className="absolute inset-0 opacity-20 bg-[url('https://images.unsplash.com/photo-1530549387789-4c1017266635?ixlib=rb-1.2.1&auto=format&fit=crop&w=1920&q=80')] bg-cover bg-center" />
-      <nav className="border-b border-white/10 bg-slate-900/80 backdrop-blur-md sticky top-0 z-50 p-4">
-        <div className="max-w-6xl mx-auto flex justify-between items-center">
-          <div className="flex items-center gap-3">
-             <img src="/sangkuriang%201.png" alt="Logo SSO" className="h-10 w-auto object-contain" onError={(e:any) => e.target.style.display='none'} />
-             <div className="font-bold text-xl leading-tight">
-               <div>SANGKURIANG</div>
-               <div className="text-blue-400 text-sm tracking-widest">SWIM ORGANIZER</div>
-             </div>
+const LogoBar = ({ onMasterLogin }: { onMasterLogin?: () => void }) => (
+  <nav className="border-b border-white/10 bg-slate-900/80 backdrop-blur-md sticky top-0 z-50 p-4">
+    <div className="max-w-6xl mx-auto flex justify-between items-center">
+      <div className="flex items-center gap-3">
+          <img src="/sangkuriang%201.png" alt="Logo" className="h-10 w-auto object-contain" onError={(e:any) => e.target.style.display='none'} />
+          <div className="font-bold text-xl leading-tight text-white">
+            <div>SANGKURIANG</div>
+            <div className="text-blue-400 text-sm tracking-widest">SWIM ORGANIZER</div>
           </div>
-          <button onClick={onOfficialLogin} className="text-sm text-slate-400 hover:text-white flex gap-1 items-center"><Lock size={14}/> Login</button>
-        </div>
-      </nav>
-      <div className="flex-1 flex flex-col justify-center items-center text-center p-6 z-10">
-        <h1 className="text-5xl md:text-7xl font-extrabold tracking-tight mb-6 bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-emerald-400">Event Management</h1>
-        <p className="text-slate-400 text-lg md:text-xl leading-relaxed mb-8">Platform manajemen lomba renang real-time.</p>
-        <div className="max-w-md mx-auto group bg-slate-800 rounded-2xl p-6 border border-slate-700 hover:border-blue-500/50 transition shadow-2xl">
-            <div className="flex justify-between mb-4"><span className="bg-emerald-500/20 text-emerald-400 text-xs px-2 py-1 rounded font-bold animate-pulse">LIVE NOW</span><Calendar size={16} className="text-slate-500"/></div>
-            <h3 className="text-2xl font-bold mb-1">{appState.title}</h3>
-            <div className="text-sm text-slate-400 mb-6 flex items-center justify-center gap-1"><MapPin size={12}/> {appState.venue || 'Venue TBD'}</div>
-            <button onClick={onEnter} className="w-full py-3 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-bold flex justify-center items-center gap-2 transition active:scale-95">Lihat Scoreboard <ArrowRight size={18}/></button>
-        </div>
       </div>
-      <footer className="bg-slate-950 text-slate-600 py-4 text-center text-xs border-t border-slate-800 z-10 relative">
-         &copy; anak magang SSO 2026
-      </footer>
+      {onMasterLogin && (
+        <button onClick={onMasterLogin} className="text-xs text-slate-500 hover:text-white flex gap-1 items-center transition bg-slate-800 px-3 py-1.5 rounded-full border border-slate-700">
+          <ShieldAlert size={14}/> Master
+        </button>
+      )}
+    </div>
+  </nav>
+);
+
+const TourCard = ({ t, badge, badgeColor, onSelectTournament }: any) => (
+  <div onClick={() => onSelectTournament(t.id)} className="bg-slate-800/80 backdrop-blur border border-slate-700 p-6 rounded-2xl shadow-xl hover:border-blue-500 transition-colors cursor-pointer group text-left">
+      <div className="flex justify-between items-start mb-4">
+        <span className={`${badgeColor} text-xs px-2 py-1 rounded font-bold uppercase`}>{badge}</span>
+        <Trophy size={20} className="text-slate-500 group-hover:text-blue-400 transition"/>
+      </div>
+      <h3 className="text-xl font-bold mb-2 text-white group-hover:text-blue-400 transition">{t.title}</h3>
+      <div className="text-sm text-slate-400 mb-2 flex items-center gap-2"><MapPin size={14}/> {t.venue}</div>
+      <div className="text-sm text-slate-400 flex items-center gap-2"><Calendar size={14}/> {new Date(t.eventDate).toLocaleDateString('id-ID', {day:'numeric', month:'long', year:'numeric'})}</div>
+  </div>
+);
+
+// 1. GLOBAL LANDING PAGE
+function GlobalLandingPage({ tournaments, onSelectTournament, onMasterLogin }: any) {
+  const live = tournaments.filter((t: any) => t.status === 'live');
+  const upcoming = tournaments.filter((t: any) => t.status === 'upcoming');
+  const finished = tournaments.filter((t: any) => t.status === 'finished');
+
+  return (
+    <div className="min-h-screen bg-slate-950 text-white font-sans flex flex-col relative overflow-y-auto">
+      <LogoBar onMasterLogin={onMasterLogin} />
+      <div className="flex-1 max-w-6xl mx-auto w-full p-6 py-12">
+        <div className="text-center mb-12">
+          <h1 className="text-4xl md:text-5xl font-extrabold mb-4 bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-emerald-400">Portal Kejuaraan Renang</h1>
+          <p className="text-slate-400 text-lg">Pilih kompetisi untuk melihat Live Scoreboard & Jadwal</p>
+        </div>
+
+        {live.length > 0 ? (
+          <div className="mb-12">
+            <h2 className="text-2xl font-bold mb-6 flex items-center gap-2 border-b border-slate-800 pb-2"><MonitorPlay className="text-red-500"/> Sedang Berlangsung</h2>
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {live.map((t:any) => <TourCard key={t.id} t={t} badge="LIVE NOW" badgeColor="bg-red-500/20 text-red-400 animate-pulse border border-red-500/30" onSelectTournament={onSelectTournament} />)}
+            </div>
+          </div>
+        ) : null}
+
+        {upcoming.length > 0 ? (
+          <div className="mb-12">
+            <h2 className="text-2xl font-bold mb-6 flex items-center gap-2 border-b border-slate-800 pb-2"><Timer className="text-yellow-500"/> Akan Datang</h2>
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {upcoming.map((t:any) => <TourCard key={t.id} t={t} badge="COMING SOON" badgeColor="bg-yellow-500/20 text-yellow-400 border border-yellow-500/30" onSelectTournament={onSelectTournament} />)}
+            </div>
+          </div>
+        ) : null}
+
+        {finished.length > 0 ? (
+          <div className="mb-12 opacity-80">
+            <h2 className="text-2xl font-bold mb-6 flex items-center gap-2 border-b border-slate-800 pb-2"><CheckCircle className="text-blue-500"/> Selesai</h2>
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {finished.map((t:any) => <TourCard key={t.id} t={t} badge="SELESAI" badgeColor="bg-blue-500/20 text-blue-400 border border-blue-500/30" onSelectTournament={onSelectTournament} />)}
+            </div>
+          </div>
+        ) : null}
+        
+        {tournaments.length === 0 ? (
+            <div className="text-center text-slate-500 py-20 italic">Belum ada data kejuaraan di dalam sistem.</div>
+        ) : null}
+      </div>
+      <footer className="bg-slate-950 text-slate-600 py-4 text-center text-xs border-t border-slate-900 shrink-0">&copy; anak magang SSO 2026</footer>
     </div>
   );
 }
 
-function RoleSelectionPanel({ onBack, onLoginRequest }: any) {
+// 2. MASTER DASHBOARD
+function MasterDashboard({ tournaments, onCreate, onEdit, onDelete, onLogout, isOnline }: any) {
+  const [showCreate, setShowCreate] = useState(false);
+  const [form, setForm] = useState({ title: '', venue: '', eventDate: '', adminPin: '1234', announcerPin: '1234', callroomPin: '1234' });
+
+  const handleCreate = (e: any) => {
+    e.preventDefault();
+    onCreate({
+      title: form.title, venue: form.venue, eventDate: new Date(form.eventDate).toISOString(), resultUrl: '',
+      pins: { admin: simpleHash(form.adminPin), announcer: simpleHash(form.announcerPin), callroom: simpleHash(form.callroomPin) }
+    });
+    setShowCreate(false);
+  };
+
+  return (
+    <div className="min-h-screen bg-slate-50 font-sans text-slate-900">
+      <header className="bg-blue-900 text-white p-4 shadow-lg sticky top-0 z-50">
+        <div className="max-w-6xl mx-auto flex justify-between items-center">
+          <div className="font-bold text-xl flex items-center gap-2"><ShieldAlert className="text-blue-400"/> SUPERUSER MASTER</div>
+          <button onClick={onLogout} className="bg-blue-800 hover:bg-blue-700 px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2"><LogOut size={16}/> Logout</button>
+        </div>
+      </header>
+      
+      <main className="max-w-6xl mx-auto p-6">
+        <div className="flex justify-between items-center mb-8">
+          <h2 className="text-2xl font-bold text-slate-800">Daftar Semua Lomba</h2>
+          <button onClick={() => setShowCreate(!showCreate)} className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-bold flex items-center gap-2"><Plus size={18}/> Buat Lomba Baru</button>
+        </div>
+
+        {showCreate && (
+          <form onSubmit={handleCreate} className="bg-white p-6 rounded-2xl shadow-sm border border-blue-100 mb-8 grid md:grid-cols-2 gap-6 animate-in fade-in">
+             <div className="space-y-4">
+                <h3 className="font-bold text-blue-900 border-b pb-2">Informasi Umum</h3>
+                <div><label className="block text-xs font-bold text-slate-500 mb-1">Nama Kejuaraan</label><input required type="text" value={form.title} onChange={e=>setForm({...form, title: e.target.value})} className="w-full p-2 border rounded bg-slate-50" /></div>
+                <div><label className="block text-xs font-bold text-slate-500 mb-1">Lokasi / Venue</label><input required type="text" value={form.venue} onChange={e=>setForm({...form, venue: e.target.value})} className="w-full p-2 border rounded bg-slate-50" /></div>
+                <div><label className="block text-xs font-bold text-slate-500 mb-1">Tanggal Mulai</label><input required type="date" value={form.eventDate} onChange={e=>setForm({...form, eventDate: e.target.value})} className="w-full p-2 border rounded bg-slate-50" /></div>
+             </div>
+             <div className="space-y-4">
+                <h3 className="font-bold text-blue-900 border-b pb-2">Pengaturan Akses (PIN)</h3>
+                <div><label className="block text-xs font-bold text-slate-500 mb-1">PIN Admin Lomba</label><input required type="text" value={form.adminPin} onChange={e=>setForm({...form, adminPin: e.target.value})} className="w-full p-2 border rounded bg-slate-50" /></div>
+                <div><label className="block text-xs font-bold text-slate-500 mb-1">PIN Announcer</label><input required type="text" value={form.announcerPin} onChange={e=>setForm({...form, announcerPin: e.target.value})} className="w-full p-2 border rounded bg-slate-50" /></div>
+                <div><label className="block text-xs font-bold text-slate-500 mb-1">PIN Call Room</label><input required type="text" value={form.callroomPin} onChange={e=>setForm({...form, callroomPin: e.target.value})} className="w-full p-2 border rounded bg-slate-50" /></div>
+             </div>
+             <div className="md:col-span-2 flex justify-end gap-2 border-t pt-4">
+               <button type="button" onClick={()=>setShowCreate(false)} className="px-6 py-2 rounded text-slate-500 hover:bg-slate-100 font-bold">Batal</button>
+               <button type="submit" className="px-8 py-2 rounded bg-blue-600 text-white font-bold shadow-lg">SIMPAN & BUAT LOMBA</button>
+             </div>
+          </form>
+        )}
+
+        <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+          <table className="w-full text-left">
+            <thead className="bg-slate-50 border-b"><tr><th className="p-4 font-bold text-slate-600">Lomba</th><th className="p-4 font-bold text-slate-600">Status</th><th className="p-4 font-bold text-slate-600 text-right">Aksi</th></tr></thead>
+            <tbody>
+              {tournaments.map((t:any) => (
+                <tr key={t.id} className="border-b last:border-0 hover:bg-slate-50">
+                  <td className="p-4">
+                    <div className="font-bold text-blue-900 text-lg">{t.title}</div>
+                    <div className="text-sm text-slate-500">{new Date(t.eventDate).toLocaleDateString('id-ID')} | {t.venue}</div>
+                  </td>
+                  <td className="p-4">
+                    <span className={`text-xs font-bold px-2 py-1 rounded-full uppercase ${t.status === 'live' ? 'bg-red-100 text-red-600' : t.status === 'finished' ? 'bg-blue-100 text-blue-600' : 'bg-yellow-100 text-yellow-600'}`}>{t.status}</span>
+                  </td>
+                  <td className="p-4 text-right space-x-2">
+                    <button onClick={() => onEdit(t.id)} className="bg-slate-800 text-white px-4 py-2 rounded font-bold text-sm hover:bg-slate-700 transition shadow">Kelola Event (Admin)</button>
+                    <button onClick={() => onDelete(t.id)} className="bg-red-50 text-red-500 hover:bg-red-100 px-3 py-2 rounded transition"><Trash2 size={16}/></button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </main>
+    </div>
+  );
+}
+
+// 3. TOURNAMENT PUBLIC VIEW (Landing Khusus Lomba)
+function TournamentPublicView({ tournament, dqs, isOnline, onBack, onLoginRequest }: any) {
+  const [timeLeft, setTimeLeft] = useState({ days: 0, hours: 0, minutes: 0, seconds: 0 });
+  const [showPdf, setShowPdf] = useState(false);
+
+  useEffect(() => {
+    if (tournament.status !== 'upcoming') return;
+    const timer = setInterval(() => {
+      const now = new Date().getTime();
+      const targetDate = new Date(tournament.eventDate);
+      const target = isNaN(targetDate.getTime()) ? now : targetDate.getTime();
+      const distance = target - now;
+
+      if (distance < 0) {
+        setTimeLeft({ days: 0, hours: 0, minutes: 0, seconds: 0 });
+      } else {
+        setTimeLeft({
+          days: Math.floor(distance / (1000 * 60 * 60 * 24)) || 0,
+          hours: Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60)) || 0,
+          minutes: Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60)) || 0,
+          seconds: Math.floor((distance % (1000 * 60)) / 1000) || 0
+        });
+      }
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [tournament.eventDate, tournament.status]);
+
+  if (tournament.status === 'live') {
+    return <LiveScoreboard tournament={tournament} dqs={dqs} isOnline={isOnline} onBack={onBack} onLoginRequest={onLoginRequest} />;
+  }
+
+  // View Upcoming or Finished
+  const validEventDate = new Date(tournament.eventDate);
+  const isFinished = tournament.status === 'finished';
+
+  return (
+    <div className="min-h-screen bg-slate-900 text-white font-sans flex flex-col relative overflow-hidden">
+      {showPdf && tournament.resultUrl ? (
+          <div className="fixed inset-0 z-[100] bg-black/90 flex flex-col p-4 animate-in fade-in">
+              <div className="flex justify-between items-center mb-4 text-white">
+                  <h2 className="font-bold text-lg flex items-center gap-2"><FileText /> Hasil Lengkap</h2>
+                  <button onClick={() => setShowPdf(false)} className="p-2 bg-slate-800 rounded-full hover:bg-slate-700"><X /></button>
+              </div>
+              <iframe src={tournament.resultUrl} className="flex-1 w-full rounded-lg bg-white" title="Hasil Lomba"></iframe>
+          </div>
+      ) : null}
+
+      <div className="absolute inset-0 opacity-20 bg-[url('https://images.unsplash.com/photo-1530549387789-4c1017266635?ixlib=rb-1.2.1&auto=format&fit=crop&w=1920&q=80')] bg-cover bg-center" />
+      
+      <header className="bg-slate-900/80 backdrop-blur-md text-white h-16 shrink-0 flex items-center justify-between px-6 border-b border-slate-800 z-50">
+          <div className="flex items-center gap-4">
+              <img src="/sangkuriang%201.png" alt="Logo" className="h-10 w-auto object-contain" onError={(e:any) => e.target.style.display='none'} />
+              <div className="flex flex-col justify-center hidden sm:flex">
+                  <h1 className="font-extrabold text-lg leading-none tracking-wide uppercase">Sangkuriang</h1>
+                  <p className="text-xs text-blue-400 font-bold tracking-[0.2em] uppercase">Swim Organizer</p>
+              </div>
+          </div>
+          <div className="flex items-center gap-3">
+              <span className={`text-[10px] flex items-center gap-1 ${isOnline ? 'text-emerald-400' : 'text-red-500'}`}>{isOnline ? <Wifi size={10} /> : <WifiOff size={10} />}</span>
+              <button onClick={onBack} className="text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 px-3 py-1.5 rounded-lg transition border border-slate-700 flex items-center gap-2"><ChevronLeft size={14} /> Beranda</button>
+              <button onClick={onLoginRequest} className="text-slate-500 hover:text-white transition p-2"><Settings size={20} /></button>
+          </div>
+      </header>
+      
+      <div className="flex-1 flex flex-col justify-center items-center text-center p-6 z-10">
+        <div className="bg-slate-800/80 backdrop-blur border border-slate-700 p-8 rounded-2xl shadow-2xl max-w-xl w-full">
+            <div className="flex justify-center mb-6">
+                {isFinished ? (
+                     <span className="bg-blue-500/20 text-blue-400 text-sm px-3 py-1 rounded-full font-bold flex items-center gap-2 border border-blue-500/30"><CheckCircle size={14} /> LOMBA TELAH SELESAI</span>
+                ) : (
+                     <span className="bg-yellow-500/20 text-yellow-400 text-sm px-3 py-1 rounded-full font-bold flex items-center gap-2 border border-yellow-500/30"><Timer size={14}/> AKAN DATANG</span>
+                )}
+            </div>
+
+            <h3 className="text-3xl md:text-4xl font-extrabold mb-4 leading-tight bg-clip-text text-transparent bg-gradient-to-r from-white to-slate-400">{tournament.title}</h3>
+            <div className="text-base text-slate-400 mb-8 flex items-center justify-center gap-2">
+                <MapPin size={16}/> {tournament.venue}
+            </div>
+
+            {!isFinished ? (
+                 <div className="grid grid-cols-4 gap-3 mb-8">
+                     {Object.entries(timeLeft).map(([unit, val]) => (
+                         <div key={unit} className="bg-slate-900 p-3 rounded-xl border border-slate-700 shadow-inner">
+                             <div className="text-3xl font-black text-white mb-1">{val}</div>
+                             <div className="text-[10px] uppercase text-slate-500 tracking-wider font-bold">{unit}</div>
+                         </div>
+                     ))}
+                 </div>
+            ) : null}
+            
+            {isFinished ? (
+                 tournament.resultUrl ? (
+                    <button onClick={() => setShowPdf(true)} className="w-full py-4 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-bold flex justify-center items-center gap-2 transition active:scale-95 shadow-lg shadow-blue-900/50 text-lg">
+                        <FileText size={20}/> LIHAT HASIL KESELURUHAN
+                    </button>
+                 ) : (
+                    <div className="text-slate-500 italic bg-slate-900 p-4 rounded-xl border border-slate-800">Menunggu admin mengunggah hasil perlombaan...</div>
+                 )
+            ) : (
+                <div className="text-sm text-slate-500 border-t border-slate-700 pt-6">
+                    Lomba dijadwalkan pada:<br/>
+                    <span className="text-white font-bold text-lg">{!isNaN(validEventDate.getTime()) ? validEventDate.toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }) : '-'}</span>
+                </div>
+            )}
+        </div>
+      </div>
+      <footer className="bg-slate-950 text-slate-600 py-4 text-center text-xs border-t border-slate-800 z-10 shrink-0">&copy; anak magang SSO 2026</footer>
+    </div>
+  );
+}
+
+// 3A. LIVE SCOREBOARD (Split Screen)
+function LiveScoreboard({ tournament, dqs, isOnline, onBack, onLoginRequest }: any) {
+  const ls = tournament.liveState || DEFAULT_LIVE_STATE;
+  return (
+    <div className="flex flex-col h-screen relative overflow-hidden bg-white">
+        <header className="bg-slate-900 text-white h-16 shrink-0 flex items-center justify-between px-6 border-b border-slate-800 shadow-xl z-50">
+            <div className="flex items-center gap-4">
+                <img src="/sangkuriang%201.png" alt="Logo" className="h-10 w-auto object-contain" onError={(e:any) => e.target.style.display='none'} />
+                <div className="flex flex-col justify-center">
+                    <h1 className="font-extrabold text-lg leading-none tracking-wide uppercase truncate max-w-[150px] md:max-w-xs">{tournament.title}</h1>
+                    <p className="text-[10px] text-blue-400 font-bold tracking-[0.2em] uppercase hidden sm:block">Swim Organizer</p>
+                </div>
+            </div>
+            <div className="flex items-center gap-3">
+                <span className={`text-[10px] flex items-center gap-1 ${isOnline ? 'text-emerald-400' : 'text-red-500'}`}>{isOnline ? <Wifi size={10} /> : <WifiOff size={10} />}</span>
+                <button onClick={onBack} className="text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 px-3 py-1.5 rounded-lg transition border border-slate-700 flex items-center gap-2"><ChevronLeft size={14} /> Beranda</button>
+                <button onClick={onLoginRequest} className="text-slate-500 hover:text-white transition p-2"><Settings size={20} /></button>
+            </div>
+        </header>
+
+        <div className="flex-1 flex flex-col relative overflow-hidden">
+            <div className="flex-1 flex flex-col md:flex-row min-h-0">
+                <div className="w-full md:w-1/2 bg-slate-900 relative flex flex-col justify-center px-6 md:px-12 border-b md:border-b-0 md:border-r border-slate-700">
+                    <div className="absolute inset-0 bg-gradient-to-br from-blue-900/40 via-slate-900 to-slate-900 z-0"></div>
+                    <div className="relative z-10 w-full max-w-lg mx-auto py-4">
+                        <div className="flex justify-between items-start mb-6"><div><h2 className="text-white text-2xl md:text-3xl font-bold flex items-center gap-2"><Users className="text-blue-400" /> Pemanggilan</h2><span className="text-blue-200/60 text-sm">Call Room</span></div><div className="text-right"><span className="text-blue-200/40 text-[10px] uppercase block">Terakhir Update</span><span className="text-white text-lg font-mono font-bold flex items-center gap-2"><Clock size={16} className="text-blue-400" /> {ls.callRoomLastUpdate || '-'}</span></div></div>
+                        <div className="flex gap-4">
+                            <div className="flex-1 bg-white/5 border border-white/10 rounded-2xl p-4 text-center"><div className="text-blue-200 text-sm uppercase mb-1">Acara</div><div className="text-white text-6xl md:text-8xl font-bold tracking-tighter">{ls.callRoomEventNumber || '-'}</div></div>
+                            <div className="flex-1 bg-white/5 border border-white/10 rounded-2xl p-4 text-center"><div className="text-blue-200 text-sm uppercase mb-1">Seri</div><div className="text-white text-6xl md:text-8xl font-bold tracking-tighter">{ls.callRoomSeries}</div></div>
+                        </div>
+                        <p className="text-center text-blue-200/50 mt-4 text-lg md:text-xl font-medium truncate">{ls.callRoomEventName || 'Menunggu...'}</p>
+                    </div>
+                </div>
+                <div className="w-full md:w-1/2 bg-white relative flex flex-col justify-center px-6 md:px-12">
+                    <div className="relative z-10 w-full max-w-lg mx-auto py-4">
+                        <div className="flex justify-between items-center mb-6"><h2 className="text-slate-800 text-2xl md:text-3xl font-bold flex items-center gap-2"><MonitorPlay className="text-red-500" /> Sedang Berlomba</h2><span className="bg-red-500 text-white text-xs px-3 py-1 rounded-full font-bold animate-pulse">LIVE</span></div>
+                        <div className="flex gap-4">
+                            <div className="flex-1 bg-slate-50 border border-slate-200 rounded-2xl p-4 text-center shadow-inner"><div className="text-slate-400 text-sm uppercase mb-1">Acara</div><div className="text-slate-800 text-6xl md:text-8xl font-bold tracking-tighter">{ls.currentEventNumber || '-'}</div></div>
+                            <div className="flex-1 bg-slate-50 border border-slate-200 rounded-2xl p-4 text-center shadow-inner"><div className="text-slate-400 text-sm uppercase mb-1">Seri</div><div className="text-slate-800 text-6xl md:text-8xl font-bold tracking-tighter">{ls.currentSeries}</div></div>
+                        </div>
+                        <p className="text-center text-slate-500 mt-4 text-lg md:text-xl font-medium truncate">{ls.currentEventName || 'Menunggu...'}</p>
+                    </div>
+                </div>
+            </div>
+            <div className="h-[30%] bg-slate-50 border-t border-slate-200 p-4 md:p-6 overflow-hidden flex flex-col shrink-0">
+                <div className="max-w-7xl mx-auto w-full h-full flex flex-col">
+                    <h3 className="text-slate-700 font-bold mb-3 flex items-center gap-2"><AlertOctagon size={20} className="text-red-500" /> INFORMASI DISKUALIFIKASI TERKINI</h3>
+                    <div className="flex-1 bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden flex flex-col">
+                        <div className="grid grid-cols-12 bg-slate-800 text-white text-xs md:text-sm font-bold uppercase py-3 px-4"><div className="col-span-2">No. Acara</div><div className="col-span-2 text-center">Seri</div><div className="col-span-2 text-center">Lintasan</div><div className="col-span-6">Keterangan / Alasan</div></div>
+                        <div className="overflow-y-auto flex-1 p-0">
+                            {dqs.length === 0 ? (
+                                <div className="h-full flex items-center justify-center text-slate-400 italic">Tidak ada informasi diskualifikasi saat ini.</div>
+                            ) : null}
+                            
+                            {dqs.map((dq: any, idx: number) => (
+                                <div key={dq.id} className={`grid grid-cols-12 text-sm py-3 px-4 border-b border-slate-100 items-center ${idx % 2 === 0 ? 'bg-white' : 'bg-slate-50'}`}>
+                                    <div className="col-span-2 font-bold text-slate-800">{dq.eventNumber}</div>
+                                    <div className="col-span-2 text-center text-slate-600">{dq.series}</div>
+                                    <div className="col-span-2 text-center"><span className="bg-slate-200 text-slate-700 px-2 py-0.5 rounded font-mono font-bold">{dq.lane}</span></div>
+                                    <div className="col-span-6 text-red-600 font-medium">{dq.reason}</div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <footer className="bg-slate-900 text-slate-500 text-center py-3 text-xs font-mono tracking-widest border-t border-slate-800 h-10 shrink-0 flex items-center justify-center z-50">&copy; anak magang SSO 2026</footer>
+    </div>
+  );
+}
+
+// 4. ROLE SELECTION
+function RoleSelectionPanel({ tournament, onBack, onLoginRequest }: any) {
     return (
       <div className="min-h-screen bg-slate-900 flex items-center justify-center p-4">
         <div className="max-w-4xl w-full">
             <button onClick={onBack} className="mb-8 text-slate-400 hover:text-white flex gap-2 items-center"><ChevronLeft size={20}/> Kembali</button>
-            <h2 className="text-2xl font-bold text-white text-center mb-8">Pilih Akses Petugas</h2>
+            <div className="text-center mb-8">
+                <h2 className="text-2xl font-bold text-white mb-2">Pilih Akses Petugas</h2>
+                <p className="text-slate-400">Untuk {tournament.title}</p>
+            </div>
             <div className="grid md:grid-cols-3 gap-4">
                 {['admin', 'announcer', 'callroom'].map(r => (
-                    <button key={r} onClick={() => onLoginRequest(r)} className="p-8 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-2xl capitalize font-bold text-white transition hover:scale-105 group">
-                        {r==='admin'?<Settings size={32} className="mb-4 text-blue-500 group-hover:scale-110 transition"/>:r==='announcer'?<Mic size={32} className="mb-4 text-purple-500 group-hover:scale-110 transition"/>:<Users size={32} className="mb-4 text-emerald-500 group-hover:scale-110 transition"/>}
-                        <div className="text-xl">{r}</div>
+                    <button key={r} onClick={() => onLoginRequest(r)} className="p-8 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-2xl capitalize font-bold text-white transition hover:scale-105 group shadow-xl">
+                        {r==='admin'?<Settings size={32} className="mb-4 text-blue-500 group-hover:scale-110 transition mx-auto"/>:r==='announcer'?<Mic size={32} className="mb-4 text-purple-500 group-hover:scale-110 transition mx-auto"/>:<Users size={32} className="mb-4 text-emerald-500 group-hover:scale-110 transition mx-auto"/>}
+                        <div className="text-xl text-center">{r === 'admin' ? 'Admin Lomba' : r}</div>
                     </button>
                 ))}
             </div>
@@ -443,18 +748,14 @@ function RoleSelectionPanel({ onBack, onLoginRequest }: any) {
     );
 }
 
-function LoginModal({ targetRole, onClose, onSuccess, authConfig }: any) {
+function LoginModal({ targetRole, onClose, onLogin }: any) {
   const [pin, setPin] = useState(''); const [error, setError] = useState(false);
-  const handleSubmit = (e: React.FormEvent) => { 
-      e.preventDefault(); 
-      if (simpleHash(pin) === authConfig[targetRole]) onSuccess(targetRole); 
-      else { setError(true); setPin(''); }
-  };
+  const handleSubmit = (e: React.FormEvent) => { e.preventDefault(); if (!onLogin(targetRole, pin)) { setError(true); setPin(''); } };
   return (
     <div className="fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-[60]">
       <div className="bg-white rounded-2xl w-full max-w-sm p-8 relative animate-in zoom-in-95 duration-200">
         <button onClick={onClose} className="absolute top-4 right-4 text-slate-400 hover:text-slate-800"><X size={20} /></button>
-        <h2 className="text-xl font-bold text-center mb-6 capitalize">Login {targetRole}</h2>
+        <h2 className="text-xl font-bold text-center mb-6 capitalize">Login {targetRole === 'admin' ? 'Admin Lomba' : targetRole}</h2>
         <form onSubmit={handleSubmit}>
           <input autoFocus type="password" value={pin} onChange={e=>{setPin(e.target.value);setError(false)}} className="w-full text-center text-3xl font-bold p-4 border rounded-xl mb-4 outline-none focus:ring-2 focus:ring-blue-500" placeholder="PIN" />
           {error && <p className="text-red-500 text-center mb-4 text-sm font-bold">PIN Salah</p>}
@@ -465,167 +766,247 @@ function LoginModal({ targetRole, onClose, onSuccess, authConfig }: any) {
   );
 }
 
-function AdminPanel({ events, appState, dqs, onAddEvent, onEditEvent, onDeleteEvent, onUpdateSettings, onAddDQ, onDeleteDQ, onUpdatePin, onResetProgress }: any) {
+// 5. EVENT ADMIN PANEL
+function AdminPanel({ tournament, events, onUpdateTournament, onAddEvent, onEditEvent, onDeleteEvent }: any) {
   const [loading, setLoading] = useState(false);
   const [newEvent, setNewEvent] = useState({ number: '', name: '', totalSeries: '' });
-  const [newDQ, setNewDQ] = useState({ eventNumber: '', series: '', lane: '', reason: '' });
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editForm, setEditForm] = useState({ number: '', name: '', totalSeries: '' });
-  const [pinRole, setPinRole] = useState('announcer');
-  const [newPinCode, setNewPinCode] = useState('');
 
   const wrapAsync = async (fn: () => Promise<void>) => { setLoading(true); try { await fn(); } finally { setLoading(false); }};
   const handleAddEvent = (e: React.FormEvent) => { e.preventDefault(); if(!newEvent.number) return; wrapAsync(async () => { await onAddEvent({ number: parseInt(newEvent.number), name: newEvent.name, totalSeries: parseInt(newEvent.totalSeries) }); setNewEvent({ number: '', name: '', totalSeries: '' }); }); };
-  const handleUpdatePin = (e: React.FormEvent) => { e.preventDefault(); if(newPinCode.length < 4) return alert("Min 4 digit"); wrapAsync(async () => { await onUpdatePin(pinRole, newPinCode); alert("PIN Berhasil Diubah!"); setNewPinCode(''); }); };
-  const handleReset = () => { if(!window.confirm("RESET PROGRESS?")) return; wrapAsync(async () => { await onResetProgress(); }); };
+  
+  const isUpcoming = tournament.status === 'upcoming';
+  const isLive = tournament.status === 'live';
 
   return (
-    <div className="grid md:grid-cols-2 gap-6 relative">
+    <div className="grid md:grid-cols-3 gap-6 relative">
       {loading && <div className="absolute inset-0 bg-white/50 z-50 flex items-center justify-center"><Loader2 className="animate-spin text-blue-600" size={40}/></div>}
-      <div className="space-y-6">
+      
+      <div className="md:col-span-1 space-y-6">
         <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
-          <h2 className="font-bold mb-4 flex gap-2"><Settings className="text-blue-600"/> Pengaturan</h2>
-          <div className="space-y-2 mb-6">
-             <input type="text" value={appState.title} onChange={(e) => onUpdateSettings({ title: e.target.value })} className="w-full p-2 border rounded text-sm" placeholder="Nama Kejuaraan" />
-             <input type="text" value={appState.venue} onChange={(e) => onUpdateSettings({ venue: e.target.value })} className="w-full p-2 border rounded text-sm" placeholder="Venue" />
+          <h2 className="font-bold mb-4 flex gap-2"><Settings className="text-blue-600"/> Kontrol Lomba</h2>
+          
+          <div className="mb-6 p-4 rounded-lg bg-slate-50 border border-slate-100">
+              <div className="text-xs text-slate-500 uppercase font-bold tracking-wider mb-1">Status Saat Ini</div>
+              <div className={`text-lg font-black uppercase ${isLive ? 'text-red-500' : tournament.status === 'finished' ? 'text-blue-600' : 'text-yellow-600'}`}>
+                  {isLive ? 'SEDANG BERLANGSUNG (LIVE)' : tournament.status === 'finished' ? 'SELESAI' : 'AKAN DATANG'}
+              </div>
           </div>
-          <div className="pt-4 border-t border-slate-100">
-             <h3 className="font-bold text-slate-700 text-sm mb-2">Ganti PIN <Key size={14} className="inline ml-1"/></h3>
-             <form onSubmit={handleUpdatePin} className="flex gap-2">
-                 <select value={pinRole} onChange={e => setPinRole(e.target.value)} className="p-2 border rounded bg-slate-50 text-sm"><option value="admin">Admin</option><option value="announcer">Announcer</option><option value="callroom">Call Room</option></select>
-                 <input type="text" value={newPinCode} onChange={e => setNewPinCode(e.target.value)} placeholder="PIN Baru" className="flex-1 p-2 border rounded text-sm" pattern="\d*" />
-                 <button className="bg-slate-800 text-white px-3 rounded text-xs font-bold">UBAH</button>
-             </form>
-          </div>
-          <div className="pt-4 mt-4 border-t border-slate-100">
-             <button onClick={handleReset} className="w-full bg-red-50 text-red-600 hover:bg-red-100 py-2 rounded border border-red-200 text-sm font-bold flex justify-center gap-2"><RotateCcw size={16} /> RESET LOMBA</button>
-          </div>
-        </div>
-        <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
-          <h2 className="font-bold mb-4 flex gap-2"><List className="text-blue-600"/> Events</h2>
-          <form onSubmit={handleAddEvent} className="flex gap-2 mb-4">
-            <input type="number" placeholder="No" value={newEvent.number} onChange={e => setNewEvent({...newEvent, number: e.target.value})} className="w-14 p-2 border rounded text-sm" />
-            <input type="text" placeholder="Nama Acara" value={newEvent.name} onChange={e => setNewEvent({...newEvent, name: e.target.value})} className="flex-1 p-2 border rounded text-sm" />
-            <input type="number" placeholder="Seri" value={newEvent.totalSeries} onChange={e => setNewEvent({...newEvent, totalSeries: e.target.value})} className="w-14 p-2 border rounded text-sm" />
-            <button className="bg-blue-600 text-white p-2 rounded"><Plus size={16}/></button>
-          </form>
-          <div className="max-h-60 overflow-y-auto">
-            <table className="w-full text-sm text-left">
-              <tbody>
-                {events.map((ev: any) => (
-                  <tr key={ev.id} className="border-b hover:bg-slate-50">
-                    {editingId === ev.id ? (
-                      <>
-                        <td className="p-2"><input type="number" value={editForm.number} onChange={e => setEditForm({...editForm, number: e.target.value})} className="w-full border rounded" /></td>
-                        <td className="p-2"><input type="text" value={editForm.name} onChange={e => setEditForm({...editForm, name: e.target.value})} className="w-full border rounded" /></td>
-                        <td className="p-2"><input type="number" value={editForm.totalSeries} onChange={e => setEditForm({...editForm, totalSeries: e.target.value})} className="w-full border rounded" /></td>
-                        <td className="p-2 flex gap-1">
-                            <button onClick={() => wrapAsync(async() => { await onEditEvent(ev.id, { number: parseInt(editForm.number), name: editForm.name, totalSeries: parseInt(editForm.totalSeries) }); setEditingId(null); })} className="text-green-600"><Save size={16}/></button>
-                            <button onClick={() => setEditingId(null)} className="text-slate-500"><RotateCcw size={16}/></button>
-                        </td>
-                      </>
-                    ) : (
-                      <>
-                        <td className="p-2 font-bold w-10">{ev.number}</td>
-                        <td className="p-2">{ev.name}</td>
-                        <td className="p-2 text-center w-10 bg-slate-100 rounded">{ev.totalSeries}</td>
-                        <td className="p-2 text-right w-16">
-                          <button onClick={() => { setEditingId(ev.id); setEditForm({ number: ev.number, name: ev.name, totalSeries: ev.totalSeries }); }} className="mr-2 text-blue-500"><Edit2 size={16}/></button>
-                          <button onClick={() => { if(confirm('Hapus?')) wrapAsync(async()=> await onDeleteEvent(ev.id)); }} className="text-red-500"><Trash2 size={16}/></button>
-                        </td>
-                      </>
-                    )}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+
+          <div className="space-y-3">
+             {isUpcoming && (
+                 <button onClick={() => { wrapAsync(async() => await onUpdateTournament({ status: 'live' })); }} className="w-full py-4 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl font-bold flex justify-center items-center gap-2 transition shadow-lg">
+                     <Play size={20}/> MULAI LOMBA
+                 </button>
+             )}
+             {isLive && (
+                 <button onClick={() => { wrapAsync(async() => await onUpdateTournament({ status: 'finished' })); }} className="w-full py-4 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-bold flex justify-center items-center gap-2 transition shadow-lg">
+                     <CheckCircle size={20}/> SELESAIKAN PERTANDINGAN
+                 </button>
+             )}
+             
+             <div className="pt-4 border-t border-slate-100 mt-6">
+                <label className="text-xs text-slate-500 font-bold mb-1 block">Link Hasil Lengkap (PDF URL)</label>
+                <div className="flex gap-2">
+                    <input type="text" value={tournament.resultUrl || ''} onChange={(e) => onUpdateTournament({ resultUrl: e.target.value })} className="flex-1 p-2 border rounded text-sm bg-slate-50" placeholder="https://drive.google.com/..." />
+                </div>
+                <p className="text-[10px] text-slate-400 mt-1">Gunakan link publik agar bisa dibuka oleh penonton saat lomba selesai.</p>
+             </div>
           </div>
         </div>
       </div>
-      <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
-          <h2 className="font-bold mb-4 text-red-600 flex gap-2"><AlertOctagon /> Diskualifikasi</h2>
-          <form onSubmit={(e) => { e.preventDefault(); wrapAsync(async()=> { await onAddDQ({ eventNumber: parseInt(newDQ.eventNumber), series: parseInt(newDQ.series), lane: parseInt(newDQ.lane), reason: newDQ.reason, timestamp: getWIBTime(), createdAt: Date.now() }); setNewDQ({ eventNumber: '', series: '', lane: '', reason: '' }); }) }} className="bg-red-50 p-4 rounded mb-4">
-            <div className="flex gap-2 mb-2">
-              <input required type="number" placeholder="Acara" value={newDQ.eventNumber} onChange={e => setNewDQ({...newDQ, eventNumber: e.target.value})} className="w-1/3 p-2 border rounded text-sm" />
-              <input required type="number" placeholder="Seri" value={newDQ.series} onChange={e => setNewDQ({...newDQ, series: e.target.value})} className="w-1/3 p-2 border rounded text-sm" />
-              <input required type="number" placeholder="Lin" value={newDQ.lane} onChange={e => setNewDQ({...newDQ, lane: e.target.value})} className="w-1/3 p-2 border rounded text-sm" />
+
+      <div className="md:col-span-2">
+          <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+            <h2 className="font-bold mb-4 flex gap-2"><List className="text-blue-600"/> Daftar Acara (Events)</h2>
+            <form onSubmit={handleAddEvent} className="flex gap-2 mb-4 bg-slate-50 p-3 rounded-lg border border-slate-100">
+                <input type="number" placeholder="No" value={newEvent.number} onChange={e => setNewEvent({...newEvent, number: e.target.value})} className="w-16 p-2 border rounded text-sm" />
+                <input type="text" placeholder="Nama Acara (Contoh: 50m Gaya Bebas)" value={newEvent.name} onChange={e => setNewEvent({...newEvent, name: e.target.value})} className="flex-1 p-2 border rounded text-sm" />
+                <input type="number" placeholder="Seri" value={newEvent.totalSeries} onChange={e => setNewEvent({...newEvent, totalSeries: e.target.value})} className="w-16 p-2 border rounded text-sm" />
+                <button className="bg-blue-600 text-white px-4 rounded font-bold hover:bg-blue-700 transition">TAMBAH</button>
+            </form>
+            <div className="max-h-[500px] overflow-y-auto border rounded-lg">
+                <table className="w-full text-sm text-left">
+                <thead className="bg-slate-100 sticky top-0 border-b"><tr><th className="p-3">No</th><th className="p-3">Nama Acara</th><th className="p-3 text-center">Seri</th><th className="p-3"></th></tr></thead>
+                <tbody>
+                    {events.map((ev: any) => (
+                    <tr key={ev.id} className="border-b last:border-0 hover:bg-slate-50">
+                        {editingId === ev.id ? (
+                        <>
+                            <td className="p-2"><input type="number" value={editForm.number} onChange={e => setEditForm({...editForm, number: e.target.value})} className="w-full border rounded p-1" /></td>
+                            <td className="p-2"><input type="text" value={editForm.name} onChange={e => setEditForm({...editForm, name: e.target.value})} className="w-full border rounded p-1" /></td>
+                            <td className="p-2"><input type="number" value={editForm.totalSeries} onChange={e => setEditForm({...editForm, totalSeries: e.target.value})} className="w-full border rounded p-1" /></td>
+                            <td className="p-2 flex gap-2 justify-end">
+                                <button onClick={() => wrapAsync(async() => { await onEditEvent(ev.id, { number: parseInt(editForm.number), name: editForm.name, totalSeries: parseInt(editForm.totalSeries) }); setEditingId(null); })} className="bg-green-100 text-green-700 p-1.5 rounded hover:bg-green-200"><Save size={16}/></button>
+                                <button onClick={() => setEditingId(null)} className="bg-slate-200 text-slate-600 p-1.5 rounded hover:bg-slate-300"><X size={16}/></button>
+                            </td>
+                        </>
+                        ) : (
+                        <>
+                            <td className="p-3 font-bold w-12 text-slate-700">{ev.number}</td>
+                            <td className="p-3 font-medium">{ev.name}</td>
+                            <td className="p-3 text-center w-16"><span className="bg-blue-50 text-blue-700 px-2 py-1 rounded font-bold">{ev.totalSeries}</span></td>
+                            <td className="p-3 text-right w-24 space-x-1">
+                            <button onClick={() => { setEditingId(ev.id); setEditForm({ number: ev.number, name: ev.name, totalSeries: ev.totalSeries }); }} className="text-slate-400 hover:text-blue-500 p-1"><Edit2 size={16}/></button>
+                            <button onClick={() => { wrapAsync(async()=> await onDeleteEvent(ev.id)); }} className="text-slate-400 hover:text-red-500 p-1"><Trash2 size={16}/></button>
+                            </td>
+                        </>
+                        )}
+                    </tr>
+                    ))}
+                    {events.length === 0 ? <tr><td colSpan={4} className="p-8 text-center text-slate-400 italic">Belum ada acara ditambahkan.</td></tr> : null}
+                </tbody>
+                </table>
             </div>
-            <input required type="text" placeholder="Alasan" value={newDQ.reason} onChange={e => setNewDQ({...newDQ, reason: e.target.value})} className="w-full p-2 border rounded mb-2 text-sm" />
-            <button className="w-full bg-red-600 text-white font-bold py-2 rounded text-sm">SUBMIT DQ</button>
-          </form>
-          <div className="max-h-80 overflow-y-auto space-y-2">
-            {dqs.map((dq: any) => (
-              <div key={dq.id} className="p-2 border rounded flex justify-between items-center text-sm bg-white">
-                <div><span className="font-bold text-red-600">#{dq.eventNumber}</span> S:{dq.series} L:{dq.lane} - {dq.reason}</div>
-                <button onClick={() => wrapAsync(async() => await onDeleteDQ(dq.id))} className="text-slate-400 hover:text-red-500"><Trash2 size={14}/></button>
-              </div>
-            ))}
           </div>
       </div>
     </div>
   );
 }
 
-function AnnouncerPanel({ events, appState, navigate, onStart, dqs }: any) {
+// 6. ANNOUNCER PANEL (Live Display + DQ Input)
+function AnnouncerPanel({ tournament, events, dqs, updateLiveState, onAddDQ, onDeleteDQ }: any) {
   const [loading, setLoading] = useState(false);
-  const activeEvent = events.find((e: any) => e.id === appState.currentEventId);
+  const [newDQ, setNewDQ] = useState({ eventNumber: '', series: '', lane: '', reason: '' });
+  
+  const ls = tournament.liveState || DEFAULT_LIVE_STATE;
+  const activeEvent = events.find((e: any) => e.id === ls.currentEventId);
   const needsStart = !activeEvent && events.length > 0;
   
-  const activeIdx = events.findIndex((e: any) => e.id === appState.currentEventId);
-  const callIdx = events.findIndex((e: any) => e.id === appState.callRoomEventId);
+  const activeIdx = events.findIndex((e: any) => e.id === ls.currentEventId);
+  const callIdx = events.findIndex((e: any) => e.id === ls.callRoomEventId);
+  
   let canGoNext = true; let blockReason = "";
-
   if (activeIdx > -1 && callIdx > -1) {
-    if (activeIdx > callIdx) { canGoNext = false; blockReason = "Menunggu Pengatur Peserta"; } 
-    else if (activeIdx === callIdx && appState.currentSeries >= appState.callRoomSeries) { canGoNext = false; blockReason = "Menunggu Pengatur Peserta"; }
+    if (activeIdx > callIdx) { canGoNext = false; blockReason = "Call Room tertinggal"; } 
+    else if (activeIdx === callIdx && ls.currentSeries >= ls.callRoomSeries) { canGoNext = false; blockReason = "Menunggu Call Room"; }
   }
 
-  const handleNav = async (dir: string) => { setLoading(true); await navigate(dir); setLoading(false); };
+  const wrapAsync = async (fn: () => Promise<void>) => { setLoading(true); try { await fn(); } finally { setLoading(false); }};
+
+  const handleNav = async (direction: 'next' | 'prev') => { 
+      if(activeIdx === -1) return;
+      let nextSeries = ls.currentSeries;
+      let targetEvent = events[activeIdx];
+
+      if (direction === 'next') {
+          if (nextSeries < targetEvent.totalSeries) nextSeries++;
+          else if (activeIdx < events.length - 1) { targetEvent = events[activeIdx + 1]; nextSeries = 1; }
+      } else {
+          if (nextSeries > 1) nextSeries--;
+          else if (activeIdx > 0) { targetEvent = events[activeIdx - 1]; nextSeries = targetEvent.totalSeries; }
+      }
+
+      wrapAsync(async () => {
+          await updateLiveState({
+              currentEventId: targetEvent.id, currentEventName: targetEvent.name, currentEventNumber: targetEvent.number,
+              currentEventTotalSeries: targetEvent.totalSeries, currentSeries: nextSeries
+          });
+      });
+  };
 
   return (
-    <div className="max-w-4xl mx-auto space-y-8 relative">
-      {loading && <div className="absolute inset-0 bg-white/50 z-50 flex items-center justify-center rounded-2xl"><Loader2 className="animate-spin text-blue-600" size={40}/></div>}
-      <div className="bg-slate-900 text-white rounded-2xl shadow-2xl overflow-hidden border-4 border-slate-800">
-        <div className="bg-black p-2 text-center text-yellow-400 font-mono text-sm tracking-widest uppercase border-b border-slate-800">Live Timing Display</div>
-        <div className="p-12 text-center min-h-[300px] flex flex-col justify-center items-center">
-            {needsStart ? (
-                <div className="animate-in fade-in zoom-in">
-                    <p className="text-slate-400 mb-4">Data Acara Tersedia. Siap Memulai.</p>
-                    <button onClick={onStart} className="bg-emerald-600 hover:bg-emerald-500 text-white px-8 py-4 rounded-xl font-bold text-xl shadow-lg flex items-center gap-3"><Play size={24} fill="currentColor" /> MULAI ACARA PERTAMA</button>
-                </div>
-            ) : activeEvent ? (
-              <>
-                <div className="text-blue-400 text-2xl font-bold uppercase tracking-widest mb-2">Acara {activeEvent.number}</div>
-                <h1 className="text-5xl font-extrabold text-white mb-8 leading-tight">{activeEvent.name}</h1>
-                <div className="inline-flex items-center justify-center bg-slate-800 rounded-xl p-6 border border-slate-700">
-                  <div className="text-center px-8 border-r border-slate-600"><span className="block text-slate-400 text-sm uppercase mb-1">Seri</span><span className="block text-6xl font-black text-emerald-400">{appState.currentSeries}</span></div>
-                  <div className="text-center px-8"><span className="block text-slate-400 text-sm uppercase mb-1">Total</span><span className="block text-6xl font-black text-slate-500">{activeEvent.totalSeries}</span></div>
-                </div>
-              </>
-            ) : <div className="text-slate-500 italic">Tidak ada data acara. Hubungi Admin.</div>}
-        </div>
-        {!needsStart && activeEvent && (
-            <div className="bg-slate-800 p-4 border-t border-slate-700 flex justify-between items-center">
-                <button onClick={() => handleNav('prev')} className="flex items-center gap-2 px-6 py-3 bg-slate-700 hover:bg-slate-600 rounded-lg font-bold text-slate-300"><ChevronLeft /> PREV</button>
-                <div className="flex items-center gap-2 text-slate-400 text-sm"><Megaphone size={16} /> Announcer Control</div>
-                <div>{canGoNext ? <button onClick={() => handleNav('next')} className="flex items-center gap-2 px-8 py-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg font-bold shadow-lg transition">NEXT <ChevronRight /></button> : <button disabled className="flex items-center gap-2 px-8 py-3 bg-slate-600 text-slate-400 rounded-lg font-bold cursor-not-allowed border border-yellow-500/30"><Lock size={16} /> {blockReason}</button>}</div>
+    <div className="grid md:grid-cols-3 gap-6 relative max-w-6xl mx-auto">
+      {loading && <div className="absolute inset-0 bg-white/50 z-50 flex items-center justify-center rounded-2xl"><Loader2 className="animate-spin text-purple-600" size={40}/></div>}
+      
+      <div className="md:col-span-2 space-y-6">
+        <div className="bg-slate-900 text-white rounded-2xl shadow-2xl overflow-hidden border-4 border-slate-800">
+            <div className="bg-black p-2 text-center text-yellow-400 font-mono text-sm tracking-widest uppercase border-b border-slate-800">Live Timing Display Control</div>
+            <div className="p-12 text-center min-h-[300px] flex flex-col justify-center items-center">
+                {needsStart ? (
+                    <div className="animate-in fade-in zoom-in">
+                        <p className="text-slate-400 mb-4">Papan skor belum menampilkan data.</p>
+                        <button onClick={() => wrapAsync(async () => {
+                             const first = events[0]; 
+                             await updateLiveState({ currentEventId: first.id, currentEventName: first.name, currentEventNumber: first.number, currentEventTotalSeries: first.totalSeries, currentSeries: 1 });
+                        })} className="bg-purple-600 hover:bg-purple-500 text-white px-8 py-4 rounded-xl font-bold text-xl shadow-lg flex items-center gap-3"><Play size={24} fill="currentColor" /> MULAI ACARA PERTAMA</button>
+                    </div>
+                ) : activeEvent ? (
+                <>
+                    <div className="text-blue-400 text-2xl font-bold uppercase tracking-widest mb-2">Acara {activeEvent.number}</div>
+                    <h1 className="text-5xl font-extrabold text-white mb-8 leading-tight">{activeEvent.name}</h1>
+                    <div className="inline-flex items-center justify-center bg-slate-800 rounded-xl p-6 border border-slate-700">
+                    <div className="text-center px-8 border-r border-slate-600"><span className="block text-slate-400 text-sm uppercase mb-1">Seri</span><span className="block text-6xl font-black text-purple-400">{ls.currentSeries}</span></div>
+                    <div className="text-center px-8"><span className="block text-slate-400 text-sm uppercase mb-1">Total</span><span className="block text-6xl font-black text-slate-500">{activeEvent.totalSeries}</span></div>
+                    </div>
+                </>
+                ) : <div className="text-slate-500 italic">Tidak ada data acara.</div>}
             </div>
-        )}
+            {!needsStart && activeEvent ? (
+                <div className="bg-slate-800 p-4 border-t border-slate-700 flex justify-between items-center">
+                    <button onClick={() => handleNav('prev')} className="flex items-center gap-2 px-6 py-3 bg-slate-700 hover:bg-slate-600 rounded-lg font-bold text-slate-300"><ChevronLeft /> PREV</button>
+                    <div className="flex items-center gap-2 text-slate-400 text-sm"><Megaphone size={16} /> Announcer Control</div>
+                    <div>{canGoNext ? <button onClick={() => handleNav('next')} className="flex items-center gap-2 px-8 py-3 bg-purple-600 hover:bg-purple-500 text-white rounded-lg font-bold shadow-lg transition">NEXT <ChevronRight /></button> : <button disabled className="flex items-center gap-2 px-6 py-3 bg-slate-700 text-slate-500 rounded-lg font-bold cursor-not-allowed border border-slate-600"><Lock size={16} /> {blockReason}</button>}</div>
+                </div>
+            ) : null}
+        </div>
       </div>
-      <div className="bg-white rounded-xl shadow p-6 border border-l-4 border-l-red-500">
-         <h3 className="font-bold text-slate-700 mb-2 flex gap-2"><AlertOctagon className="text-red-500"/> Info DQ</h3>
-         {dqs.length===0 ? <p className="text-slate-400 text-sm">Nihil.</p> : dqs.slice(0,3).map((d:any)=><div key={d.id} className="text-sm border-b py-1">#{d.eventNumber} S:{d.series} L:{d.lane} ({d.reason})</div>)}
+
+      <div className="md:col-span-1 space-y-6">
+        <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+            <h2 className="font-bold mb-4 text-red-600 flex items-center gap-2"><AlertOctagon /> Input Diskualifikasi</h2>
+            <form onSubmit={(e) => { e.preventDefault(); wrapAsync(async()=> { await onAddDQ({ eventNumber: parseInt(newDQ.eventNumber), series: parseInt(newDQ.series), lane: parseInt(newDQ.lane), reason: newDQ.reason, timestamp: getWIBTime() }); setNewDQ({ eventNumber: '', series: '', lane: '', reason: '' }); }) }} className="bg-red-50 p-4 rounded-lg mb-4 border border-red-100">
+                <div className="grid grid-cols-3 gap-2 mb-3">
+                    <div><label className="text-[10px] font-bold text-red-800 uppercase block mb-1">Acara</label><input required type="number" value={newDQ.eventNumber} onChange={e => setNewDQ({...newDQ, eventNumber: e.target.value})} className="w-full p-2 border rounded bg-white text-center font-bold" /></div>
+                    <div><label className="text-[10px] font-bold text-red-800 uppercase block mb-1">Seri</label><input required type="number" value={newDQ.series} onChange={e => setNewDQ({...newDQ, series: e.target.value})} className="w-full p-2 border rounded bg-white text-center font-bold" /></div>
+                    <div><label className="text-[10px] font-bold text-red-800 uppercase block mb-1">Lintasan</label><input required type="number" value={newDQ.lane} onChange={e => setNewDQ({...newDQ, lane: e.target.value})} className="w-full p-2 border rounded bg-white text-center font-bold" /></div>
+                </div>
+                <div className="mb-4">
+                    <label className="text-[10px] font-bold text-red-800 uppercase block mb-1">Alasan / Keterangan Pelanggaran</label>
+                    <input required type="text" value={newDQ.reason} onChange={e => setNewDQ({...newDQ, reason: e.target.value})} className="w-full p-2 border rounded bg-white text-sm" placeholder="Contoh: False Start" />
+                </div>
+                <button className="w-full bg-red-600 hover:bg-red-700 transition text-white font-bold py-3 rounded-lg shadow">UMUMKAN DQ</button>
+            </form>
+            <div className="max-h-60 overflow-y-auto space-y-2">
+                <div className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Riwayat DQ</div>
+                {dqs.length === 0 ? <div className="text-slate-400 text-sm italic text-center py-4 border border-dashed rounded">Nihil.</div> : null}
+                {dqs.map((dq: any) => (
+                <div key={dq.id} className="p-3 border rounded-lg flex justify-between items-center text-sm bg-white hover:border-red-200 transition group">
+                    <div>
+                        <div className="font-bold text-slate-800">Acara {dq.eventNumber} | Seri {dq.series} | Lin <span className="bg-red-100 text-red-800 px-1.5 rounded">{dq.lane}</span></div>
+                        <div className="text-red-600 font-medium text-xs mt-0.5">{dq.reason}</div>
+                    </div>
+                    <button onClick={() => { wrapAsync(async() => await onDeleteDQ(dq.id)) }} className="text-slate-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition p-2"><Trash2 size={16}/></button>
+                </div>
+                ))}
+            </div>
+        </div>
       </div>
     </div>
   );
 }
 
-function CallRoomPanel({ events, appState, navigate, onStart }: any) {
+function CallRoomPanel({ tournament, events, updateLiveState }: any) {
   const [loading, setLoading] = useState(false);
-  const currentCallEvent = events.find((e: any) => e.id === appState.callRoomEventId);
-  const nextEvent = events[events.findIndex((e: any) => e.id === appState.callRoomEventId) + 1];
+  const ls = tournament.liveState || DEFAULT_LIVE_STATE;
+  const currentCallEvent = events.find((e: any) => e.id === ls.callRoomEventId);
+  const activeIdx = events.findIndex((e: any) => e.id === ls.callRoomEventId);
+  const nextEvent = events[activeIdx + 1];
   const needsStart = !currentCallEvent && events.length > 0;
-  const handleNav = async (dir: string) => { setLoading(true); await navigate(dir); setLoading(false); };
+  
+  const wrapAsync = async (fn: () => Promise<void>) => { setLoading(true); try { await fn(); } finally { setLoading(false); }};
+
+  const handleNav = async (direction: 'next' | 'prev') => { 
+      if(activeIdx === -1) return;
+      let nextSeries = ls.callRoomSeries;
+      let targetEvent = events[activeIdx];
+
+      if (direction === 'next') {
+          if (nextSeries < targetEvent.totalSeries) nextSeries++;
+          else if (activeIdx < events.length - 1) { targetEvent = events[activeIdx + 1]; nextSeries = 1; }
+      } else {
+          if (nextSeries > 1) nextSeries--;
+          else if (activeIdx > 0) { targetEvent = events[activeIdx - 1]; nextSeries = targetEvent.totalSeries; }
+      }
+
+      wrapAsync(async () => {
+          await updateLiveState({
+              callRoomEventId: targetEvent.id, callRoomEventName: targetEvent.name, callRoomEventNumber: targetEvent.number,
+              callRoomEventTotalSeries: targetEvent.totalSeries, callRoomSeries: nextSeries
+          });
+      });
+  };
 
   return (
     <div className="max-w-5xl mx-auto grid md:grid-cols-3 gap-6 relative">
@@ -636,14 +1017,17 @@ function CallRoomPanel({ events, appState, navigate, onStart }: any) {
             <div className="p-12 text-center min-h-[300px] flex flex-col justify-center items-center bg-emerald-50">
               {needsStart ? (
                  <div className="animate-in fade-in zoom-in">
-                    <p className="text-emerald-700 mb-4 font-medium">Database Baru Terdeteksi.</p>
-                    <button onClick={onStart} className="bg-emerald-600 hover:bg-emerald-700 text-white px-8 py-4 rounded-xl font-bold text-xl shadow-lg flex items-center gap-3"><Play size={24} fill="currentColor" /> INISIALISASI CALL ROOM</button>
+                    <p className="text-emerald-700 mb-4 font-medium">Siap Memanggil Peserta.</p>
+                    <button onClick={() => wrapAsync(async () => {
+                             const first = events[0]; 
+                             await updateLiveState({ callRoomEventId: first.id, callRoomEventName: first.name, callRoomEventNumber: first.number, callRoomEventTotalSeries: first.totalSeries, callRoomSeries: 1 });
+                    })} className="bg-emerald-600 hover:bg-emerald-700 text-white px-8 py-4 rounded-xl font-bold text-xl shadow-lg flex items-center gap-3"><Play size={24} fill="currentColor" /> INISIALISASI CALL ROOM</button>
                 </div>
               ) : currentCallEvent ? (
                 <>
                   <div className="text-emerald-700 font-bold tracking-widest uppercase mb-1">Sedang Memanggil</div>
                   <h1 className="text-3xl font-extrabold text-slate-800 mb-4">{currentCallEvent.number}. {currentCallEvent.name}</h1>
-                  <div className="inline-block bg-white shadow-sm border border-emerald-200 rounded-lg p-6 mb-8"><span className="text-6xl font-black text-emerald-600">{appState.callRoomSeries}</span><span className="text-sm text-slate-400 block uppercase mt-2">Dari {currentCallEvent.totalSeries} Seri</span></div>
+                  <div className="inline-block bg-white shadow-sm border border-emerald-200 rounded-lg p-6 mb-8"><span className="text-6xl font-black text-emerald-600">{ls.callRoomSeries}</span><span className="text-sm text-slate-400 block uppercase mt-2">Dari {currentCallEvent.totalSeries} Seri</span></div>
                   <div className="flex gap-4 justify-center"><button onClick={() => handleNav('prev')} className="px-6 py-3 rounded-lg border-2 border-slate-200 text-slate-500 hover:bg-slate-50 font-bold transition">Prev</button><button onClick={() => handleNav('next')} className="px-10 py-3 rounded-lg bg-emerald-600 text-white hover:bg-emerald-700 font-bold shadow-lg transition transform active:scale-95 flex items-center gap-2">PANGGIL NEXT <ChevronRight size={20} /></button></div>
                 </>
               ) : <div className="text-slate-400 italic">Menunggu Data...</div>}
@@ -651,141 +1035,9 @@ function CallRoomPanel({ events, appState, navigate, onStart }: any) {
           </div>
         </div>
         <div className="md:col-span-1 space-y-4">
-           <div className="bg-slate-800 text-white p-5 rounded-xl shadow-md"><h3 className="text-slate-400 text-xs uppercase font-bold mb-2">Sedang Berlangsung</h3><div className="text-2xl font-bold text-yellow-400">Event {events.find((e:any) => e.id === appState.currentEventId)?.number || '-'}</div><div className="text-lg">Seri {appState.currentSeries}</div></div>
-           <div className="bg-white p-5 rounded-xl shadow-sm border border-slate-200"><h3 className="text-slate-400 text-xs uppercase font-bold mb-3">Event Selanjutnya</h3>{nextEvent ? <div><div className="font-bold text-slate-800">{nextEvent.number}. {nextEvent.name}</div><div className="text-sm text-slate-500 mt-1">{nextEvent.totalSeries} Seri</div></div> : <div className="text-slate-400 text-sm italic">Tidak ada event selanjutnya.</div>}</div>
+           <div className="bg-slate-800 text-white p-5 rounded-xl shadow-md"><h3 className="text-slate-400 text-xs uppercase font-bold mb-2">Sedang Berlangsung di Kolam</h3><div className="text-2xl font-bold text-yellow-400">Event {ls.currentEventNumber || '-'}</div><div className="text-lg">Seri {ls.currentSeries}</div></div>
+           <div className="bg-white p-5 rounded-xl shadow-sm border border-slate-200"><h3 className="text-slate-400 text-xs uppercase font-bold mb-3">Event Selanjutnya (Persiapan)</h3>{nextEvent ? <div><div className="font-bold text-slate-800">{nextEvent.number}. {nextEvent.name}</div><div className="text-sm text-slate-500 mt-1">{nextEvent.totalSeries} Seri</div></div> : <div className="text-slate-400 text-sm italic">Tidak ada event selanjutnya.</div>}</div>
         </div>
     </div>
   );
-}
-
-function PublicPanel({ appState, dqs, onBack, onLoginRequest, isOnline }: any) {
-    const recentDQs = dqs; // Removed .slice(0, 5)
-
-    return (
-        <div className="flex flex-col h-screen relative overflow-hidden bg-white">
-            {/* HEADER CUSTOM */}
-            <header className="bg-slate-900 text-white h-16 shrink-0 flex items-center justify-between px-6 border-b border-slate-800 shadow-xl z-50">
-                <div className="flex items-center gap-4">
-                    {/* LOGO: Gunakan %20 untuk spasi */}
-                    <img src="/sangkuriang%201.png" alt="Logo" className="h-10 w-auto object-contain" onError={(e:any) => e.target.style.display='none'} />
-                    <div className="flex flex-col justify-center">
-                        <h1 className="font-extrabold text-lg leading-none tracking-wide uppercase">Sangkuriang</h1>
-                        <p className="text-xs text-blue-400 font-bold tracking-[0.2em] uppercase">Swim Organizer</p>
-                    </div>
-                </div>
-
-                <div className="flex items-center gap-3">
-                    <span className={`text-[10px] flex items-center gap-1 ${isOnline ? 'text-emerald-400' : 'text-red-500'}`}>
-                       {isOnline ? <Wifi size={10} /> : <WifiOff size={10} />}
-                    </span>
-                    <button onClick={onBack} className="text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 px-3 py-1.5 rounded-lg transition border border-slate-700 flex items-center gap-2">
-                        <Home size={14} /> Home
-                    </button>
-                    <button onClick={onLoginRequest} className="text-slate-500 hover:text-white transition p-2">
-                        <Settings size={20} />
-                    </button>
-                </div>
-            </header>
-
-            {/* CONTENT AREA (Mengisi sisa ruang) */}
-            <div className="flex-1 flex flex-col relative overflow-hidden">
-                
-                {/* SPLIT SCREEN UTAMA */}
-                <div className="flex-1 flex flex-col md:flex-row min-h-0">
-                    {/* KIRI: CALL ROOM */}
-                    <div className="w-full md:w-1/2 bg-slate-900 relative flex flex-col justify-center px-6 md:px-12 border-b md:border-b-0 md:border-r border-slate-700">
-                        <div className="absolute inset-0 bg-gradient-to-br from-blue-900/40 via-slate-900 to-slate-900 z-0"></div>
-                        <div className="relative z-10 w-full max-w-lg mx-auto py-4">
-                            <div className="flex justify-between items-start mb-6">
-                                <div>
-                                    <h2 className="text-white text-2xl md:text-3xl font-bold flex items-center gap-2">
-                                        <Users className="text-blue-400" /> Pemanggilan
-                                    </h2>
-                                    <span className="text-blue-200/60 text-sm">Pengatur Peserta</span>
-                                </div>
-                                <div className="text-right">
-                                    <span className="text-blue-200/40 text-[10px] uppercase block">Terakhir Update</span>
-                                    <span className="text-white text-lg font-mono font-bold flex items-center gap-2">
-                                        <Clock size={16} className="text-blue-400" /> {appState.callRoomLastUpdate || '-'}
-                                    </span>
-                                </div>
-                            </div>
-                            <div className="flex gap-4">
-                                <div className="flex-1 bg-white/5 border border-white/10 rounded-2xl p-4 text-center">
-                                    <div className="text-blue-200 text-sm uppercase mb-1">Acara</div>
-                                    <div className="text-white text-6xl md:text-8xl font-bold tracking-tighter">{appState.callRoomEventNumber || '-'}</div>
-                                </div>
-                                <div className="flex-1 bg-white/5 border border-white/10 rounded-2xl p-4 text-center">
-                                    <div className="text-blue-200 text-sm uppercase mb-1">Seri</div>
-                                    <div className="text-white text-6xl md:text-8xl font-bold tracking-tighter">{appState.callRoomSeries}</div>
-                                </div>
-                            </div>
-                            <p className="text-center text-blue-200/50 mt-4 text-lg md:text-xl font-medium truncate">{appState.callRoomEventName || 'Menunggu...'}</p>
-                        </div>
-                    </div>
-
-                    {/* KANAN: LIVE POOL */}
-                    <div className="w-full md:w-1/2 bg-white relative flex flex-col justify-center px-6 md:px-12">
-                        <div className="relative z-10 w-full max-w-lg mx-auto py-4">
-                            <div className="flex justify-between items-center mb-6">
-                                <h2 className="text-slate-800 text-2xl md:text-3xl font-bold flex items-center gap-2">
-                                    <MonitorPlay className="text-red-500" /> Sedang Berlomba
-                                </h2>
-                                <span className="bg-red-500 text-white text-xs px-3 py-1 rounded-full font-bold animate-pulse">LIVE</span>
-                            </div>
-                            <div className="flex gap-4">
-                                <div className="flex-1 bg-slate-50 border border-slate-200 rounded-2xl p-4 text-center shadow-inner">
-                                    <div className="text-slate-400 text-sm uppercase mb-1">Acara</div>
-                                    <div className="text-slate-800 text-6xl md:text-8xl font-bold tracking-tighter">{appState.currentEventNumber || '-'}</div>
-                                </div>
-                                <div className="flex-1 bg-slate-50 border border-slate-200 rounded-2xl p-4 text-center shadow-inner">
-                                    <div className="text-slate-400 text-sm uppercase mb-1">Seri</div>
-                                    <div className="text-slate-800 text-6xl md:text-8xl font-bold tracking-tighter">{appState.currentSeries}</div>
-                                </div>
-                            </div>
-                            <p className="text-center text-slate-500 mt-4 text-lg md:text-xl font-medium truncate">{appState.currentEventName || 'Menunggu...'}</p>
-                        </div>
-                    </div>
-                </div>
-
-                {/* DQ TABLE (Height adjusted to 30%) */}
-                <div className="h-[30%] bg-slate-50 border-t border-slate-200 p-4 md:p-6 overflow-hidden flex flex-col shrink-0">
-                    <div className="max-w-7xl mx-auto w-full h-full flex flex-col">
-                        <h3 className="text-slate-700 font-bold mb-3 flex items-center gap-2">
-                            <AlertOctagon size={20} className="text-red-500" /> INFORMASI DISKUALIFIKASI TERKINI
-                        </h3>
-                        <div className="flex-1 bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden flex flex-col">
-                            <div className="grid grid-cols-12 bg-slate-800 text-white text-xs md:text-sm font-bold uppercase py-3 px-4">
-                                <div className="col-span-2">No. Acara</div>
-                                <div className="col-span-2 text-center">Seri</div>
-                                <div className="col-span-2 text-center">Lintasan</div>
-                                <div className="col-span-6">Deskripsi Pelanggaran / Pasal</div>
-                            </div>
-                            <div className="overflow-y-auto flex-1 p-0">
-                                {recentDQs.length === 0 ? (
-                                    <div className="h-full flex items-center justify-center text-slate-400 italic">Tidak ada informasi diskualifikasi saat ini.</div>
-                                ) : (
-                                    recentDQs.map((dq: any, idx: number) => (
-                                        <div key={dq.id} className={`grid grid-cols-12 text-sm py-3 px-4 border-b border-slate-100 items-center ${idx % 2 === 0 ? 'bg-white' : 'bg-slate-50'}`}>
-                                            <div className="col-span-2 font-bold text-slate-800">{dq.eventNumber}</div>
-                                            <div className="col-span-2 text-center text-slate-600">{dq.series}</div>
-                                            <div className="col-span-2 text-center">
-                                                <span className="bg-slate-200 text-slate-700 px-2 py-0.5 rounded font-mono font-bold">{dq.lane}</span>
-                                            </div>
-                                            <div className="col-span-6 text-red-600 font-medium">{dq.reason}</div>
-                                        </div>
-                                    ))
-                                )}
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            {/* FOOTER CUSTOM */}
-            <footer className="bg-slate-900 text-slate-500 text-center py-3 text-xs font-mono tracking-widest border-t border-slate-800 h-10 shrink-0 flex items-center justify-center z-50">
-                &copy; anak magang SSO 2026
-            </footer>
-        </div>
-    )
 }
