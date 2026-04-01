@@ -408,7 +408,7 @@ export default function App() {
                <main className="flex-1 max-w-7xl mx-auto w-full p-4 md:p-6">
                   {role === 'admin' && (
                     <AdminPanel 
-                      tournament={activeTournament} events={activeEvents} dqs={activeDqs}
+                      tournament={activeTournament} events={activeEvents}
                       onUpdateTournament={(data: any) => handleUpdateTournament(activeTournament.id, data)}
                       onAddEvent={async (data: any) => { if(user) await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'events'), { ...data, tournamentId: activeTournament.id }); }}
                       onEditEvent={async (id: string, data: any) => { if(user) await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'events', id), data); }}
@@ -894,7 +894,7 @@ function LoginModal({ targetRole, onClose, onLogin }: any) {
 }
 
 // 5. EVENT ADMIN PANEL
-function AdminPanel({ tournament, events, dqs, onUpdateTournament, onAddEvent, onEditEvent, onDeleteEvent, onResetTournament }: any) {
+function AdminPanel({ tournament, events, onUpdateTournament, onAddEvent, onEditEvent, onDeleteEvent, onResetTournament }: any) {
   const [loading, setLoading] = useState(false);
   const [newEvent, setNewEvent] = useState({ number: '', name: '', totalSeries: '' });
   const [editingId, setEditingId] = useState<string | null>(null);
