@@ -754,7 +754,7 @@ function LiveScoreboard({ tournament, dqs, isOnline, onBack, onLoginRequest }: a
   }, [dqs.length, totalPages, dqPage]);
 
   return (
-    <div className="flex flex-col h-screen relative overflow-hidden bg-white">
+    <div className="min-h-screen bg-slate-50 flex flex-col relative">
         <header className="bg-slate-900 text-white h-16 shrink-0 flex items-center justify-between px-6 border-b border-slate-800 shadow-xl z-50">
             <div className="flex items-center gap-4">
                 <img src="/sangkuriang%201.png" alt="Logo" className="h-10 w-auto object-contain" onError={(e:any) => e.target.style.display='none'} />
@@ -770,84 +770,102 @@ function LiveScoreboard({ tournament, dqs, isOnline, onBack, onLoginRequest }: a
             </div>
         </header>
 
-        <div className="flex-1 flex flex-col relative overflow-hidden">
-            {/* BAGIAN ATAS: PEMANGGILAN DAN LIVE */}
-            <div className="flex-1 flex flex-col md:flex-row min-h-0">
-                <div className="w-full md:w-1/2 bg-slate-900 relative flex flex-col justify-center px-6 md:px-12 border-b md:border-b-0 md:border-r border-slate-700">
-                    <div className="absolute inset-0 bg-gradient-to-br from-blue-900/40 via-slate-900 to-slate-900 z-0"></div>
-                    <div className="relative z-10 w-full max-w-lg mx-auto py-4">
-                        <div className="flex justify-between items-start mb-6"><div><h2 className="text-white text-2xl md:text-3xl font-bold flex items-center gap-2"><Users className="text-blue-400" /> Pemanggilan</h2><span className="text-blue-200/60 text-sm">Call Room</span></div><div className="text-right"><span className="text-blue-200/40 text-[10px] uppercase block">Terakhir Update</span><span className="text-white text-lg font-mono font-bold flex items-center gap-2"><Clock size={16} className="text-blue-400" /> {ls.callRoomLastUpdate || '-'}</span></div></div>
-                        <div className="flex gap-4">
-                            <div className="flex-1 bg-white/5 border border-white/10 rounded-2xl p-4 text-center"><div className="text-blue-200 text-sm uppercase mb-1">Acara</div><div className="text-white text-6xl md:text-8xl font-bold tracking-tighter">{ls.callRoomEventNumber || '-'}</div></div>
-                            <div className="flex-1 bg-white/5 border border-white/10 rounded-2xl p-4 text-center"><div className="text-blue-200 text-sm uppercase mb-1">Seri</div><div className="text-white text-6xl md:text-8xl font-bold tracking-tighter">{ls.callRoomSeries}</div></div>
+        {/* BAGIAN ATAS: PEMANGGILAN DAN LIVE */}
+        <div className="flex flex-col md:flex-row border-b border-slate-200 shadow-sm shrink-0">
+            {/* CALL ROOM */}
+            <div className="w-full md:w-1/2 bg-slate-900 relative p-6 md:p-12 min-h-[300px] md:min-h-[45vh] flex flex-col justify-center">
+                <div className="absolute inset-0 bg-gradient-to-br from-blue-900/40 via-slate-900 to-slate-900 z-0"></div>
+                <div className="relative z-10 w-full max-w-lg mx-auto">
+                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4 sm:gap-0">
+                        <div>
+                            <h2 className="text-white text-2xl md:text-3xl font-bold flex items-center gap-2"><Users className="text-blue-400" /> Pemanggilan</h2>
+                            <span className="text-blue-200/60 text-sm block mt-1">Call Room</span>
                         </div>
-                        <p className="text-center text-blue-200/50 mt-4 text-lg md:text-xl font-medium truncate">{ls.callRoomEventName || 'Menunggu...'}</p>
-                    </div>
-                </div>
-                <div className="w-full md:w-1/2 bg-white relative flex flex-col justify-center px-6 md:px-12">
-                    <div className="relative z-10 w-full max-w-lg mx-auto py-4">
-                        <div className="flex justify-between items-center mb-6"><h2 className="text-slate-800 text-2xl md:text-3xl font-bold flex items-center gap-2"><MonitorPlay className="text-red-500" /> Sedang Berlomba</h2><span className="bg-red-500 text-white text-xs px-3 py-1 rounded-full font-bold animate-pulse">LIVE</span></div>
-                        <div className="flex gap-4">
-                            <div className="flex-1 bg-slate-50 border border-slate-200 rounded-2xl p-4 text-center shadow-inner"><div className="text-slate-400 text-sm uppercase mb-1">Acara</div><div className="text-slate-800 text-6xl md:text-8xl font-bold tracking-tighter">{ls.currentEventNumber || '-'}</div></div>
-                            <div className="flex-1 bg-slate-50 border border-slate-200 rounded-2xl p-4 text-center shadow-inner"><div className="text-slate-400 text-sm uppercase mb-1">Seri</div><div className="text-slate-800 text-6xl md:text-8xl font-bold tracking-tighter">{ls.currentSeries}</div></div>
+                        <div className="text-left sm:text-right">
+                            <span className="text-blue-200/40 text-[10px] uppercase block">Terakhir Update</span>
+                            <span className="text-white text-lg font-mono font-bold flex items-center gap-2"><Clock size={16} className="text-blue-400" /> {ls.callRoomLastUpdate || '-'}</span>
                         </div>
-                        <p className="text-center text-slate-500 mt-4 text-lg md:text-xl font-medium truncate">{ls.currentEventName || 'Menunggu...'}</p>
                     </div>
+                    <div className="flex gap-4">
+                        <div className="flex-1 bg-white/5 border border-white/10 rounded-2xl p-4 text-center"><div className="text-blue-200 text-sm uppercase mb-1">Acara</div><div className="text-white text-6xl md:text-8xl font-bold tracking-tighter">{ls.callRoomEventNumber || '-'}</div></div>
+                        <div className="flex-1 bg-white/5 border border-white/10 rounded-2xl p-4 text-center"><div className="text-blue-200 text-sm uppercase mb-1">Seri</div><div className="text-white text-6xl md:text-8xl font-bold tracking-tighter">{ls.callRoomSeries}</div></div>
+                    </div>
+                    <p className="text-center text-blue-200/50 mt-4 text-lg md:text-xl font-medium truncate">{ls.callRoomEventName || 'Menunggu...'}</p>
                 </div>
             </div>
             
-            {/* BAGIAN BAWAH: INFORMASI DISKUALIFIKASI DENGAN PAGINASI (NON-SCROLL) */}
-            <div className="flex-1 bg-slate-50 border-t border-slate-200 p-4 md:p-6 overflow-hidden flex flex-col shrink-0">
-                <div className="max-w-7xl mx-auto w-full h-full flex flex-col">
-                    <h3 className="text-slate-700 font-extrabold text-lg md:text-xl mb-3 flex items-center gap-2 shrink-0"><AlertOctagon size={24} className="text-red-500" /> INFORMASI DISKUALIFIKASI TERKINI</h3>
-                    <div className="flex-1 bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden flex flex-col">
-                        {/* Header Tabel */}
-                        <div className="grid grid-cols-12 bg-slate-800 text-white text-sm font-bold uppercase py-3 px-6 shrink-0"><div className="col-span-2">No. Acara</div><div className="col-span-2 text-center">Seri</div><div className="col-span-2 text-center">Lintasan</div><div className="col-span-6">Keterangan / Alasan</div></div>
-                        
-                        {/* Body Tabel Tanpa Scroll */}
-                        <div className="overflow-hidden flex-1 p-0 flex flex-col">
-                            {currentDqs.length === 0 ? (
-                                <div className="flex-1 flex items-center justify-center text-slate-400 italic text-base">Tidak ada informasi diskualifikasi saat ini.</div>
-                            ) : (
-                                <div className="flex-1 flex flex-col">
-                                    {currentDqs.map((dq: any, idx: number) => (
-                                        <div key={dq.id} className={`grid grid-cols-12 text-sm md:text-base py-2.5 px-6 border-b border-slate-100 items-center ${idx % 2 === 0 ? 'bg-white' : 'bg-slate-50'}`}>
-                                            <div className="col-span-2 font-bold text-slate-800">{dq.eventNumber}</div>
-                                            <div className="col-span-2 text-center text-slate-600 font-semibold">{dq.series}</div>
-                                            <div className="col-span-2 text-center"><span className="bg-slate-200 text-slate-700 px-3 py-1 rounded-md font-mono font-bold">{dq.lane}</span></div>
-                                            <div className="col-span-6 text-red-600 font-bold truncate">{dq.reason}</div>
-                                        </div>
-                                    ))}
-                                </div>
-                            )}
-
-                            {/* Panel Paginasi / Tombol (Hanya Muncul Jika Lebih Dari 10 Data) */}
-                            {totalPages > 1 && (
-                                <div className="bg-slate-100 border-t border-slate-200 p-2 px-6 flex justify-between items-center shrink-0">
-                                    <button 
-                                        onClick={() => setDqPage(p => Math.max(1, p - 1))} 
-                                        disabled={dqPage === 1} 
-                                        className="px-4 py-2 bg-white border border-slate-300 rounded-lg text-sm font-bold text-slate-600 disabled:opacity-50 hover:bg-slate-50 flex items-center gap-1 transition"
-                                    >
-                                        <ChevronLeft size={16}/> Sebelumnya
-                                    </button>
-                                    <span className="text-xs font-bold text-slate-500 uppercase tracking-widest">Hal {dqPage} dari {totalPages}</span>
-                                    <button 
-                                        onClick={() => setDqPage(p => Math.min(totalPages, p + 1))} 
-                                        disabled={dqPage === totalPages} 
-                                        className="px-4 py-2 bg-white border border-slate-300 rounded-lg text-sm font-bold text-slate-600 disabled:opacity-50 hover:bg-slate-50 flex items-center gap-1 transition"
-                                    >
-                                        Selanjutnya <ChevronRight size={16}/>
-                                    </button>
-                                </div>
-                            )}
-                        </div>
+            {/* LIVE SCORE */}
+            <div className="w-full md:w-1/2 bg-white relative p-6 md:p-12 min-h-[300px] md:min-h-[45vh] flex flex-col justify-center">
+                <div className="relative z-10 w-full max-w-lg mx-auto">
+                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4 sm:gap-0">
+                        <h2 className="text-slate-800 text-2xl md:text-3xl font-bold flex items-center gap-2"><MonitorPlay className="text-red-500" /> Sedang Berlomba</h2>
+                        <span className="bg-red-500 text-white text-xs px-3 py-1 rounded-full font-bold animate-pulse">LIVE</span>
                     </div>
+                    <div className="flex gap-4">
+                        <div className="flex-1 bg-slate-50 border border-slate-200 rounded-2xl p-4 text-center shadow-inner"><div className="text-slate-400 text-sm uppercase mb-1">Acara</div><div className="text-slate-800 text-6xl md:text-8xl font-bold tracking-tighter">{ls.currentEventNumber || '-'}</div></div>
+                        <div className="flex-1 bg-slate-50 border border-slate-200 rounded-2xl p-4 text-center shadow-inner"><div className="text-slate-400 text-sm uppercase mb-1">Seri</div><div className="text-slate-800 text-6xl md:text-8xl font-bold tracking-tighter">{ls.currentSeries}</div></div>
+                    </div>
+                    <p className="text-center text-slate-500 mt-4 text-lg md:text-xl font-medium truncate">{ls.currentEventName || 'Menunggu...'}</p>
                 </div>
             </div>
-
         </div>
-        <footer className="bg-slate-900 text-slate-500 text-center py-3 text-xs font-mono tracking-widest border-t border-slate-800 h-10 shrink-0 flex items-center justify-center z-50">&copy; anak magang SSO 2026</footer>
+        
+        {/* BAGIAN BAWAH: INFORMASI DISKUALIFIKASI DENGAN PAGINASI (NON-SCROLL DI DALAMNYA) */}
+        <div className="w-full max-w-7xl mx-auto p-4 md:p-8 flex-1 flex flex-col">
+            <h3 className="text-slate-800 font-extrabold text-lg md:text-xl mb-4 flex items-center gap-2">
+                <AlertOctagon size={24} className="text-red-500" /> INFORMASI DISKUALIFIKASI TERKINI
+            </h3>
+            <div className="bg-white rounded-xl shadow-md border border-slate-200 overflow-hidden flex flex-col">
+                {/* Header Tabel */}
+                <div className="grid grid-cols-12 bg-slate-800 text-white text-[10px] sm:text-sm font-bold uppercase py-3 md:py-4 px-2 md:px-6 items-center">
+                    <div className="col-span-3 sm:col-span-2">No. Acara</div>
+                    <div className="col-span-2 text-center">Seri</div>
+                    <div className="col-span-2 text-center">Lintasan</div>
+                    <div className="col-span-5 sm:col-span-6">Keterangan / Alasan</div>
+                </div>
+                
+                {/* Body Tabel Tanpa Internal Scroll */}
+                <div className="flex flex-col">
+                    {currentDqs.length === 0 ? (
+                        <div className="flex items-center justify-center text-slate-400 italic text-sm md:text-base py-12">Tidak ada informasi diskualifikasi saat ini.</div>
+                    ) : (
+                        <div className="flex flex-col">
+                            {currentDqs.map((dq: any, idx: number) => (
+                                <div key={dq.id} className={`grid grid-cols-12 text-xs sm:text-base md:text-xl py-3 md:py-5 px-2 md:px-6 border-b border-slate-100 items-center ${idx % 2 === 0 ? 'bg-white' : 'bg-slate-50'}`}>
+                                    <div className="col-span-3 sm:col-span-2 font-bold text-slate-800">{dq.eventNumber}</div>
+                                    <div className="col-span-2 text-center text-slate-600 font-semibold">{dq.series}</div>
+                                    <div className="col-span-2 text-center"><span className="bg-slate-200 text-slate-700 px-2 md:px-4 py-1 md:py-1.5 rounded-lg font-mono font-bold">{dq.lane}</span></div>
+                                    <div className="col-span-5 sm:col-span-6 text-red-600 font-bold truncate pr-2">{dq.reason}</div>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+
+                    {/* Panel Paginasi / Tombol (Hanya Muncul Jika Lebih Dari 10 Data) */}
+                    {totalPages > 1 && (
+                        <div className="bg-slate-100 border-t border-slate-200 p-3 md:p-4 px-4 md:px-6 flex justify-between items-center shrink-0">
+                            <button 
+                                onClick={() => setDqPage(p => Math.max(1, p - 1))} 
+                                disabled={dqPage === 1} 
+                                className="px-4 py-2 bg-white border border-slate-300 rounded-lg text-xs md:text-sm font-bold text-slate-600 disabled:opacity-50 hover:bg-slate-50 flex items-center gap-1 transition"
+                            >
+                                <ChevronLeft size={16}/> <span className="hidden sm:inline">Sebelumnya</span>
+                            </button>
+                            <span className="text-xs md:text-sm font-bold text-slate-500 uppercase tracking-widest">Hal {dqPage} dari {totalPages}</span>
+                            <button 
+                                onClick={() => setDqPage(p => Math.min(totalPages, p + 1))} 
+                                disabled={dqPage === totalPages} 
+                                className="px-4 py-2 bg-white border border-slate-300 rounded-lg text-xs md:text-sm font-bold text-slate-600 disabled:opacity-50 hover:bg-slate-50 flex items-center gap-1 transition"
+                            >
+                                <span className="hidden sm:inline">Selanjutnya</span> <ChevronRight size={16}/>
+                            </button>
+                        </div>
+                    )}
+                </div>
+            </div>
+        </div>
+
+        <footer className="bg-slate-900 text-slate-500 text-center py-3 text-xs font-mono tracking-widest border-t border-slate-800 shrink-0 mt-auto">&copy; anak magang SSO 2026</footer>
     </div>
   );
 }
