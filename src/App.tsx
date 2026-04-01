@@ -305,7 +305,6 @@ export default function App() {
           onEdit={(id: string) => { setActiveTournamentId(id); setRole('admin'); setViewMode('tournament'); }}
           onDelete={handleDeleteTournament}
           onLogout={() => { setRole(null); setViewMode('global'); }}
-          isOnline={isOnline}
         />
       )}
 
@@ -466,7 +465,7 @@ function GlobalLandingPage({ tournaments, onSelectTournament, onMasterLogin }: a
 }
 
 // 2. MASTER DASHBOARD
-function MasterDashboard({ tournaments, onCreate, onEdit, onDelete, onLogout, isOnline }: any) {
+function MasterDashboard({ tournaments, onCreate, onEdit, onDelete, onLogout }: any) {
   const [showCreate, setShowCreate] = useState(false);
   const [form, setForm] = useState({ title: '', venue: '', eventDate: '', adminPin: '1234', announcerPin: '1234', callroomPin: '1234' });
 
