@@ -106,7 +106,7 @@ const simpleHash = (str: string) => {
   return hash.toString();
 };
 
-const MASTER_PIN_HASH = simpleHash("master2026");
+const MASTER_PIN_HASH = simpleHash("123456");
 
 // --- TIPE DATA ---
 type LiveState = {
@@ -263,6 +263,20 @@ export default function App() {
     await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'tournaments', id));
   };
 
+  const handleResetTournament = async (id: string, dqIds: string[]) => {
+    if (!user) return;
+    // 1. Kembalikan status ke upcoming & kosongkan state live display
+    await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'tournaments', id), {
+      status: 'upcoming',
+      liveState: DEFAULT_LIVE_STATE,
+      resultUrl: ''
+    });
+    // 2. Hapus seluruh DQ yang terekam untuk turnamen ini
+    for (const dqId of dqIds) {
+      await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'dqs', dqId));
+    }
+  };
+
   const updateLiveState = async (newState: Partial<LiveState>) => {
     if (!user || !activeTournamentId || !activeTournament) return;
     await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'tournaments', activeTournamentId), {
@@ -394,11 +408,12 @@ export default function App() {
                <main className="flex-1 max-w-7xl mx-auto w-full p-4 md:p-6">
                   {role === 'admin' && (
                     <AdminPanel 
-                      tournament={activeTournament} events={activeEvents}
+                      tournament={activeTournament} events={activeEvents} dqs={activeDqs}
                       onUpdateTournament={(data: any) => handleUpdateTournament(activeTournament.id, data)}
                       onAddEvent={async (data: any) => { if(user) await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'events'), { ...data, tournamentId: activeTournament.id }); }}
                       onEditEvent={async (id: string, data: any) => { if(user) await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'events', id), data); }}
                       onDeleteEvent={async (id: string) => { if(user) await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'events', id)); }}
+                      onResetTournament={async () => await handleResetTournament(activeTournament.id, activeDqs.map(d => d.id))}
                     />
                   )}
                   {role === 'announcer' && (
@@ -724,6 +739,20 @@ function TournamentPublicView({ tournament, dqs, isOnline, onBack, onLoginReques
 // 3A. LIVE SCOREBOARD (Split Screen)
 function LiveScoreboard({ tournament, dqs, isOnline, onBack, onLoginRequest }: any) {
   const ls = tournament.liveState || DEFAULT_LIVE_STATE;
+  
+  // Pagination State untuk Data DQ
+  const [dqPage, setDqPage] = useState(1);
+  const itemsPerPage = 10;
+  const totalPages = Math.ceil(dqs.length / itemsPerPage) || 1;
+  
+  // Ambil hanya maksimal 10 data untuk halaman yang sedang aktif
+  const currentDqs = dqs.slice((dqPage - 1) * itemsPerPage, dqPage * itemsPerPage);
+
+  // Otomatis kembali ke halaman 1 jika jumlah data menyusut (misal: saat reset)
+  useEffect(() => {
+      if (dqPage > totalPages) setDqPage(1);
+  }, [dqs.length, totalPages, dqPage]);
+
   return (
     <div className="flex flex-col h-screen relative overflow-hidden bg-white">
         <header className="bg-slate-900 text-white h-16 shrink-0 flex items-center justify-between px-6 border-b border-slate-800 shadow-xl z-50">
@@ -742,6 +771,7 @@ function LiveScoreboard({ tournament, dqs, isOnline, onBack, onLoginRequest }: a
         </header>
 
         <div className="flex-1 flex flex-col relative overflow-hidden">
+            {/* BAGIAN ATAS: PEMANGGILAN DAN LIVE */}
             <div className="flex-1 flex flex-col md:flex-row min-h-0">
                 <div className="w-full md:w-1/2 bg-slate-900 relative flex flex-col justify-center px-6 md:px-12 border-b md:border-b-0 md:border-r border-slate-700">
                     <div className="absolute inset-0 bg-gradient-to-br from-blue-900/40 via-slate-900 to-slate-900 z-0"></div>
@@ -765,28 +795,57 @@ function LiveScoreboard({ tournament, dqs, isOnline, onBack, onLoginRequest }: a
                     </div>
                 </div>
             </div>
-            <div className="h-[40%] bg-slate-50 border-t border-slate-200 p-6 md:p-8 overflow-hidden flex flex-col shrink-0">
+            
+            {/* BAGIAN BAWAH: INFORMASI DISKUALIFIKASI DENGAN PAGINASI (NON-SCROLL) */}
+            <div className="flex-1 bg-slate-50 border-t border-slate-200 p-4 md:p-6 overflow-hidden flex flex-col shrink-0">
                 <div className="max-w-7xl mx-auto w-full h-full flex flex-col">
-                    <h3 className="text-slate-700 font-extrabold text-lg mb-4 flex items-center gap-2"><AlertOctagon size={24} className="text-red-500" /> INFORMASI DISKUALIFIKASI TERKINI</h3>
+                    <h3 className="text-slate-700 font-extrabold text-lg md:text-xl mb-3 flex items-center gap-2 shrink-0"><AlertOctagon size={24} className="text-red-500" /> INFORMASI DISKUALIFIKASI TERKINI</h3>
                     <div className="flex-1 bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden flex flex-col">
-                        <div className="grid grid-cols-12 bg-slate-800 text-white text-sm md:text-base font-bold uppercase py-4 px-6"><div className="col-span-2">No. Acara</div><div className="col-span-2 text-center">Seri</div><div className="col-span-2 text-center">Lintasan</div><div className="col-span-6">Keterangan / Alasan</div></div>
-                        <div className="overflow-y-auto flex-1 p-0">
-                            {dqs.length === 0 ? (
-                                <div className="h-full flex items-center justify-center text-slate-400 italic">Tidak ada informasi diskualifikasi saat ini.</div>
-                            ) : null}
-                            
-                            {dqs.map((dq: any, idx: number) => (
-                                <div key={dq.id} className={`grid grid-cols-12 text-base md:text-lg py-4 px-6 border-b border-slate-100 items-center ${idx % 2 === 0 ? 'bg-white' : 'bg-slate-50'}`}>
-                                    <div className="col-span-2 font-bold text-slate-800">{dq.eventNumber}</div>
-                                    <div className="col-span-2 text-center text-slate-600">{dq.series}</div>
-                                    <div className="col-span-2 text-center"><span className="bg-slate-200 text-slate-700 px-3 py-1 rounded font-mono font-bold">{dq.lane}</span></div>
-                                    <div className="col-span-6 text-red-600 font-semibold">{dq.reason}</div>
+                        {/* Header Tabel */}
+                        <div className="grid grid-cols-12 bg-slate-800 text-white text-sm font-bold uppercase py-3 px-6 shrink-0"><div className="col-span-2">No. Acara</div><div className="col-span-2 text-center">Seri</div><div className="col-span-2 text-center">Lintasan</div><div className="col-span-6">Keterangan / Alasan</div></div>
+                        
+                        {/* Body Tabel Tanpa Scroll */}
+                        <div className="overflow-hidden flex-1 p-0 flex flex-col">
+                            {currentDqs.length === 0 ? (
+                                <div className="flex-1 flex items-center justify-center text-slate-400 italic text-base">Tidak ada informasi diskualifikasi saat ini.</div>
+                            ) : (
+                                <div className="flex-1 flex flex-col">
+                                    {currentDqs.map((dq: any, idx: number) => (
+                                        <div key={dq.id} className={`grid grid-cols-12 text-sm md:text-base py-2.5 px-6 border-b border-slate-100 items-center ${idx % 2 === 0 ? 'bg-white' : 'bg-slate-50'}`}>
+                                            <div className="col-span-2 font-bold text-slate-800">{dq.eventNumber}</div>
+                                            <div className="col-span-2 text-center text-slate-600 font-semibold">{dq.series}</div>
+                                            <div className="col-span-2 text-center"><span className="bg-slate-200 text-slate-700 px-3 py-1 rounded-md font-mono font-bold">{dq.lane}</span></div>
+                                            <div className="col-span-6 text-red-600 font-bold truncate">{dq.reason}</div>
+                                        </div>
+                                    ))}
                                 </div>
-                            ))}
+                            )}
+
+                            {/* Panel Paginasi / Tombol (Hanya Muncul Jika Lebih Dari 10 Data) */}
+                            {totalPages > 1 && (
+                                <div className="bg-slate-100 border-t border-slate-200 p-2 px-6 flex justify-between items-center shrink-0">
+                                    <button 
+                                        onClick={() => setDqPage(p => Math.max(1, p - 1))} 
+                                        disabled={dqPage === 1} 
+                                        className="px-4 py-2 bg-white border border-slate-300 rounded-lg text-sm font-bold text-slate-600 disabled:opacity-50 hover:bg-slate-50 flex items-center gap-1 transition"
+                                    >
+                                        <ChevronLeft size={16}/> Sebelumnya
+                                    </button>
+                                    <span className="text-xs font-bold text-slate-500 uppercase tracking-widest">Hal {dqPage} dari {totalPages}</span>
+                                    <button 
+                                        onClick={() => setDqPage(p => Math.min(totalPages, p + 1))} 
+                                        disabled={dqPage === totalPages} 
+                                        className="px-4 py-2 bg-white border border-slate-300 rounded-lg text-sm font-bold text-slate-600 disabled:opacity-50 hover:bg-slate-50 flex items-center gap-1 transition"
+                                    >
+                                        Selanjutnya <ChevronRight size={16}/>
+                                    </button>
+                                </div>
+                            )}
                         </div>
                     </div>
                 </div>
             </div>
+
         </div>
         <footer className="bg-slate-900 text-slate-500 text-center py-3 text-xs font-mono tracking-widest border-t border-slate-800 h-10 shrink-0 flex items-center justify-center z-50">&copy; anak magang SSO 2026</footer>
     </div>
@@ -835,7 +894,7 @@ function LoginModal({ targetRole, onClose, onLogin }: any) {
 }
 
 // 5. EVENT ADMIN PANEL
-function AdminPanel({ tournament, events, onUpdateTournament, onAddEvent, onEditEvent, onDeleteEvent }: any) {
+function AdminPanel({ tournament, events, dqs, onUpdateTournament, onAddEvent, onEditEvent, onDeleteEvent, onResetTournament }: any) {
   const [loading, setLoading] = useState(false);
   const [newEvent, setNewEvent] = useState({ number: '', name: '', totalSeries: '' });
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -852,6 +911,11 @@ function AdminPanel({ tournament, events, onUpdateTournament, onAddEvent, onEdit
     eventDate: tournament.eventDate ? tournament.eventDate.substring(0, 10) : ''
   });
   const [infoMessage, setInfoMessage] = useState('');
+
+  // State untuk Modal Reset Lomba
+  const [showResetModal, setShowResetModal] = useState(false);
+  const [resetPin, setResetPin] = useState('');
+  const [resetError, setResetError] = useState(false);
 
   const wrapAsync = async (fn: () => Promise<void>) => { setLoading(true); try { await fn(); } finally { setLoading(false); }};
   const handleAddEvent = (e: React.FormEvent) => { e.preventDefault(); if(!newEvent.number) return; wrapAsync(async () => { await onAddEvent({ number: parseInt(newEvent.number), name: newEvent.name, totalSeries: parseInt(newEvent.totalSeries) }); setNewEvent({ number: '', name: '', totalSeries: '' }); }); };
@@ -927,6 +991,12 @@ function AdminPanel({ tournament, events, onUpdateTournament, onAddEvent, onEdit
                     <input type="text" value={tournament.resultUrl || ''} onChange={(e) => onUpdateTournament({ resultUrl: e.target.value })} className="flex-1 p-2 border rounded text-sm bg-slate-50" placeholder="https://drive.google.com/..." />
                 </div>
                 <p className="text-[10px] text-slate-400 mt-1">Gunakan link publik agar bisa dibuka oleh penonton saat lomba selesai.</p>
+             </div>
+
+             <div className="pt-6 border-t border-slate-100 mt-6">
+                <button onClick={() => setShowResetModal(true)} className="w-full py-3 bg-red-50 hover:bg-red-100 text-red-600 rounded-xl font-bold flex justify-center items-center gap-2 transition border border-red-200">
+                    <AlertOctagon size={18}/> RESET ULANG LOMBA
+                </button>
              </div>
           </div>
         </div>
@@ -1031,6 +1101,35 @@ function AdminPanel({ tournament, events, onUpdateTournament, onAddEvent, onEdit
             </div>
           </div>
       </div>
+
+      {/* MODAL RESET LOMBA */}
+      {showResetModal && (
+        <div className="fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-[70] animate-in fade-in">
+          <div className="bg-white rounded-2xl w-full max-w-sm p-8 relative zoom-in-95 duration-200 shadow-2xl">
+            <button onClick={() => {setShowResetModal(false); setResetPin(''); setResetError(false);}} className="absolute top-4 right-4 text-slate-400 hover:text-slate-800"><X size={20} /></button>
+            <h2 className="text-xl font-bold text-center mb-3 text-red-600 flex justify-center items-center gap-2"><AlertOctagon /> Reset Lomba</h2>
+            <p className="text-center text-slate-500 text-sm mb-6 leading-relaxed">Tindakan ini akan mengembalikan status lomba ke <b>"Akan Datang"</b> dan <b>menghapus seluruh riwayat diskualifikasi</b>. Masukkan PIN Superuser untuk konfirmasi.</p>
+            <form onSubmit={(e) => {
+              e.preventDefault();
+              if (simpleHash(resetPin) === MASTER_PIN_HASH) {
+                wrapAsync(async () => {
+                  await onResetTournament();
+                  setShowResetModal(false);
+                  setResetPin('');
+                  setResetError(false);
+                });
+              } else {
+                setResetError(true);
+                setResetPin('');
+              }
+            }}>
+              <input autoFocus type="password" value={resetPin} onChange={e=>{setResetPin(e.target.value);setResetError(false)}} className="w-full text-center text-3xl font-bold p-4 border rounded-xl mb-4 outline-none focus:ring-2 focus:ring-red-500 bg-slate-50" placeholder="PIN MASTER" />
+              {resetError && <p className="text-red-500 text-center mb-4 text-sm font-bold">PIN Superuser Salah!</p>}
+              <button type="submit" className="w-full bg-red-600 text-white py-3 rounded-xl font-bold hover:bg-red-700 transition shadow-lg">Konfirmasi Reset Lomba</button>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
