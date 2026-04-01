@@ -54,7 +54,6 @@ import {
 } from 'firebase/firestore';
 
 // --- FIREBASE CONFIGURATION ---
-// Menyediakan fallback config agar tetap bisa berjalan saat di-clone ke lokal laptop Anda
 const fallbackConfig = {
   apiKey: "AIzaSyBJfXbDljpyTdnbWjbNzGfAQE4TgKvTQf4",
   authDomain: "sangkuriang-swimorg.firebaseapp.com",
@@ -79,10 +78,11 @@ const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 
-// @ts-ignore
-// Format appId secara aman untuk mencegah error pembacaan path segment di Firestore
+// FIX: Mengambil ID murni. Jika rawAppId adalah "12345/src/App.tsx", 
+// maka split('/')[0] akan mengambil "12345" saja. Ini cocok dengan Security Rules
+// dan tidak akan memicu error "default-app-id".
 const rawAppId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-const appId = rawAppId.includes('/') ? 'default-app-id' : rawAppId;
+const appId = rawAppId.split('/')[0];
 
 // --- UTILS ---
 const getWIBTime = () => {
@@ -183,7 +183,7 @@ export default function App() {
     };
   }, [viewMode]);
 
-  // Auth Init (Fallback yang aman untuk Autentikasi)
+  // Auth Init
   useEffect(() => {
     const initAuth = async () => {
       try {
@@ -209,14 +209,14 @@ export default function App() {
 
   // Data Listeners
   useEffect(() => {
-    if (!user) return; // Strict guard
+    if (!user) return; 
     
     const unsubTournaments = onSnapshot(
       collection(db, 'artifacts', appId, 'public', 'data', 'tournaments'), 
       (snapshot) => {
         setTournaments(snapshot.docs.map(d => ({ id: d.id, ...d.data() } as Tournament)).sort((a,b) => b.createdAt - a.createdAt));
       }, 
-      (error) => console.warn("Sinkronisasi Tournaments ditunda sementara waktu", error.message)
+      (error) => console.warn("Sinkronisasi Tournaments ditunda", error.message)
     );
 
     const unsubEvents = onSnapshot(
@@ -224,7 +224,7 @@ export default function App() {
       (snapshot) => {
         setAllEvents(snapshot.docs.map(d => ({ id: d.id, ...d.data() } as EventItem)));
       }, 
-      (error) => console.warn("Sinkronisasi Events ditunda sementara waktu", error.message)
+      (error) => console.warn("Sinkronisasi Events ditunda", error.message)
     );
 
     const unsubDqs = onSnapshot(
@@ -232,7 +232,7 @@ export default function App() {
       (snapshot) => {
         setAllDqs(snapshot.docs.map(d => ({ id: d.id, ...d.data() } as DQRecord)));
       }, 
-      (error) => console.warn("Sinkronisasi DQs ditunda sementara waktu", error.message)
+      (error) => console.warn("Sinkronisasi DQs ditunda", error.message)
     );
 
     return () => { unsubTournaments(); unsubEvents(); unsubDqs(); };
@@ -274,8 +274,8 @@ export default function App() {
         const tDocRef = await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'tournaments'), {
           title: "PIALA KADISDIK SUMEDANG FINSWIMMING 2026",
           venue: "Kolam Renang Yadika, Tanjungsari, Sumedang",
-          eventDate: new Date().toISOString(), 
-          status: 'live',
+          eventDate: '2026-04-01T00:00:00.000Z', 
+          status: 'finished',
           resultUrl: '',
           pins: { admin: simpleHash('1234'), announcer: simpleHash('1234'), callroom: simpleHash('1234') },
           liveState: DEFAULT_LIVE_STATE,
@@ -509,7 +509,7 @@ function GlobalLandingPage({ tournaments, onSelectTournament, onMasterLogin }: a
           <div className="mb-12 opacity-80">
             <h2 className="text-2xl font-bold mb-6 flex items-center gap-2 border-b border-slate-800 pb-2"><CheckCircle className="text-blue-500"/> Selesai</h2>
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {finished.map((t:any) => <TourCard key={t.id} t={t} badge="SELESAI" badgeColor="bg-blue-500/20 text-blue-400 border border-blue-500/30" onSelectTournament={onSelectTournament} />)}
+              {finished.map((t:any) => <TourCard key={t.id} t={t} badge="SELESAI" badgeColor="bg-[#1e3a8a] text-blue-300 border border-[#1e40af]" onSelectTournament={onSelectTournament} />)}
             </div>
           </div>
         ) : null}
@@ -550,8 +550,8 @@ function MasterDashboard({ tournaments, onCreate, onEdit, onDelete, onLogout, on
         <div className="flex flex-col md:flex-row justify-between items-center mb-8 gap-4">
           <h2 className="text-2xl font-bold text-slate-800">Daftar Semua Lomba</h2>
           <div className="flex gap-2">
-             <button onClick={onRestoreLegacy} className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg font-bold flex items-center gap-2 shadow transition transform active:scale-95"><DownloadCloud size={18}/> Restore Data Kadisdik</button>
-             <button onClick={() => setShowCreate(!showCreate)} className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-bold flex items-center gap-2 shadow transition"><Plus size={18}/> Buat Lomba Baru</button>
+             <button onClick={onRestoreLegacy} className="bg-[#0f9d58] hover:bg-[#0b8043] text-white px-4 py-2.5 rounded-lg font-bold flex items-center gap-2 shadow-sm transition transform active:scale-95"><DownloadCloud size={18}/> Restore Data</button>
+             <button onClick={() => setShowCreate(!showCreate)} className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2.5 rounded-lg font-bold flex items-center gap-2 shadow-sm transition"><Plus size={18}/> Buat Lomba Baru</button>
           </div>
         </div>
 
@@ -834,9 +834,34 @@ function AdminPanel({ tournament, events, onUpdateTournament, onAddEvent, onEdit
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editForm, setEditForm] = useState({ number: '', name: '', totalSeries: '' });
 
+  // State untuk form update PIN
+  const [pinForm, setPinForm] = useState({ admin: '', announcer: '', callroom: '' });
+  const [pinMessage, setPinMessage] = useState('');
+
   const wrapAsync = async (fn: () => Promise<void>) => { setLoading(true); try { await fn(); } finally { setLoading(false); }};
   const handleAddEvent = (e: React.FormEvent) => { e.preventDefault(); if(!newEvent.number) return; wrapAsync(async () => { await onAddEvent({ number: parseInt(newEvent.number), name: newEvent.name, totalSeries: parseInt(newEvent.totalSeries) }); setNewEvent({ number: '', name: '', totalSeries: '' }); }); };
   
+  // Handler untuk menyimpan PIN baru
+  const handleUpdatePins = (e: React.FormEvent) => {
+    e.preventDefault();
+    const updatedPins = { ...tournament.pins };
+    let changed = false;
+    
+    // Hash PIN baru menggunakan fungsi simpleHash bawaan sistem
+    if (pinForm.admin) { updatedPins.admin = simpleHash(pinForm.admin); changed = true; }
+    if (pinForm.announcer) { updatedPins.announcer = simpleHash(pinForm.announcer); changed = true; }
+    if (pinForm.callroom) { updatedPins.callroom = simpleHash(pinForm.callroom); changed = true; }
+
+    if (changed) {
+      wrapAsync(async () => {
+        await onUpdateTournament({ pins: updatedPins });
+        setPinForm({ admin: '', announcer: '', callroom: '' });
+        setPinMessage('PIN akses berhasil diperbarui!');
+        setTimeout(() => setPinMessage(''), 4000);
+      });
+    }
+  };
+
   const isUpcoming = tournament.status === 'upcoming';
   const isLive = tournament.status === 'live';
 
@@ -876,6 +901,34 @@ function AdminPanel({ tournament, events, onUpdateTournament, onAddEvent, onEdit
              </div>
           </div>
         </div>
+
+        {/* PANEL PENGATURAN PIN */}
+        <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+          <h2 className="font-bold mb-4 flex gap-2"><Lock className="text-blue-600"/> Pengaturan PIN Akses</h2>
+          <form onSubmit={handleUpdatePins} className="space-y-3">
+            <div>
+              <label className="text-xs text-slate-500 font-bold mb-1 block">Ubah PIN Admin Lomba</label>
+              <input type="text" value={pinForm.admin} onChange={(e) => setPinForm({...pinForm, admin: e.target.value})} className="w-full p-2 border rounded text-sm bg-slate-50 focus:bg-white transition-colors" placeholder="Kosongkan jika tidak diubah" />
+            </div>
+            <div>
+              <label className="text-xs text-slate-500 font-bold mb-1 block">Ubah PIN Announcer</label>
+              <input type="text" value={pinForm.announcer} onChange={(e) => setPinForm({...pinForm, announcer: e.target.value})} className="w-full p-2 border rounded text-sm bg-slate-50 focus:bg-white transition-colors" placeholder="Kosongkan jika tidak diubah" />
+            </div>
+            <div>
+              <label className="text-xs text-slate-500 font-bold mb-1 block">Ubah PIN Call Room</label>
+              <input type="text" value={pinForm.callroom} onChange={(e) => setPinForm({...pinForm, callroom: e.target.value})} className="w-full p-2 border rounded text-sm bg-slate-50 focus:bg-white transition-colors" placeholder="Kosongkan jika tidak diubah" />
+            </div>
+            
+            {pinMessage && <div className="text-xs font-bold text-emerald-700 bg-emerald-50 border border-emerald-100 p-2 rounded-lg text-center animate-in fade-in">{pinMessage}</div>}
+            
+            <div className="pt-2">
+              <button type="submit" disabled={!pinForm.admin && !pinForm.announcer && !pinForm.callroom} className="w-full py-2.5 bg-slate-800 hover:bg-slate-700 disabled:bg-slate-300 disabled:cursor-not-allowed text-white rounded-lg font-bold text-sm transition shadow-sm">
+                SIMPAN PIN BARU
+              </button>
+            </div>
+          </form>
+        </div>
+
       </div>
 
       <div className="md:col-span-2">
