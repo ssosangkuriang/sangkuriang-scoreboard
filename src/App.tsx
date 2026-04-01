@@ -266,7 +266,7 @@ export default function App() {
   const updateLiveState = async (newState: Partial<LiveState>) => {
     if (!user || !activeTournamentId || !activeTournament) return;
     await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'tournaments', activeTournamentId), {
-      liveState: { ...activeTournament.liveState, ...newState, lastUpdate: getWIBTime() }
+      liveState: { ...activeTournament.liveState, ...newState }
     });
   };
 
@@ -765,22 +765,22 @@ function LiveScoreboard({ tournament, dqs, isOnline, onBack, onLoginRequest }: a
                     </div>
                 </div>
             </div>
-            <div className="h-[30%] bg-slate-50 border-t border-slate-200 p-4 md:p-6 overflow-hidden flex flex-col shrink-0">
+            <div className="h-[40%] bg-slate-50 border-t border-slate-200 p-6 md:p-8 overflow-hidden flex flex-col shrink-0">
                 <div className="max-w-7xl mx-auto w-full h-full flex flex-col">
-                    <h3 className="text-slate-700 font-bold mb-3 flex items-center gap-2"><AlertOctagon size={20} className="text-red-500" /> INFORMASI DISKUALIFIKASI TERKINI</h3>
+                    <h3 className="text-slate-700 font-extrabold text-lg mb-4 flex items-center gap-2"><AlertOctagon size={24} className="text-red-500" /> INFORMASI DISKUALIFIKASI TERKINI</h3>
                     <div className="flex-1 bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden flex flex-col">
-                        <div className="grid grid-cols-12 bg-slate-800 text-white text-xs md:text-sm font-bold uppercase py-3 px-4"><div className="col-span-2">No. Acara</div><div className="col-span-2 text-center">Seri</div><div className="col-span-2 text-center">Lintasan</div><div className="col-span-6">Keterangan / Alasan</div></div>
+                        <div className="grid grid-cols-12 bg-slate-800 text-white text-sm md:text-base font-bold uppercase py-4 px-6"><div className="col-span-2">No. Acara</div><div className="col-span-2 text-center">Seri</div><div className="col-span-2 text-center">Lintasan</div><div className="col-span-6">Keterangan / Alasan</div></div>
                         <div className="overflow-y-auto flex-1 p-0">
                             {dqs.length === 0 ? (
                                 <div className="h-full flex items-center justify-center text-slate-400 italic">Tidak ada informasi diskualifikasi saat ini.</div>
                             ) : null}
                             
                             {dqs.map((dq: any, idx: number) => (
-                                <div key={dq.id} className={`grid grid-cols-12 text-sm py-3 px-4 border-b border-slate-100 items-center ${idx % 2 === 0 ? 'bg-white' : 'bg-slate-50'}`}>
+                                <div key={dq.id} className={`grid grid-cols-12 text-base md:text-lg py-4 px-6 border-b border-slate-100 items-center ${idx % 2 === 0 ? 'bg-white' : 'bg-slate-50'}`}>
                                     <div className="col-span-2 font-bold text-slate-800">{dq.eventNumber}</div>
                                     <div className="col-span-2 text-center text-slate-600">{dq.series}</div>
-                                    <div className="col-span-2 text-center"><span className="bg-slate-200 text-slate-700 px-2 py-0.5 rounded font-mono font-bold">{dq.lane}</span></div>
-                                    <div className="col-span-6 text-red-600 font-medium">{dq.reason}</div>
+                                    <div className="col-span-2 text-center"><span className="bg-slate-200 text-slate-700 px-3 py-1 rounded font-mono font-bold">{dq.lane}</span></div>
+                                    <div className="col-span-6 text-red-600 font-semibold">{dq.reason}</div>
                                 </div>
                             ))}
                         </div>
@@ -845,9 +845,31 @@ function AdminPanel({ tournament, events, onUpdateTournament, onAddEvent, onEdit
   const [pinForm, setPinForm] = useState({ admin: '', announcer: '', callroom: '' });
   const [pinMessage, setPinMessage] = useState('');
 
+  // State untuk form update Informasi Lomba
+  const [infoForm, setInfoForm] = useState({
+    title: tournament.title || '',
+    venue: tournament.venue || '',
+    eventDate: tournament.eventDate ? tournament.eventDate.substring(0, 10) : ''
+  });
+  const [infoMessage, setInfoMessage] = useState('');
+
   const wrapAsync = async (fn: () => Promise<void>) => { setLoading(true); try { await fn(); } finally { setLoading(false); }};
   const handleAddEvent = (e: React.FormEvent) => { e.preventDefault(); if(!newEvent.number) return; wrapAsync(async () => { await onAddEvent({ number: parseInt(newEvent.number), name: newEvent.name, totalSeries: parseInt(newEvent.totalSeries) }); setNewEvent({ number: '', name: '', totalSeries: '' }); }); };
   
+  // Handler untuk menyimpan Informasi Lomba
+  const handleUpdateInfo = (e: React.FormEvent) => {
+    e.preventDefault();
+    wrapAsync(async () => {
+      await onUpdateTournament({
+        title: infoForm.title,
+        venue: infoForm.venue,
+        eventDate: new Date(infoForm.eventDate).toISOString()
+      });
+      setInfoMessage('Informasi berhasil disimpan!');
+      setTimeout(() => setInfoMessage(''), 4000);
+    });
+  };
+
   // Handler untuk menyimpan PIN baru
   const handleUpdatePins = (e: React.FormEvent) => {
     e.preventDefault();
@@ -907,6 +929,33 @@ function AdminPanel({ tournament, events, onUpdateTournament, onAddEvent, onEdit
                 <p className="text-[10px] text-slate-400 mt-1">Gunakan link publik agar bisa dibuka oleh penonton saat lomba selesai.</p>
              </div>
           </div>
+        </div>
+
+        {/* PANEL INFORMASI LOMBA */}
+        <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+          <h2 className="font-bold mb-4 flex gap-2"><Edit2 className="text-blue-600"/> Edit Informasi Lomba</h2>
+          <form onSubmit={handleUpdateInfo} className="space-y-3">
+            <div>
+              <label className="text-xs text-slate-500 font-bold mb-1 block">Nama Kejuaraan</label>
+              <input required type="text" value={infoForm.title} onChange={(e) => setInfoForm({...infoForm, title: e.target.value})} className="w-full p-2 border rounded text-sm bg-slate-50 focus:bg-white transition-colors" />
+            </div>
+            <div>
+              <label className="text-xs text-slate-500 font-bold mb-1 block">Lokasi / Venue</label>
+              <input required type="text" value={infoForm.venue} onChange={(e) => setInfoForm({...infoForm, venue: e.target.value})} className="w-full p-2 border rounded text-sm bg-slate-50 focus:bg-white transition-colors" />
+            </div>
+            <div>
+              <label className="text-xs text-slate-500 font-bold mb-1 block">Tanggal Mulai</label>
+              <input required type="date" value={infoForm.eventDate} onChange={(e) => setInfoForm({...infoForm, eventDate: e.target.value})} className="w-full p-2 border rounded text-sm bg-slate-50 focus:bg-white transition-colors" />
+            </div>
+            
+            {infoMessage && <div className="text-xs font-bold text-emerald-700 bg-emerald-50 border border-emerald-100 p-2 rounded-lg text-center animate-in fade-in">{infoMessage}</div>}
+            
+            <div className="pt-2">
+              <button type="submit" className="w-full py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-bold text-sm transition shadow-sm">
+                SIMPAN INFORMASI
+              </button>
+            </div>
+          </form>
         </div>
 
         {/* PANEL PENGATURAN PIN */}
@@ -1022,7 +1071,8 @@ function AnnouncerPanel({ tournament, events, dqs, updateLiveState, onAddDQ, onD
       wrapAsync(async () => {
           await updateLiveState({
               currentEventId: targetEvent.id, currentEventName: targetEvent.name, currentEventNumber: targetEvent.number,
-              currentEventTotalSeries: targetEvent.totalSeries, currentSeries: nextSeries
+              currentEventTotalSeries: targetEvent.totalSeries, currentSeries: nextSeries,
+              lastUpdate: getWIBTime()
           });
       });
   };
@@ -1040,7 +1090,7 @@ function AnnouncerPanel({ tournament, events, dqs, updateLiveState, onAddDQ, onD
                         <p className="text-slate-400 mb-4">Papan skor belum menampilkan data.</p>
                         <button onClick={() => wrapAsync(async () => {
                              const first = events[0]; 
-                             await updateLiveState({ currentEventId: first.id, currentEventName: first.name, currentEventNumber: first.number, currentEventTotalSeries: first.totalSeries, currentSeries: 1 });
+                             await updateLiveState({ currentEventId: first.id, currentEventName: first.name, currentEventNumber: first.number, currentEventTotalSeries: first.totalSeries, currentSeries: 1, lastUpdate: getWIBTime() });
                         })} className="bg-purple-600 hover:bg-purple-500 text-white px-8 py-4 rounded-xl font-bold text-xl shadow-lg flex items-center gap-3"><Play size={24} fill="currentColor" /> MULAI ACARA PERTAMA</button>
                     </div>
                 ) : activeEvent ? (
@@ -1124,7 +1174,8 @@ function CallRoomPanel({ tournament, events, updateLiveState }: any) {
       wrapAsync(async () => {
           await updateLiveState({
               callRoomEventId: targetEvent.id, callRoomEventName: targetEvent.name, callRoomEventNumber: targetEvent.number,
-              callRoomEventTotalSeries: targetEvent.totalSeries, callRoomSeries: nextSeries
+              callRoomEventTotalSeries: targetEvent.totalSeries, callRoomSeries: nextSeries,
+              callRoomLastUpdate: getWIBTime()
           });
       });
   };
@@ -1141,7 +1192,7 @@ function CallRoomPanel({ tournament, events, updateLiveState }: any) {
                     <p className="text-emerald-700 mb-4 font-medium">Siap Memanggil Peserta.</p>
                     <button onClick={() => wrapAsync(async () => {
                              const first = events[0]; 
-                             await updateLiveState({ callRoomEventId: first.id, callRoomEventName: first.name, callRoomEventNumber: first.number, callRoomEventTotalSeries: first.totalSeries, callRoomSeries: 1 });
+                             await updateLiveState({ callRoomEventId: first.id, callRoomEventName: first.name, callRoomEventNumber: first.number, callRoomEventTotalSeries: first.totalSeries, callRoomSeries: 1, callRoomLastUpdate: getWIBTime() });
                     })} className="bg-emerald-600 hover:bg-emerald-700 text-white px-8 py-4 rounded-xl font-bold text-xl shadow-lg flex items-center gap-3"><Play size={24} fill="currentColor" /> INISIALISASI CALL ROOM</button>
                 </div>
               ) : currentCallEvent ? (
