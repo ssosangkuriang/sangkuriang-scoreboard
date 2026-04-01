@@ -29,7 +29,8 @@ import {
   CheckCircle, 
   Timer,
   ShieldAlert,
-  Trophy
+  Trophy,
+  DownloadCloud
 } from 'lucide-react';
 
 // --- FIREBASE IMPORTS ---
@@ -262,6 +263,63 @@ export default function App() {
     });
   };
 
+  // Import Legacy Data Function
+  const handleRestoreLegacyData = async () => {
+    if (!user) return;
+    const confirmRestore = window.confirm("Fungsi ini akan mengimpor data 'PIALA KADISDIK SUMEDANG' sesuai dengan gambar sebelumnya ke sistem baru. Lanjutkan?");
+    if (!confirmRestore) return;
+    
+    try {
+        // Buat Lomba
+        const tDocRef = await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'tournaments'), {
+          title: "PIALA KADISDIK SUMEDANG FINSWIMMING 2026",
+          venue: "Kolam Renang Yadika, Tanjungsari, Sumedang",
+          eventDate: new Date().toISOString(), 
+          status: 'live',
+          resultUrl: '',
+          pins: { admin: simpleHash('1234'), announcer: simpleHash('1234'), callroom: simpleHash('1234') },
+          liveState: DEFAULT_LIVE_STATE,
+          createdAt: Date.now()
+        });
+
+        const tId = tDocRef.id;
+
+        // Tambah Acara / Events
+        await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'events'), { tournamentId: tId, number: 55, name: "Event 55 (Placeholder)", totalSeries: 3 });
+        await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'events'), { tournamentId: tId, number: 56, name: "Event 56 (Placeholder)", totalSeries: 2 });
+        
+        const evt61Ref = await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'events'), { tournamentId: tId, number: 61, name: "Mixed 11 & Under 4x50 Kick Surface Relay", totalSeries: 1 });
+        const evt64Ref = await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'events'), { tournamentId: tId, number: 64, name: "Mixed 12 & Over 4x50 Bi Fins Relay", totalSeries: 1 });
+
+        // Update Live State sesuai dengan Screenshot
+        await updateDoc(tDocRef, {
+          liveState: {
+            currentEventId: evt61Ref.id,
+            currentEventNumber: 61,
+            currentEventName: "Mixed 11 & Under 4x50 Kick Surface Relay",
+            currentEventTotalSeries: 1,
+            currentSeries: 1,
+            callRoomEventId: evt64Ref.id,
+            callRoomEventNumber: 64,
+            callRoomEventName: "Mixed 12 & Over 4x50 Bi Fins Relay",
+            callRoomEventTotalSeries: 1,
+            callRoomSeries: 1,
+            lastUpdate: getWIBTime(),
+            callRoomLastUpdate: "18.49.35 WIB"
+          }
+        });
+
+        // Tambah Informasi Diskualifikasi sesuai Screenshot
+        await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'dqs'), { tournamentId: tId, eventNumber: 56, series: 1, lane: 3, reason: "Melepas snorkel pada meter ke 90 meter", timestamp: getWIBTime(), createdAt: Date.now() });
+        await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'dqs'), { tournamentId: tId, eventNumber: 55, series: 2, lane: 1, reason: "fins lepas pada jarak 10 meter", timestamp: getWIBTime(), createdAt: Date.now() - 1000 });
+
+        alert("Berhasil! Data lama telah dipulihkan ke deployment baru.");
+    } catch (e) {
+        console.error(e);
+        alert("Gagal memulihkan data.");
+    }
+  };
+
   // Login Handler
   const processLogin = (roleName: string, pin: string) => {
     const hashed = simpleHash(pin);
@@ -305,6 +363,7 @@ export default function App() {
           onEdit={(id: string) => { setActiveTournamentId(id); setRole('admin'); setViewMode('tournament'); }}
           onDelete={handleDeleteTournament}
           onLogout={() => { setRole(null); setViewMode('global'); }}
+          onRestoreLegacy={handleRestoreLegacyData}
         />
       )}
 
@@ -465,7 +524,7 @@ function GlobalLandingPage({ tournaments, onSelectTournament, onMasterLogin }: a
 }
 
 // 2. MASTER DASHBOARD
-function MasterDashboard({ tournaments, onCreate, onEdit, onDelete, onLogout }: any) {
+function MasterDashboard({ tournaments, onCreate, onEdit, onDelete, onLogout, onRestoreLegacy }: any) {
   const [showCreate, setShowCreate] = useState(false);
   const [form, setForm] = useState({ title: '', venue: '', eventDate: '', adminPin: '1234', announcerPin: '1234', callroomPin: '1234' });
 
@@ -488,9 +547,12 @@ function MasterDashboard({ tournaments, onCreate, onEdit, onDelete, onLogout }: 
       </header>
       
       <main className="max-w-6xl mx-auto p-6">
-        <div className="flex justify-between items-center mb-8">
+        <div className="flex flex-col md:flex-row justify-between items-center mb-8 gap-4">
           <h2 className="text-2xl font-bold text-slate-800">Daftar Semua Lomba</h2>
-          <button onClick={() => setShowCreate(!showCreate)} className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-bold flex items-center gap-2"><Plus size={18}/> Buat Lomba Baru</button>
+          <div className="flex gap-2">
+             <button onClick={onRestoreLegacy} className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg font-bold flex items-center gap-2 shadow transition transform active:scale-95"><DownloadCloud size={18}/> Restore Data Kadisdik</button>
+             <button onClick={() => setShowCreate(!showCreate)} className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-bold flex items-center gap-2 shadow transition"><Plus size={18}/> Buat Lomba Baru</button>
+          </div>
         </div>
 
         {showCreate && (
