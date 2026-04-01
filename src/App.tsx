@@ -53,6 +53,13 @@ import {
   onSnapshot
 } from 'firebase/firestore';
 
+// --- GLOBAL TYPE DECLARATIONS ---
+declare global {
+  var __firebase_config: any;
+  var __app_id: string | undefined;
+  var __initial_auth_token: string | undefined;
+}
+
 // --- FIREBASE CONFIGURATION ---
 const fallbackConfig = {
   apiKey: "AIzaSyBJfXbDljpyTdnbWjbNzGfAQE4TgKvTQf4",
