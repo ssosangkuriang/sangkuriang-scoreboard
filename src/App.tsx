@@ -30,7 +30,8 @@ import {
   Timer,
   ShieldAlert,
   Trophy,
-  DownloadCloud
+  DownloadCloud,
+  Upload
 } from 'lucide-react';
 
 // --- FIREBASE IMPORTS ---
@@ -411,6 +412,12 @@ export default function App() {
                       tournament={activeTournament} events={activeEvents}
                       onUpdateTournament={(data: any) => handleUpdateTournament(activeTournament.id, data)}
                       onAddEvent={async (data: any) => { if(user) await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'events'), { ...data, tournamentId: activeTournament.id }); }}
+                      onAddMultipleEvents={async (eventsData: any[]) => {
+                        if (user) {
+                          const promises = eventsData.map(data => addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'events'), { ...data, tournamentId: activeTournament.id }));
+                          await Promise.all(promises);
+                        }
+                      }}
                       onEditEvent={async (id: string, data: any) => { if(user) await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'events', id), data); }}
                       onDeleteEvent={async (id: string) => { if(user) await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'events', id)); }}
                       onResetTournament={async () => await handleResetTournament(activeTournament.id, activeDqs.map(d => d.id))}
@@ -912,7 +919,7 @@ function LoginModal({ targetRole, onClose, onLogin }: any) {
 }
 
 // 5. EVENT ADMIN PANEL
-function AdminPanel({ tournament, events, onUpdateTournament, onAddEvent, onEditEvent, onDeleteEvent, onResetTournament }: any) {
+function AdminPanel({ tournament, events, onUpdateTournament, onAddEvent, onAddMultipleEvents, onEditEvent, onDeleteEvent, onResetTournament }: any) {
   const [loading, setLoading] = useState(false);
   const [newEvent, setNewEvent] = useState({ number: '', name: '', totalSeries: '' });
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -938,6 +945,72 @@ function AdminPanel({ tournament, events, onUpdateTournament, onAddEvent, onEdit
   const wrapAsync = async (fn: () => Promise<void>) => { setLoading(true); try { await fn(); } finally { setLoading(false); }};
   const handleAddEvent = (e: React.FormEvent) => { e.preventDefault(); if(!newEvent.number) return; wrapAsync(async () => { await onAddEvent({ number: parseInt(newEvent.number), name: newEvent.name, totalSeries: parseInt(newEvent.totalSeries) }); setNewEvent({ number: '', name: '', totalSeries: '' }); }); };
   
+  // Handler Upload Excel (Dynamic Loading untuk menghindari error bundler)
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Load library XLSX secara dinamis melalui CDN agar tidak memicu error build
+    if (!(window as any).XLSX) {
+      setLoading(true);
+      try {
+        await new Promise((resolve, reject) => {
+          const script = document.createElement('script');
+          script.src = 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
+          script.onload = resolve;
+          script.onerror = reject;
+          document.head.appendChild(script);
+        });
+      } catch (err) {
+        setLoading(false);
+        alert("Gagal memuat library Excel. Periksa koneksi internet Anda.");
+        if (e.target) e.target.value = '';
+        return;
+      }
+      setLoading(false);
+    }
+
+    const XLSXLoader = (window as any).XLSX;
+
+    wrapAsync(async () => {
+      try {
+        const data = await file.arrayBuffer();
+        const workbook = XLSXLoader.read(data, { type: 'array' });
+        const sheetName = workbook.SheetNames[0];
+        const worksheet = workbook.Sheets[sheetName];
+        const jsonData = XLSXLoader.utils.sheet_to_json(worksheet, { header: 1 }) as any[][];
+
+        const eventsToAdd = [];
+        // Mulai dari i=1 untuk melewati baris header
+        for (let i = 1; i < jsonData.length; i++) {
+          const row = jsonData[i];
+          if (row && row.length >= 3) {
+            const number = parseInt(row[0]);
+            const name = String(row[1] || '').trim();
+            const totalSeries = parseInt(row[2]);
+
+            // Hanya tambahkan jika datanya valid
+            if (!isNaN(number) && name && !isNaN(totalSeries)) {
+              eventsToAdd.push({ number, name, totalSeries });
+            }
+          }
+        }
+
+        if (eventsToAdd.length > 0) {
+          await onAddMultipleEvents(eventsToAdd);
+          alert(`Berhasil mengimpor ${eventsToAdd.length} acara dari Excel!`);
+        } else {
+          alert("Tidak ditemukan data acara yang valid di file Excel.");
+        }
+      } catch (error) {
+        console.error("Error parsing Excel:", error);
+        alert("Gagal membaca file Excel. Pastikan format file benar (.xlsx atau .xls).");
+      } finally {
+        if (e.target) e.target.value = ''; // Reset input
+      }
+    });
+  };
+
   // Handler untuk menyimpan Informasi Lomba
   const handleUpdateInfo = (e: React.FormEvent) => {
     e.preventDefault();
@@ -1077,7 +1150,14 @@ function AdminPanel({ tournament, events, onUpdateTournament, onAddEvent, onEdit
 
       <div className="md:col-span-2">
           <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
-            <h2 className="font-bold mb-4 flex gap-2"><List className="text-blue-600"/> Daftar Acara (Events)</h2>
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="font-bold flex gap-2"><List className="text-blue-600"/> Daftar Acara (Events)</h2>
+              <label className="bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 rounded-lg text-xs font-bold cursor-pointer flex items-center gap-2 transition shadow-sm">
+                <Upload size={14} /> IMPOR EXCEL
+                <input type="file" accept=".xlsx, .xls, .csv" className="hidden" onChange={handleFileUpload} disabled={loading} />
+              </label>
+            </div>
+
             <form onSubmit={handleAddEvent} className="flex gap-2 mb-4 bg-slate-50 p-3 rounded-lg border border-slate-100">
                 <input type="number" placeholder="No" value={newEvent.number} onChange={e => setNewEvent({...newEvent, number: e.target.value})} className="w-16 p-2 border rounded text-sm" />
                 <input type="text" placeholder="Nama Acara (Contoh: 50m Gaya Bebas)" value={newEvent.name} onChange={e => setNewEvent({...newEvent, name: e.target.value})} className="flex-1 p-2 border rounded text-sm" />
