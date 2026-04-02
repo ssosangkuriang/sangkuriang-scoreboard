@@ -960,30 +960,42 @@ function AdminPanel({ tournament, events, onUpdateTournament, onAddEvent, onAddM
             if (rawNum === undefined || rawNum === null || String(rawNum).trim() === '') continue;
             
             const evtNum = Number(rawNum);
+            // Cek apakah ini Nomor Acara (integer positif)
             if (isNaN(evtNum) || !Number.isInteger(evtNum) || evtNum <= 0) continue;
             
-            const name = String(row[c + 1] || '').trim();
-            // Validasi: Nama acara harus ada hurufnya
-            if (!name || name.toLowerCase().includes('event name') || !isNaN(Number(name))) continue;
-            
-            let heats = NaN;
-            // Pencarian nilai "Heats/Seri" di rentang kolom sebelah kanan nama
-            for (let offset = 2; offset <= 5 && (c + offset) < row.length; offset++) {
-                const rawHeat = row[c + offset];
-                if (rawHeat === undefined || rawHeat === null || String(rawHeat).trim() === '') continue;
-                const val = Number(rawHeat);
-                if (!isNaN(val) && Number.isInteger(val)) {
-                    heats = val;
-                    break;
-                }
+            // Cari kolom Nama Acara (teks pertama setelah nomor)
+            let name = '';
+            let nameCol = -1;
+            for (let j = c + 1; j < row.length; j++) {
+              const val = row[j];
+              if (val !== undefined && val !== null && String(val).trim() !== '') {
+                name = String(val).trim();
+                nameCol = j;
+                break;
+              }
             }
 
-            // Hanya proses acara dengan minimal 1 Seri
-            if (!isNaN(heats) && heats >= 1) {
+            // Validasi nama: tidak boleh kosong, dan tidak boleh angka murni
+            if (!name || !isNaN(Number(name))) continue;
+            
+            // Cari kolom Seri / Heats (angka pertama setelah nama)
+            let heats = NaN;
+            let heatsCol = -1;
+            for (let k = nameCol + 1; k < row.length; k++) {
+              const val = row[k];
+              if (val !== undefined && val !== null && String(val).trim() !== '') {
+                heats = Number(val);
+                heatsCol = k;
+                break;
+              }
+            }
+
+            // Validasi: Seri harus berupa angka, integer, dan >= 1
+            if (!isNaN(heats) && Number.isInteger(heats) && heats >= 1) {
                 if (!eventsToAdd.find(e => e.number === evtNum)) {
                     eventsToAdd.push({ number: evtNum, name: name, totalSeries: heats });
                 }
-                c += 2; // Lompat ke kolom yang belum diproses di baris ini
+                c = heatsCol; // Lompat ke kolom ini agar tidak diproses ganda
             }
           }
         }
