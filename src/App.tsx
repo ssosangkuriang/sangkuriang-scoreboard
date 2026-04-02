@@ -86,9 +86,6 @@ const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 
-// FIX: Mengambil ID murni. Jika rawAppId adalah "12345/src/App.tsx", 
-// maka split('/')[0] akan mengambil "12345" saja. Ini cocok dengan Security Rules
-// dan tidak akan memicu error "default-app-id".
 const rawAppId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
 const appId = rawAppId.split('/')[0];
 
@@ -266,13 +263,11 @@ export default function App() {
 
   const handleResetTournament = async (id: string, dqIds: string[]) => {
     if (!user) return;
-    // 1. Kembalikan status ke upcoming & kosongkan state live display
     await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'tournaments', id), {
       status: 'upcoming',
       liveState: DEFAULT_LIVE_STATE,
       resultUrl: ''
     });
-    // 2. Hapus seluruh DQ yang terekam untuk turnamen ini
     for (const dqId of dqIds) {
       await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'dqs', dqId));
     }
@@ -285,14 +280,12 @@ export default function App() {
     });
   };
 
-  // Import Legacy Data Function
   const handleRestoreLegacyData = async () => {
     if (!user) return;
     const confirmRestore = window.confirm("Fungsi ini akan mengimpor data 'PIALA KADISDIK SUMEDANG' sesuai dengan gambar sebelumnya ke sistem baru. Lanjutkan?");
     if (!confirmRestore) return;
     
     try {
-        // Buat Lomba
         const tDocRef = await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'tournaments'), {
           title: "PIALA KADISDIK SUMEDANG FINSWIMMING 2026",
           venue: "Kolam Renang Yadika, Tanjungsari, Sumedang",
@@ -306,14 +299,12 @@ export default function App() {
 
         const tId = tDocRef.id;
 
-        // Tambah Acara / Events
         await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'events'), { tournamentId: tId, number: 55, name: "Event 55 (Placeholder)", totalSeries: 3 });
         await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'events'), { tournamentId: tId, number: 56, name: "Event 56 (Placeholder)", totalSeries: 2 });
         
         const evt61Ref = await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'events'), { tournamentId: tId, number: 61, name: "Mixed 11 & Under 4x50 Kick Surface Relay", totalSeries: 1 });
         const evt64Ref = await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'events'), { tournamentId: tId, number: 64, name: "Mixed 12 & Over 4x50 Bi Fins Relay", totalSeries: 1 });
 
-        // Update Live State sesuai dengan Screenshot
         await updateDoc(tDocRef, {
           liveState: {
             currentEventId: evt61Ref.id,
@@ -331,7 +322,6 @@ export default function App() {
           }
         });
 
-        // Tambah Informasi Diskualifikasi sesuai Screenshot
         await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'dqs'), { tournamentId: tId, eventNumber: 56, series: 1, lane: 3, reason: "Melepas snorkel pada meter ke 90 meter", timestamp: getWIBTime(), createdAt: Date.now() });
         await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'dqs'), { tournamentId: tId, eventNumber: 55, series: 2, lane: 1, reason: "fins lepas pada jarak 10 meter", timestamp: getWIBTime(), createdAt: Date.now() - 1000 });
 
@@ -342,7 +332,6 @@ export default function App() {
     }
   };
 
-  // Login Handler
   const processLogin = (roleName: string, pin: string) => {
     const hashed = simpleHash(pin);
     if (roleName === 'master') {
@@ -501,7 +490,6 @@ const TourCard = ({ t, badge, badgeColor, onSelectTournament }: any) => (
   </div>
 );
 
-// 1. GLOBAL LANDING PAGE
 function GlobalLandingPage({ tournaments, onSelectTournament, onMasterLogin }: any) {
   const live = tournaments.filter((t: any) => t.status === 'live');
   const upcoming = tournaments.filter((t: any) => t.status === 'upcoming');
@@ -552,7 +540,6 @@ function GlobalLandingPage({ tournaments, onSelectTournament, onMasterLogin }: a
   );
 }
 
-// 2. MASTER DASHBOARD
 function MasterDashboard({ tournaments, onCreate, onEdit, onDelete, onLogout, onRestoreLegacy }: any) {
   const [showCreate, setShowCreate] = useState(false);
   const [form, setForm] = useState({ title: '', venue: '', eventDate: '', adminPin: '1234', announcerPin: '1234', callroomPin: '1234' });
@@ -632,7 +619,6 @@ function MasterDashboard({ tournaments, onCreate, onEdit, onDelete, onLogout, on
   );
 }
 
-// 3. TOURNAMENT PUBLIC VIEW (Landing Khusus Lomba)
 function TournamentPublicView({ tournament, dqs, isOnline, onBack, onLoginRequest }: any) {
   const [timeLeft, setTimeLeft] = useState({ days: 0, hours: 0, minutes: 0, seconds: 0 });
   const [showPdf, setShowPdf] = useState(false);
@@ -663,7 +649,6 @@ function TournamentPublicView({ tournament, dqs, isOnline, onBack, onLoginReques
     return <LiveScoreboard tournament={tournament} dqs={dqs} isOnline={isOnline} onBack={onBack} onLoginRequest={onLoginRequest} />;
   }
 
-  // View Upcoming or Finished
   const validEventDate = new Date(tournament.eventDate);
   const isFinished = tournament.status === 'finished';
 
@@ -747,15 +732,11 @@ function TournamentPublicView({ tournament, dqs, isOnline, onBack, onLoginReques
 function LiveScoreboard({ tournament, dqs, isOnline, onBack, onLoginRequest }: any) {
   const ls = tournament.liveState || DEFAULT_LIVE_STATE;
   
-  // Pagination State untuk Data DQ
   const [dqPage, setDqPage] = useState(1);
   const itemsPerPage = 10;
   const totalPages = Math.ceil(dqs.length / itemsPerPage) || 1;
-  
-  // Ambil hanya maksimal 10 data untuk halaman yang sedang aktif
   const currentDqs = dqs.slice((dqPage - 1) * itemsPerPage, dqPage * itemsPerPage);
 
-  // Otomatis kembali ke halaman 1 jika jumlah data menyusut (misal: saat reset)
   useEffect(() => {
       if (dqPage > totalPages) setDqPage(1);
   }, [dqs.length, totalPages, dqPage]);
@@ -777,9 +758,7 @@ function LiveScoreboard({ tournament, dqs, isOnline, onBack, onLoginRequest }: a
             </div>
         </header>
 
-        {/* BAGIAN ATAS: PEMANGGILAN DAN LIVE */}
         <div className="flex flex-col md:flex-row border-b border-slate-200 shadow-sm shrink-0">
-            {/* CALL ROOM */}
             <div className="w-full md:w-1/2 bg-slate-900 relative p-6 md:p-12 min-h-[300px] md:min-h-[45vh] flex flex-col justify-center">
                 <div className="absolute inset-0 bg-gradient-to-br from-blue-900/40 via-slate-900 to-slate-900 z-0"></div>
                 <div className="relative z-10 w-full max-w-lg mx-auto">
@@ -801,7 +780,6 @@ function LiveScoreboard({ tournament, dqs, isOnline, onBack, onLoginRequest }: a
                 </div>
             </div>
             
-            {/* LIVE SCORE */}
             <div className="w-full md:w-1/2 bg-white relative p-6 md:p-12 min-h-[300px] md:min-h-[45vh] flex flex-col justify-center">
                 <div className="relative z-10 w-full max-w-lg mx-auto">
                     <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4 sm:gap-0">
@@ -817,13 +795,11 @@ function LiveScoreboard({ tournament, dqs, isOnline, onBack, onLoginRequest }: a
             </div>
         </div>
         
-        {/* BAGIAN BAWAH: INFORMASI DISKUALIFIKASI DENGAN PAGINASI (NON-SCROLL DI DALAMNYA) */}
         <div className="w-full max-w-7xl mx-auto p-4 md:p-8 flex-1 flex flex-col">
             <h3 className="text-slate-800 font-extrabold text-lg md:text-xl mb-4 flex items-center gap-2">
                 <AlertOctagon size={24} className="text-red-500" /> INFORMASI DISKUALIFIKASI TERKINI
             </h3>
             <div className="bg-white rounded-xl shadow-md border border-slate-200 overflow-hidden flex flex-col">
-                {/* Header Tabel */}
                 <div className="grid grid-cols-12 bg-slate-800 text-white text-[10px] sm:text-sm font-bold uppercase py-3 md:py-4 px-2 md:px-6 items-center">
                     <div className="col-span-3 sm:col-span-2">No. Acara</div>
                     <div className="col-span-2 text-center">Seri</div>
@@ -831,7 +807,6 @@ function LiveScoreboard({ tournament, dqs, isOnline, onBack, onLoginRequest }: a
                     <div className="col-span-5 sm:col-span-6">Keterangan / Alasan</div>
                 </div>
                 
-                {/* Body Tabel Tanpa Internal Scroll */}
                 <div className="flex flex-col">
                     {currentDqs.length === 0 ? (
                         <div className="flex items-center justify-center text-slate-400 italic text-sm md:text-base py-12">Tidak ada informasi diskualifikasi saat ini.</div>
@@ -848,7 +823,6 @@ function LiveScoreboard({ tournament, dqs, isOnline, onBack, onLoginRequest }: a
                         </div>
                     )}
 
-                    {/* Panel Paginasi / Tombol (Hanya Muncul Jika Lebih Dari 10 Data) */}
                     {totalPages > 1 && (
                         <div className="bg-slate-100 border-t border-slate-200 p-3 md:p-4 px-4 md:px-6 flex justify-between items-center shrink-0">
                             <button 
@@ -877,7 +851,6 @@ function LiveScoreboard({ tournament, dqs, isOnline, onBack, onLoginRequest }: a
   );
 }
 
-// 4. ROLE SELECTION
 function RoleSelectionPanel({ tournament, onBack, onLoginRequest }: any) {
     return (
       <div className="min-h-screen bg-slate-900 flex items-center justify-center p-4">
@@ -918,18 +891,15 @@ function LoginModal({ targetRole, onClose, onLogin }: any) {
   );
 }
 
-// 5. EVENT ADMIN PANEL
 function AdminPanel({ tournament, events, onUpdateTournament, onAddEvent, onAddMultipleEvents, onEditEvent, onDeleteEvent, onResetTournament }: any) {
   const [loading, setLoading] = useState(false);
   const [newEvent, setNewEvent] = useState({ number: '', name: '', totalSeries: '' });
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editForm, setEditForm] = useState({ number: '', name: '', totalSeries: '' });
 
-  // State untuk form update PIN
   const [pinForm, setPinForm] = useState({ admin: '', announcer: '', callroom: '' });
   const [pinMessage, setPinMessage] = useState('');
 
-  // State untuk form update Informasi Lomba
   const [infoForm, setInfoForm] = useState({
     title: tournament.title || '',
     venue: tournament.venue || '',
@@ -937,7 +907,6 @@ function AdminPanel({ tournament, events, onUpdateTournament, onAddEvent, onAddM
   });
   const [infoMessage, setInfoMessage] = useState('');
 
-  // State untuk Modal Reset Lomba
   const [showResetModal, setShowResetModal] = useState(false);
   const [resetPin, setResetPin] = useState('');
   const [resetError, setResetError] = useState(false);
@@ -945,12 +914,11 @@ function AdminPanel({ tournament, events, onUpdateTournament, onAddEvent, onAddM
   const wrapAsync = async (fn: () => Promise<void>) => { setLoading(true); try { await fn(); } finally { setLoading(false); }};
   const handleAddEvent = (e: React.FormEvent) => { e.preventDefault(); if(!newEvent.number) return; wrapAsync(async () => { await onAddEvent({ number: parseInt(newEvent.number), name: newEvent.name, totalSeries: parseInt(newEvent.totalSeries) }); setNewEvent({ number: '', name: '', totalSeries: '' }); }); };
   
-  // Handler Upload Excel (Dynamic Loading untuk menghindari error bundler)
+  // Handler untuk mengimpor Excel dari Hy-Tek maupun template sederhana
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // Load library XLSX secara dinamis melalui CDN agar tidak memicu error build
     if (!(window as any).XLSX) {
       setLoading(true);
       try {
@@ -980,38 +948,63 @@ function AdminPanel({ tournament, events, onUpdateTournament, onAddEvent, onAddM
         const worksheet = workbook.Sheets[sheetName];
         const jsonData = XLSXLoader.utils.sheet_to_json(worksheet, { header: 1 }) as any[][];
 
-        const eventsToAdd = [];
-        // Mulai dari i=1 untuk melewati baris header
-        for (let i = 1; i < jsonData.length; i++) {
+        const eventsToAdd: any[] = [];
+        
+        // Membaca baris per baris untuk menemukan Nomor Acara, Nama Acara, dan Seri
+        for (let i = 0; i < jsonData.length; i++) {
           const row = jsonData[i];
-          if (row && row.length >= 3) {
-            const number = parseInt(row[0]);
-            const name = String(row[1] || '').trim();
-            const totalSeries = parseInt(row[2]);
+          if (!Array.isArray(row)) continue;
 
-            // Hanya tambahkan jika datanya valid
-            if (!isNaN(number) && name && !isNaN(totalSeries)) {
-              eventsToAdd.push({ number, name, totalSeries });
+          for (let c = 0; c < row.length - 2; c++) {
+            const rawNum = row[c];
+            if (rawNum === undefined || rawNum === null || String(rawNum).trim() === '') continue;
+            
+            const evtNum = Number(rawNum);
+            if (isNaN(evtNum) || !Number.isInteger(evtNum) || evtNum <= 0) continue;
+            
+            const name = String(row[c + 1] || '').trim();
+            // Validasi: Nama acara harus ada hurufnya
+            if (!name || name.toLowerCase().includes('event name') || !isNaN(Number(name))) continue;
+            
+            let heats = NaN;
+            // Pencarian nilai "Heats/Seri" di rentang kolom sebelah kanan nama
+            for (let offset = 2; offset <= 5 && (c + offset) < row.length; offset++) {
+                const rawHeat = row[c + offset];
+                if (rawHeat === undefined || rawHeat === null || String(rawHeat).trim() === '') continue;
+                const val = Number(rawHeat);
+                if (!isNaN(val) && Number.isInteger(val)) {
+                    heats = val;
+                    break;
+                }
+            }
+
+            // Hanya proses acara dengan minimal 1 Seri
+            if (!isNaN(heats) && heats >= 1) {
+                if (!eventsToAdd.find(e => e.number === evtNum)) {
+                    eventsToAdd.push({ number: evtNum, name: name, totalSeries: heats });
+                }
+                c += 2; // Lompat ke kolom yang belum diproses di baris ini
             }
           }
         }
 
         if (eventsToAdd.length > 0) {
+          // Urutkan acara berdasarkan Nomor Acara
+          eventsToAdd.sort((a, b) => a.number - b.number);
           await onAddMultipleEvents(eventsToAdd);
           alert(`Berhasil mengimpor ${eventsToAdd.length} acara dari Excel!`);
         } else {
-          alert("Tidak ditemukan data acara yang valid di file Excel.");
+          alert("Tidak ditemukan data acara yang valid atau tidak ada acara dengan seri minimal 1 di file Excel.");
         }
       } catch (error) {
         console.error("Error parsing Excel:", error);
         alert("Gagal membaca file Excel. Pastikan format file benar (.xlsx atau .xls).");
       } finally {
-        if (e.target) e.target.value = ''; // Reset input
+        if (e.target) e.target.value = '';
       }
     });
   };
 
-  // Handler untuk menyimpan Informasi Lomba
   const handleUpdateInfo = (e: React.FormEvent) => {
     e.preventDefault();
     wrapAsync(async () => {
@@ -1025,13 +1018,11 @@ function AdminPanel({ tournament, events, onUpdateTournament, onAddEvent, onAddM
     });
   };
 
-  // Handler untuk menyimpan PIN baru
   const handleUpdatePins = (e: React.FormEvent) => {
     e.preventDefault();
     const updatedPins = { ...tournament.pins };
     let changed = false;
     
-    // Hash PIN baru menggunakan fungsi simpleHash bawaan sistem
     if (pinForm.admin) { updatedPins.admin = simpleHash(pinForm.admin); changed = true; }
     if (pinForm.announcer) { updatedPins.announcer = simpleHash(pinForm.announcer); changed = true; }
     if (pinForm.callroom) { updatedPins.callroom = simpleHash(pinForm.callroom); changed = true; }
@@ -1092,7 +1083,6 @@ function AdminPanel({ tournament, events, onUpdateTournament, onAddEvent, onAddM
           </div>
         </div>
 
-        {/* PANEL INFORMASI LOMBA */}
         <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
           <h2 className="font-bold mb-4 flex gap-2"><Edit2 className="text-blue-600"/> Edit Informasi Lomba</h2>
           <form onSubmit={handleUpdateInfo} className="space-y-3">
@@ -1119,7 +1109,6 @@ function AdminPanel({ tournament, events, onUpdateTournament, onAddEvent, onAddM
           </form>
         </div>
 
-        {/* PANEL PENGATURAN PIN */}
         <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
           <h2 className="font-bold mb-4 flex gap-2"><Lock className="text-blue-600"/> Pengaturan PIN Akses</h2>
           <form onSubmit={handleUpdatePins} className="space-y-3">
@@ -1200,7 +1189,6 @@ function AdminPanel({ tournament, events, onUpdateTournament, onAddEvent, onAddM
           </div>
       </div>
 
-      {/* MODAL RESET LOMBA */}
       {showResetModal && (
         <div className="fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-[70] animate-in fade-in">
           <div className="bg-white rounded-2xl w-full max-w-sm p-8 relative zoom-in-95 duration-200 shadow-2xl">
