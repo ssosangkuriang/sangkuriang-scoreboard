@@ -991,6 +991,7 @@ function AdminPanel({ tournament, events, masterPinHash, onUpdateTournament, onA
   const [newEvent, setNewEvent] = useState({ number: '', name: '', totalSeries: '' });
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editForm, setEditForm] = useState({ number: '', name: '', totalSeries: '', resultUrl: '' });
+  const [linkModal, setLinkModal] = useState({ show: false, eventId: '', url: '', eventName: '' });
 
   const [pinForm, setPinForm] = useState({ admin: '', announcer: '', callroom: '' });
   const [pinMessage, setPinMessage] = useState('');
@@ -1254,12 +1255,20 @@ function AdminPanel({ tournament, events, masterPinHash, onUpdateTournament, onA
             </form>
             <div className="max-h-[500px] overflow-y-auto border rounded-lg">
                 <table className="w-full text-sm text-left">
-                <thead className="bg-slate-100 sticky top-0 border-b"><tr><th className="p-3">No</th><th className="p-3">Nama Acara</th><th className="p-3 text-center">Seri</th><th className="p-3"></th></tr></thead>
+                <thead className="bg-slate-100 sticky top-0 border-b">
+                  <tr>
+                    <th className="p-3">No</th>
+                    <th className="p-3">Nama Acara</th>
+                    <th className="p-3 text-center">Seri</th>
+                    <th className="p-3 text-center">Hasil</th>
+                    <th className="p-3 text-right">Aksi</th>
+                  </tr>
+                </thead>
                 <tbody>
                     {events.map((ev: any) => (
                     <tr key={ev.id} className="border-b last:border-0 hover:bg-slate-50">
                         {editingId === ev.id ? (
-                        <td colSpan={4} className="p-3 bg-blue-50/50">
+                        <td colSpan={5} className="p-3 bg-blue-50/50">
                             <div className="flex gap-2 mb-2">
                                 <input type="number" value={editForm.number} onChange={e => setEditForm({...editForm, number: e.target.value})} className="w-16 border rounded p-1.5 text-sm font-bold" />
                                 <input type="text" value={editForm.name} onChange={e => setEditForm({...editForm, name: e.target.value})} className="flex-1 border rounded p-1.5 text-sm" />
@@ -1276,25 +1285,61 @@ function AdminPanel({ tournament, events, masterPinHash, onUpdateTournament, onA
                         ) : (
                         <>
                             <td className="p-3 font-bold w-12 text-slate-700">{ev.number}</td>
-                            <td className="p-3 font-medium">
-                                {ev.name}
-                                {ev.resultUrl && <span className="ml-2 inline-block bg-blue-100 text-blue-700 text-[9px] px-2 py-0.5 rounded font-bold align-middle">HASIL TERSEDIA</span>}
-                            </td>
+                            <td className="p-3 font-medium">{ev.name}</td>
                             <td className="p-3 text-center w-16"><span className="bg-blue-50 text-blue-700 px-2 py-1 rounded font-bold">{ev.totalSeries}</span></td>
-                            <td className="p-3 text-right w-24 space-x-1">
-                            <button onClick={() => { setEditingId(ev.id); setEditForm({ number: ev.number, name: ev.name, totalSeries: ev.totalSeries, resultUrl: ev.resultUrl || '' }); }} className="text-slate-400 hover:text-blue-500 p-1.5 transition"><Edit2 size={16}/></button>
-                            <button onClick={() => { wrapAsync(async()=> await onDeleteEvent(ev.id)); }} className="text-slate-400 hover:text-red-500 p-1.5 transition"><Trash2 size={16}/></button>
+                            <td className="p-3 text-center">
+                              {ev.resultUrl ? (
+                                <span className="bg-emerald-100 text-emerald-700 px-2 py-1 rounded text-[10px] font-bold">ADA</span>
+                              ) : (
+                                <span className="bg-slate-100 text-slate-400 px-2 py-1 rounded text-[10px] font-bold">KOSONG</span>
+                              )}
+                            </td>
+                            <td className="p-3 text-right whitespace-nowrap space-x-1">
+                              <button onClick={() => setLinkModal({ show: true, eventId: ev.id, url: ev.resultUrl || '', eventName: `${ev.number}. ${ev.name}` })} className="bg-blue-50 text-blue-600 hover:bg-blue-100 p-1.5 rounded transition" title="Input/Edit Link Hasil"><FileText size={16}/></button>
+                              <button onClick={() => { setEditingId(ev.id); setEditForm({ number: ev.number, name: ev.name, totalSeries: ev.totalSeries, resultUrl: ev.resultUrl || '' }); }} className="text-slate-400 hover:text-blue-500 p-1.5 transition" title="Edit Acara"><Edit2 size={16}/></button>
+                              <button onClick={() => { wrapAsync(async()=> await onDeleteEvent(ev.id)); }} className="text-slate-400 hover:text-red-500 p-1.5 transition" title="Hapus Acara"><Trash2 size={16}/></button>
                             </td>
                         </>
                         )}
                     </tr>
                     ))}
-                    {events.length === 0 ? <tr><td colSpan={4} className="p-8 text-center text-slate-400 italic">Belum ada acara ditambahkan.</td></tr> : null}
+                    {events.length === 0 ? <tr><td colSpan={5} className="p-8 text-center text-slate-400 italic">Belum ada acara ditambahkan.</td></tr> : null}
                 </tbody>
                 </table>
             </div>
           </div>
       </div>
+
+      {/* MODAL INPUT LINK HASIL */}
+      {linkModal.show && (
+        <div className="fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-[80] animate-in fade-in">
+          <div className="bg-white rounded-2xl w-full max-w-md p-6 relative shadow-2xl">
+            <button onClick={() => setLinkModal({ show: false, eventId: '', url: '', eventName: '' })} className="absolute top-4 right-4 text-slate-400 hover:text-slate-800"><X size={20} /></button>
+            <h2 className="text-xl font-bold text-slate-800 mb-1 flex items-center gap-2"><FileText className="text-blue-600" /> Input Link Hasil</h2>
+            <p className="text-sm text-slate-500 mb-4">{linkModal.eventName}</p>
+            <div className="mb-4">
+              <label className="text-xs font-bold text-slate-600 mb-1 block">Google Drive / PDF URL</label>
+              <input 
+                autoFocus 
+                type="url" 
+                value={linkModal.url} 
+                onChange={e => setLinkModal({...linkModal, url: e.target.value})} 
+                className="w-full border border-slate-300 rounded-xl p-3 text-sm focus:ring-2 focus:ring-blue-500 outline-none" 
+                placeholder="https://..." 
+              />
+            </div>
+            <div className="flex gap-2 justify-end">
+              <button onClick={() => setLinkModal({ show: false, eventId: '', url: '', eventName: '' })} className="px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl transition">Batal</button>
+              <button onClick={() => { 
+                wrapAsync(async () => { 
+                  await onEditEvent(linkModal.eventId, { resultUrl: linkModal.url }); 
+                  setLinkModal({ show: false, eventId: '', url: '', eventName: '' }); 
+                }); 
+              }} className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-md transition">Simpan Link</button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {showResetModal && (
         <div className="fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-[70] animate-in fade-in">
