@@ -521,7 +521,7 @@ function GlobalLandingPage({ tournaments, onSelectTournament, onMasterLogin }: a
           <div className="mb-12">
             <h2 className="text-2xl font-bold mb-6 flex items-center gap-2 border-b border-slate-800 pb-2"><MonitorPlay className="text-red-500"/> Sedang Berlangsung</h2>
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {live.map((t:any) => <TourCard key={t.id} t={t} badge="Real-Time Reporting" badgeColor="bg-red-500/20 text-red-400 animate-pulse border border-red-500/30" onSelectTournament={onSelectTournament} />)}
+              {live.map((t:any) => <TourCard key={t.id} t={t} badge="Real-Time Report" badgeColor="bg-red-500/20 text-red-400 animate-pulse border border-red-500/30" onSelectTournament={onSelectTournament} />)}
             </div>
           </div>
         ) : null}
@@ -830,7 +830,7 @@ function LiveScoreboard({ tournament, dqs, events, isOnline, onBack, onLoginRequ
                 <div className="relative z-10 w-full max-w-lg mx-auto">
                     <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4 sm:gap-0">
                         <h2 className="text-slate-800 text-2xl md:text-3xl font-bold flex items-center gap-2"><MonitorPlay className="text-red-500" /> Sedang Berlomba</h2>
-                        <span className="bg-red-500 text-white text-xs px-3 py-1 rounded-full font-bold animate-pulse">Real-Time Reporting</span>
+                        <span className="bg-red-500 text-white text-xs px-3 py-1 rounded-full font-bold animate-pulse">Real-Time Report</span>
                     </div>
                     <div className="flex gap-4">
                         <div className="flex-1 bg-slate-50 border border-slate-200 rounded-2xl p-4 text-center shadow-inner"><div className="text-slate-400 text-sm uppercase mb-1">Acara</div><div className="text-slate-800 text-6xl md:text-8xl font-bold tracking-tighter">{ls.currentEventNumber || '-'}</div></div>
@@ -846,7 +846,6 @@ function LiveScoreboard({ tournament, dqs, events, isOnline, onBack, onLoginRequ
                 <AlertOctagon size={24} className="text-red-500" /> INFORMASI DISKUALIFIKASI
             </h3>
             <div className="bg-white rounded-xl shadow-md border border-slate-200 overflow-hidden flex flex-col">
-                {/* Header Tabel */}
                 <div className="flex bg-slate-800 text-white text-[10px] sm:text-sm font-bold uppercase py-3 md:py-4 px-3 md:px-6 items-center shrink-0">
                     <div className="w-12 sm:w-20 text-center sm:text-left shrink-0">Acara</div>
                     <div className="w-10 sm:w-20 text-center shrink-0">Seri</div>
@@ -854,7 +853,6 @@ function LiveScoreboard({ tournament, dqs, events, isOnline, onBack, onLoginRequ
                     <div className="flex-1 pl-3 sm:pl-6 text-left">Keterangan / Alasan</div>
                 </div>
                 
-                {/* Body Tabel Tanpa Internal Scroll */}
                 <div className="flex flex-col">
                     {currentDqs.length === 0 ? (
                         <div className="flex items-center justify-center text-slate-400 italic text-sm md:text-base py-12">Tidak ada informasi diskualifikasi saat ini.</div>
@@ -873,7 +871,6 @@ function LiveScoreboard({ tournament, dqs, events, isOnline, onBack, onLoginRequ
                         </div>
                     )}
 
-                    {/* Panel Paginasi / Tombol (Hanya Muncul Jika Lebih Dari 10 Data) */}
                     {totalPages > 1 && (
                         <div className="bg-slate-100 border-t border-slate-200 p-3 md:p-4 px-4 md:px-6 flex justify-between items-center shrink-0">
                             <button 
@@ -1290,7 +1287,10 @@ function AdminPanel({ tournament, events, masterPinHash, onUpdateTournament, onA
                         ) : (
                         <>
                             <td className="p-3 font-bold w-12 text-slate-700">{ev.number}</td>
-                            <td className="p-3 font-medium">{ev.name}</td>
+                            <td className="p-3 font-medium">
+                                {ev.name}
+                                {ev.resultUrl && <span className="ml-2 inline-block bg-blue-100 text-blue-700 text-[9px] px-2 py-0.5 rounded font-bold align-middle">HASIL TERSEDIA</span>}
+                            </td>
                             <td className="p-3 text-center w-16"><span className="bg-blue-50 text-blue-700 px-2 py-1 rounded font-bold">{ev.totalSeries}</span></td>
                             <td className="p-3 text-center">
                               {ev.resultUrl ? (
