@@ -51,7 +51,8 @@ import {
   addDoc, 
   updateDoc, 
   deleteDoc, 
-  onSnapshot
+  onSnapshot,
+  setDoc
 } from 'firebase/firestore';
 
 // --- GLOBAL TYPE DECLARATIONS ---
@@ -134,7 +135,7 @@ type Tournament = {
   createdAt: number;
 };
 
-type EventItem = { id: string; tournamentId: string; number: number; name: string; totalSeries: number; };
+type EventItem = { id: string; tournamentId: string; number: number; name: string; totalSeries: number; resultUrl?: string; };
 type DQRecord = { id: string; tournamentId: string; eventNumber: number; series: number; lane: number; reason: string; timestamp: string; createdAt: number; };
 
 // --- DEFAULT STATES ---
@@ -147,26 +148,23 @@ export default function App() {
   const [user, setUser] = useState<User | null>(null);
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   
-  // Navigation State
   const [viewMode, setViewMode] = useState<'global' | 'tournament' | 'master_dashboard'>('global');
   const [activeTournamentId, setActiveTournamentId] = useState<string | null>(null);
   const [role, setRole] = useState<'master' | 'admin' | 'announcer' | 'callroom' | 'public' | null>(null);
   
-  // Modal Login State
   const [showLoginModal, setShowLoginModal] = useState<boolean>(false);
   const [targetLoginRole, setTargetLoginRole] = useState<'master' | 'admin' | 'announcer' | 'callroom' | null>(null);
 
-  // Data State
   const [tournaments, setTournaments] = useState<Tournament[]>([]);
   const [allEvents, setAllEvents] = useState<EventItem[]>([]);
   const [allDqs, setAllDqs] = useState<DQRecord[]>([]);
+  
+  const [masterPinHash, setMasterPinHash] = useState(MASTER_PIN_HASH);
 
-  // Computed Active Data
   const activeTournament = tournaments.find(t => t.id === activeTournamentId);
   const activeEvents = allEvents.filter(e => e.tournamentId === activeTournamentId).sort((a, b) => a.number - b.number);
   const activeDqs = allDqs.filter(d => d.tournamentId === activeTournamentId).sort((a, b) => b.createdAt - a.createdAt);
 
-  // Wake Lock & Network
   useEffect(() => {
     let wakeLock: any = null;
     const requestWakeLock = async () => { try { if ('wakeLock' in navigator) wakeLock = await (navigator as any).wakeLock.request('screen'); } catch (err) { } };
@@ -188,7 +186,6 @@ export default function App() {
     };
   }, [viewMode]);
 
-  // Auth Init
   useEffect(() => {
     const initAuth = async () => {
       try {
@@ -212,7 +209,6 @@ export default function App() {
     return () => unsubscribe();
   }, []);
 
-  // Data Listeners
   useEffect(() => {
     if (!user) return; 
     
@@ -240,7 +236,17 @@ export default function App() {
       (error) => console.warn("Sinkronisasi DQs ditunda", error.message)
     );
 
-    return () => { unsubTournaments(); unsubEvents(); unsubDqs(); };
+    const unsubSettings = onSnapshot(
+      doc(db, 'artifacts', appId, 'public', 'data', 'settings', 'master'),
+      (docSnap) => {
+        if (docSnap.exists() && docSnap.data().pinHash) {
+          setMasterPinHash(docSnap.data().pinHash);
+        }
+      },
+      (error) => console.warn("Sinkronisasi Settings ditunda", error.message)
+    );
+
+    return () => { unsubTournaments(); unsubEvents(); unsubDqs(); unsubSettings(); };
   }, [user]);
 
   // --- ACTIONS ---
@@ -335,7 +341,7 @@ export default function App() {
   const processLogin = (roleName: string, pin: string) => {
     const hashed = simpleHash(pin);
     if (roleName === 'master') {
-      if (hashed === MASTER_PIN_HASH) {
+      if (hashed === masterPinHash) {
         setRole('master'); setViewMode('master_dashboard'); setShowLoginModal(false); return true;
       }
     } else if (activeTournament) {
@@ -375,6 +381,12 @@ export default function App() {
           onDelete={handleDeleteTournament}
           onLogout={() => { setRole(null); setViewMode('global'); }}
           onRestoreLegacy={handleRestoreLegacyData}
+          onChangeMasterPin={async (newPin: string) => {
+            if (user) {
+              await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'settings', 'master'), { pinHash: simpleHash(newPin) });
+              alert('PIN Superuser berhasil diperbarui!');
+            }
+          }}
         />
       )}
 
@@ -382,7 +394,7 @@ export default function App() {
         <div className="min-h-screen bg-slate-50 font-sans text-slate-900">
           {role === 'public' ? (
             <TournamentPublicView 
-              tournament={activeTournament} dqs={activeDqs} isOnline={isOnline}
+              tournament={activeTournament} dqs={activeDqs} events={activeEvents} isOnline={isOnline}
               onBack={() => { setActiveTournamentId(null); setViewMode('global'); }}
               onLoginRequest={() => { setRole(null); }}
             />
@@ -399,6 +411,7 @@ export default function App() {
                   {role === 'admin' && (
                     <AdminPanel 
                       tournament={activeTournament} events={activeEvents}
+                      masterPinHash={masterPinHash}
                       onUpdateTournament={(data: any) => handleUpdateTournament(activeTournament.id, data)}
                       onAddEvent={async (data: any) => { if(user) await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'events'), { ...data, tournamentId: activeTournament.id }); }}
                       onAddMultipleEvents={async (eventsData: any[]) => {
@@ -540,9 +553,12 @@ function GlobalLandingPage({ tournaments, onSelectTournament, onMasterLogin }: a
   );
 }
 
-function MasterDashboard({ tournaments, onCreate, onEdit, onDelete, onLogout, onRestoreLegacy }: any) {
+function MasterDashboard({ tournaments, onCreate, onEdit, onDelete, onLogout, onRestoreLegacy, onChangeMasterPin }: any) {
   const [showCreate, setShowCreate] = useState(false);
   const [form, setForm] = useState({ title: '', venue: '', eventDate: '', adminPin: '1234', announcerPin: '1234', callroomPin: '1234' });
+
+  const [showPinModal, setShowPinModal] = useState(false);
+  const [newMasterPin, setNewMasterPin] = useState('');
 
   const handleCreate = (e: any) => {
     e.preventDefault();
@@ -553,12 +569,24 @@ function MasterDashboard({ tournaments, onCreate, onEdit, onDelete, onLogout, on
     setShowCreate(false);
   };
 
+  const handleUpdatePin = (e: any) => {
+    e.preventDefault();
+    if (newMasterPin.trim().length > 0) {
+      onChangeMasterPin(newMasterPin);
+      setShowPinModal(false);
+      setNewMasterPin('');
+    }
+  };
+
   return (
     <div className="min-h-screen bg-slate-50 font-sans text-slate-900">
       <header className="bg-blue-900 text-white p-4 shadow-lg sticky top-0 z-50">
         <div className="max-w-6xl mx-auto flex justify-between items-center">
           <div className="font-bold text-xl flex items-center gap-2"><ShieldAlert className="text-blue-400"/> SUPERUSER MASTER</div>
-          <button onClick={onLogout} className="bg-blue-800 hover:bg-blue-700 px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2"><LogOut size={16}/> Logout</button>
+          <div className="flex gap-3">
+             <button onClick={() => setShowPinModal(true)} className="bg-blue-800 hover:bg-blue-700 px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2"><Lock size={16}/> Ubah PIN</button>
+             <button onClick={onLogout} className="bg-blue-800 hover:bg-blue-700 px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2"><LogOut size={16}/> Logout</button>
+          </div>
         </div>
       </header>
       
@@ -615,11 +643,25 @@ function MasterDashboard({ tournaments, onCreate, onEdit, onDelete, onLogout, on
           </table>
         </div>
       </main>
+
+      {showPinModal && (
+        <div className="fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-[70] animate-in fade-in">
+          <div className="bg-white rounded-2xl w-full max-w-sm p-8 relative zoom-in-95 duration-200 shadow-2xl">
+            <button type="button" onClick={() => {setShowPinModal(false); setNewMasterPin('');}} className="absolute top-4 right-4 text-slate-400 hover:text-slate-800"><X size={20} /></button>
+            <h2 className="text-xl font-bold text-center mb-3 text-slate-800 flex justify-center items-center gap-2"><Lock /> Ubah PIN Master</h2>
+            <p className="text-center text-slate-500 text-sm mb-6">Masukkan PIN baru untuk akses Superuser Master (Bawaan: 123456).</p>
+            <form onSubmit={handleUpdatePin}>
+              <input autoFocus type="password" value={newMasterPin} onChange={e=>setNewMasterPin(e.target.value)} className="w-full text-center text-3xl font-bold p-4 border rounded-xl mb-4 outline-none focus:ring-2 focus:ring-blue-500 bg-slate-50" placeholder="PIN BARU" required />
+              <button type="submit" className="w-full bg-blue-600 text-white py-3 rounded-xl font-bold hover:bg-blue-700 transition shadow-lg">Simpan PIN Baru</button>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
 
-function TournamentPublicView({ tournament, dqs, isOnline, onBack, onLoginRequest }: any) {
+function TournamentPublicView({ tournament, dqs, events, isOnline, onBack, onLoginRequest }: any) {
   const [timeLeft, setTimeLeft] = useState({ days: 0, hours: 0, minutes: 0, seconds: 0 });
   const [showPdf, setShowPdf] = useState(false);
 
@@ -646,7 +688,7 @@ function TournamentPublicView({ tournament, dqs, isOnline, onBack, onLoginReques
   }, [tournament.eventDate, tournament.status]);
 
   if (tournament.status === 'live') {
-    return <LiveScoreboard tournament={tournament} dqs={dqs} isOnline={isOnline} onBack={onBack} onLoginRequest={onLoginRequest} />;
+    return <LiveScoreboard tournament={tournament} dqs={dqs} events={events} isOnline={isOnline} onBack={onBack} onLoginRequest={onLoginRequest} />;
   }
 
   const validEventDate = new Date(tournament.eventDate);
@@ -729,13 +771,16 @@ function TournamentPublicView({ tournament, dqs, isOnline, onBack, onLoginReques
 }
 
 // 3A. LIVE SCOREBOARD (Split Screen)
-function LiveScoreboard({ tournament, dqs, isOnline, onBack, onLoginRequest }: any) {
+function LiveScoreboard({ tournament, dqs, events, isOnline, onBack, onLoginRequest }: any) {
   const ls = tournament.liveState || DEFAULT_LIVE_STATE;
   
   const [dqPage, setDqPage] = useState(1);
   const itemsPerPage = 10;
   const totalPages = Math.ceil(dqs.length / itemsPerPage) || 1;
   const currentDqs = dqs.slice((dqPage - 1) * itemsPerPage, dqPage * itemsPerPage);
+
+  const [showResultsList, setShowResultsList] = useState(false);
+  const [showPdfUrl, setShowPdfUrl] = useState<string | null>(null);
 
   useEffect(() => {
       if (dqPage > totalPages) setDqPage(1);
@@ -753,7 +798,8 @@ function LiveScoreboard({ tournament, dqs, isOnline, onBack, onLoginRequest }: a
             </div>
             <div className="flex items-center gap-3">
                 <span className={`text-[10px] flex items-center gap-1 ${isOnline ? 'text-emerald-400' : 'text-red-500'}`}>{isOnline ? <Wifi size={10} /> : <WifiOff size={10} />}</span>
-                <button onClick={onBack} className="text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 px-3 py-1.5 rounded-lg transition border border-slate-700 flex items-center gap-2"><ChevronLeft size={14} /> Beranda</button>
+                <button onClick={() => setShowResultsList(true)} className="text-xs bg-blue-600 hover:bg-blue-500 text-white px-3 py-1.5 rounded-lg transition shadow-md flex items-center gap-2 font-bold whitespace-nowrap"><FileText size={14} /> Hasil Acara</button>
+                <button onClick={onBack} className="text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 px-3 py-1.5 rounded-lg transition border border-slate-700 flex items-center gap-2"><ChevronLeft size={14} /> <span className="hidden sm:inline">Beranda</span></button>
                 <button onClick={onLoginRequest} className="text-slate-500 hover:text-white transition p-2"><Settings size={20} /></button>
             </div>
         </header>
@@ -800,29 +846,34 @@ function LiveScoreboard({ tournament, dqs, isOnline, onBack, onLoginRequest }: a
                 <AlertOctagon size={24} className="text-red-500" /> INFORMASI DISKUALIFIKASI TERKINI
             </h3>
             <div className="bg-white rounded-xl shadow-md border border-slate-200 overflow-hidden flex flex-col">
-                <div className="grid grid-cols-12 bg-slate-800 text-white text-[10px] sm:text-sm font-bold uppercase py-3 md:py-4 px-2 md:px-6 items-center">
-                    <div className="col-span-3 sm:col-span-2">No. Acara</div>
-                    <div className="col-span-2 text-center">Seri</div>
-                    <div className="col-span-2 text-center">Lintasan</div>
-                    <div className="col-span-5 sm:col-span-6">Keterangan / Alasan</div>
+                {/* Header Tabel */}
+                <div className="flex bg-slate-800 text-white text-[10px] sm:text-sm font-bold uppercase py-3 md:py-4 px-3 md:px-6 items-center shrink-0">
+                    <div className="w-12 sm:w-20 text-center sm:text-left shrink-0">Acara</div>
+                    <div className="w-10 sm:w-20 text-center shrink-0">Seri</div>
+                    <div className="w-10 sm:w-20 text-center shrink-0">Lin</div>
+                    <div className="flex-1 pl-3 sm:pl-6 text-left">Keterangan / Alasan</div>
                 </div>
                 
+                {/* Body Tabel Tanpa Internal Scroll */}
                 <div className="flex flex-col">
                     {currentDqs.length === 0 ? (
                         <div className="flex items-center justify-center text-slate-400 italic text-sm md:text-base py-12">Tidak ada informasi diskualifikasi saat ini.</div>
                     ) : (
                         <div className="flex flex-col">
                             {currentDqs.map((dq: any, idx: number) => (
-                                <div key={dq.id} className={`grid grid-cols-12 text-xs sm:text-base md:text-xl py-3 md:py-5 px-2 md:px-6 border-b border-slate-100 items-center ${idx % 2 === 0 ? 'bg-white' : 'bg-slate-50'}`}>
-                                    <div className="col-span-3 sm:col-span-2 font-bold text-slate-800">{dq.eventNumber}</div>
-                                    <div className="col-span-2 text-center text-slate-600 font-semibold">{dq.series}</div>
-                                    <div className="col-span-2 text-center"><span className="bg-slate-200 text-slate-700 px-2 md:px-4 py-1 md:py-1.5 rounded-lg font-mono font-bold">{dq.lane}</span></div>
-                                    <div className="col-span-5 sm:col-span-6 text-red-600 font-bold truncate pr-2">{dq.reason}</div>
+                                <div key={dq.id} className={`flex text-xs sm:text-base md:text-xl py-3 md:py-5 px-3 md:px-6 border-b border-slate-100 items-start sm:items-center ${idx % 2 === 0 ? 'bg-white' : 'bg-slate-50'}`}>
+                                    <div className="w-12 sm:w-20 font-bold text-slate-800 text-center sm:text-left shrink-0 pt-0.5 sm:pt-0">{dq.eventNumber}</div>
+                                    <div className="w-10 sm:w-20 text-center text-slate-600 font-semibold shrink-0 pt-0.5 sm:pt-0">{dq.series}</div>
+                                    <div className="w-10 sm:w-20 text-center shrink-0 pt-0.5 sm:pt-0">
+                                        <span className="bg-slate-200 text-slate-700 px-1.5 md:px-4 py-1 md:py-1.5 rounded-lg font-mono font-bold">{dq.lane}</span>
+                                    </div>
+                                    <div className="flex-1 pl-3 sm:pl-6 text-red-600 font-bold whitespace-normal break-words leading-snug">{dq.reason}</div>
                                 </div>
                             ))}
                         </div>
                     )}
 
+                    {/* Panel Paginasi / Tombol (Hanya Muncul Jika Lebih Dari 10 Data) */}
                     {totalPages > 1 && (
                         <div className="bg-slate-100 border-t border-slate-200 p-3 md:p-4 px-4 md:px-6 flex justify-between items-center shrink-0">
                             <button 
@@ -847,6 +898,55 @@ function LiveScoreboard({ tournament, dqs, isOnline, onBack, onLoginRequest }: a
         </div>
 
         <footer className="bg-slate-900 text-slate-500 text-center py-3 text-xs font-mono tracking-widest border-t border-slate-800 shrink-0 mt-auto">&copy; anak magang SSO 2026</footer>
+
+        {/* MODAL DAFTAR HASIL ACARA */}
+        {showResultsList && (
+          <div className="fixed inset-0 z-[80] bg-black/80 flex items-center justify-center p-4 animate-in fade-in">
+             <div className="bg-white rounded-2xl w-full max-w-2xl max-h-[80vh] flex flex-col relative shadow-2xl">
+                <div className="p-5 md:p-6 border-b border-slate-100 flex justify-between items-center shrink-0">
+                   <h2 className="text-lg md:text-xl font-bold text-slate-800 flex items-center gap-2"><FileText className="text-blue-600"/> Daftar Hasil Per Acara</h2>
+                   <button onClick={() => setShowResultsList(false)} className="text-slate-400 hover:text-red-500 transition"><X size={24}/></button>
+                </div>
+                <div className="p-0 overflow-y-auto flex-1">
+                   {events.length === 0 ? (
+                       <div className="p-8 text-center text-slate-500 italic">Belum ada data acara.</div>
+                   ) : (
+                       <table className="w-full text-left text-sm md:text-base">
+                          <thead className="bg-slate-50 sticky top-0 border-b border-slate-200">
+                             <tr><th className="p-4 font-bold text-slate-600">No</th><th className="p-4 font-bold text-slate-600">Acara</th><th className="p-4 font-bold text-slate-600 text-right">Aksi</th></tr>
+                          </thead>
+                          <tbody>
+                             {events.map((ev: any, idx: number) => (
+                                 <tr key={ev.id} className={`border-b border-slate-100 ${idx % 2 === 0 ? 'bg-white' : 'bg-slate-50'}`}>
+                                    <td className="p-4 font-bold text-slate-800 w-12">{ev.number}</td>
+                                    <td className="p-4 font-semibold text-slate-700">{ev.name}</td>
+                                    <td className="p-4 text-right w-32">
+                                       {ev.resultUrl ? (
+                                           <button onClick={() => setShowPdfUrl(ev.resultUrl)} className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-bold text-xs shadow-sm transition whitespace-nowrap">Lihat Hasil</button>
+                                       ) : (
+                                           <span className="text-xs text-slate-400 italic whitespace-nowrap">Belum tersedia</span>
+                                       )}
+                                    </td>
+                                 </tr>
+                             ))}
+                          </tbody>
+                       </table>
+                   )}
+                </div>
+             </div>
+          </div>
+        )}
+
+        {/* MODAL PDF VIEWER */}
+        {showPdfUrl && (
+          <div className="fixed inset-0 z-[90] bg-black/90 flex flex-col p-4 animate-in fade-in">
+              <div className="flex justify-between items-center mb-4 text-white">
+                  <h2 className="font-bold text-lg flex items-center gap-2"><FileText /> Detail Hasil Acara</h2>
+                  <button onClick={() => setShowPdfUrl(null)} className="p-2 bg-slate-800 rounded-full hover:bg-slate-700"><X /></button>
+              </div>
+              <iframe src={showPdfUrl} className="flex-1 w-full rounded-lg bg-white" title="Hasil Acara"></iframe>
+          </div>
+        )}
     </div>
   );
 }
@@ -891,11 +991,12 @@ function LoginModal({ targetRole, onClose, onLogin }: any) {
   );
 }
 
-function AdminPanel({ tournament, events, onUpdateTournament, onAddEvent, onAddMultipleEvents, onEditEvent, onDeleteEvent, onResetTournament }: any) {
+function AdminPanel({ tournament, events, masterPinHash, onUpdateTournament, onAddEvent, onAddMultipleEvents, onEditEvent, onDeleteEvent, onResetTournament }: any) {
   const [loading, setLoading] = useState(false);
   const [newEvent, setNewEvent] = useState({ number: '', name: '', totalSeries: '' });
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [editForm, setEditForm] = useState({ number: '', name: '', totalSeries: '' });
+  const [editForm, setEditForm] = useState({ number: '', name: '', totalSeries: '', resultUrl: '' });
+  const [linkModal, setLinkModal] = useState({ show: false, eventId: '', url: '', eventName: '' });
 
   const [pinForm, setPinForm] = useState({ admin: '', announcer: '', callroom: '' });
   const [pinMessage, setPinMessage] = useState('');
@@ -914,7 +1015,6 @@ function AdminPanel({ tournament, events, onUpdateTournament, onAddEvent, onAddM
   const wrapAsync = async (fn: () => Promise<void>) => { setLoading(true); try { await fn(); } finally { setLoading(false); }};
   const handleAddEvent = (e: React.FormEvent) => { e.preventDefault(); if(!newEvent.number) return; wrapAsync(async () => { await onAddEvent({ number: parseInt(newEvent.number), name: newEvent.name, totalSeries: parseInt(newEvent.totalSeries) }); setNewEvent({ number: '', name: '', totalSeries: '' }); }); };
   
-  // Handler untuk mengimpor Excel dari Hy-Tek maupun template sederhana
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -950,7 +1050,6 @@ function AdminPanel({ tournament, events, onUpdateTournament, onAddEvent, onAddM
 
         const eventsToAdd: any[] = [];
         
-        // Membaca baris per baris untuk menemukan Nomor Acara, Nama Acara, dan Seri
         for (let i = 0; i < jsonData.length; i++) {
           const row = jsonData[i];
           if (!Array.isArray(row)) continue;
@@ -960,10 +1059,8 @@ function AdminPanel({ tournament, events, onUpdateTournament, onAddEvent, onAddM
             if (rawNum === undefined || rawNum === null || String(rawNum).trim() === '') continue;
             
             const evtNum = Number(rawNum);
-            // Cek apakah ini Nomor Acara (integer positif)
             if (isNaN(evtNum) || !Number.isInteger(evtNum) || evtNum <= 0) continue;
             
-            // Cari kolom Nama Acara (teks pertama setelah nomor)
             let name = '';
             let nameCol = -1;
             for (let j = c + 1; j < row.length; j++) {
@@ -975,10 +1072,8 @@ function AdminPanel({ tournament, events, onUpdateTournament, onAddEvent, onAddM
               }
             }
 
-            // Validasi nama: tidak boleh kosong, dan tidak boleh angka murni
             if (!name || !isNaN(Number(name))) continue;
             
-            // Cari kolom Seri / Heats (angka pertama setelah nama)
             let heats = NaN;
             let heatsCol = -1;
             for (let k = nameCol + 1; k < row.length; k++) {
@@ -990,18 +1085,16 @@ function AdminPanel({ tournament, events, onUpdateTournament, onAddEvent, onAddM
               }
             }
 
-            // Validasi: Seri harus berupa angka, integer, dan >= 1
             if (!isNaN(heats) && Number.isInteger(heats) && heats >= 1) {
                 if (!eventsToAdd.find(e => e.number === evtNum)) {
                     eventsToAdd.push({ number: evtNum, name: name, totalSeries: heats });
                 }
-                c = heatsCol; // Lompat ke kolom ini agar tidak diproses ganda
+                c = heatsCol; 
             }
           }
         }
 
         if (eventsToAdd.length > 0) {
-          // Urutkan acara berdasarkan Nomor Acara
           eventsToAdd.sort((a, b) => a.number - b.number);
           await onAddMultipleEvents(eventsToAdd);
           alert(`Berhasil mengimpor ${eventsToAdd.length} acara dari Excel!`);
@@ -1167,39 +1260,91 @@ function AdminPanel({ tournament, events, onUpdateTournament, onAddEvent, onAddM
             </form>
             <div className="max-h-[500px] overflow-y-auto border rounded-lg">
                 <table className="w-full text-sm text-left">
-                <thead className="bg-slate-100 sticky top-0 border-b"><tr><th className="p-3">No</th><th className="p-3">Nama Acara</th><th className="p-3 text-center">Seri</th><th className="p-3"></th></tr></thead>
+                <thead className="bg-slate-100 sticky top-0 border-b">
+                  <tr>
+                    <th className="p-3">No</th>
+                    <th className="p-3">Nama Acara</th>
+                    <th className="p-3 text-center">Seri</th>
+                    <th className="p-3 text-center">Hasil</th>
+                    <th className="p-3 text-right">Aksi</th>
+                  </tr>
+                </thead>
                 <tbody>
                     {events.map((ev: any) => (
                     <tr key={ev.id} className="border-b last:border-0 hover:bg-slate-50">
                         {editingId === ev.id ? (
-                        <>
-                            <td className="p-2"><input type="number" value={editForm.number} onChange={e => setEditForm({...editForm, number: e.target.value})} className="w-full border rounded p-1" /></td>
-                            <td className="p-2"><input type="text" value={editForm.name} onChange={e => setEditForm({...editForm, name: e.target.value})} className="w-full border rounded p-1" /></td>
-                            <td className="p-2"><input type="number" value={editForm.totalSeries} onChange={e => setEditForm({...editForm, totalSeries: e.target.value})} className="w-full border rounded p-1" /></td>
-                            <td className="p-2 flex gap-2 justify-end">
-                                <button onClick={() => wrapAsync(async() => { await onEditEvent(ev.id, { number: parseInt(editForm.number), name: editForm.name, totalSeries: parseInt(editForm.totalSeries) }); setEditingId(null); })} className="bg-green-100 text-green-700 p-1.5 rounded hover:bg-green-200"><Save size={16}/></button>
-                                <button onClick={() => setEditingId(null)} className="bg-slate-200 text-slate-600 p-1.5 rounded hover:bg-slate-300"><X size={16}/></button>
-                            </td>
-                        </>
+                        <td colSpan={5} className="p-3 bg-blue-50/50">
+                            <div className="flex gap-2 mb-2">
+                                <input type="number" value={editForm.number} onChange={e => setEditForm({...editForm, number: e.target.value})} className="w-16 border rounded p-1.5 text-sm font-bold" />
+                                <input type="text" value={editForm.name} onChange={e => setEditForm({...editForm, name: e.target.value})} className="flex-1 border rounded p-1.5 text-sm" />
+                                <input type="number" value={editForm.totalSeries} onChange={e => setEditForm({...editForm, totalSeries: e.target.value})} className="w-16 border rounded p-1.5 text-sm text-center" />
+                            </div>
+                            <div className="flex gap-2 items-center">
+                                <input type="text" value={editForm.resultUrl} onChange={e => setEditForm({...editForm, resultUrl: e.target.value})} placeholder="Link Hasil Per Acara (Google Drive/PDF)" className="flex-1 border rounded p-1.5 text-xs bg-white" />
+                                <div className="flex gap-2 justify-end shrink-0">
+                                    <button onClick={() => wrapAsync(async() => { await onEditEvent(ev.id, { number: parseInt(editForm.number), name: editForm.name, totalSeries: parseInt(editForm.totalSeries), resultUrl: editForm.resultUrl }); setEditingId(null); })} className="bg-green-600 text-white px-3 py-1.5 rounded font-bold hover:bg-green-700 text-xs shadow-sm flex items-center gap-1"><Save size={14}/> SIMPAN</button>
+                                    <button onClick={() => setEditingId(null)} className="bg-slate-200 text-slate-600 px-3 py-1.5 rounded font-bold hover:bg-slate-300 text-xs shadow-sm flex items-center gap-1"><X size={14}/> BATAL</button>
+                                </div>
+                            </div>
+                        </td>
                         ) : (
                         <>
                             <td className="p-3 font-bold w-12 text-slate-700">{ev.number}</td>
                             <td className="p-3 font-medium">{ev.name}</td>
                             <td className="p-3 text-center w-16"><span className="bg-blue-50 text-blue-700 px-2 py-1 rounded font-bold">{ev.totalSeries}</span></td>
-                            <td className="p-3 text-right w-24 space-x-1">
-                            <button onClick={() => { setEditingId(ev.id); setEditForm({ number: ev.number, name: ev.name, totalSeries: ev.totalSeries }); }} className="text-slate-400 hover:text-blue-500 p-1"><Edit2 size={16}/></button>
-                            <button onClick={() => { wrapAsync(async()=> await onDeleteEvent(ev.id)); }} className="text-slate-400 hover:text-red-500 p-1"><Trash2 size={16}/></button>
+                            <td className="p-3 text-center">
+                              {ev.resultUrl ? (
+                                <span className="bg-emerald-100 text-emerald-700 px-2 py-1 rounded text-[10px] font-bold">ADA</span>
+                              ) : (
+                                <span className="bg-slate-100 text-slate-400 px-2 py-1 rounded text-[10px] font-bold">KOSONG</span>
+                              )}
+                            </td>
+                            <td className="p-3 text-right whitespace-nowrap space-x-1">
+                              <button onClick={() => setLinkModal({ show: true, eventId: ev.id, url: ev.resultUrl || '', eventName: `${ev.number}. ${ev.name}` })} className="bg-blue-50 text-blue-600 hover:bg-blue-100 p-1.5 rounded transition" title="Input/Edit Link Hasil"><FileText size={16}/></button>
+                              <button onClick={() => { setEditingId(ev.id); setEditForm({ number: ev.number, name: ev.name, totalSeries: ev.totalSeries, resultUrl: ev.resultUrl || '' }); }} className="text-slate-400 hover:text-blue-500 p-1.5 transition" title="Edit Acara"><Edit2 size={16}/></button>
+                              <button onClick={() => { wrapAsync(async()=> await onDeleteEvent(ev.id)); }} className="text-slate-400 hover:text-red-500 p-1.5 transition" title="Hapus Acara"><Trash2 size={16}/></button>
                             </td>
                         </>
                         )}
                     </tr>
                     ))}
-                    {events.length === 0 ? <tr><td colSpan={4} className="p-8 text-center text-slate-400 italic">Belum ada acara ditambahkan.</td></tr> : null}
+                    {events.length === 0 ? <tr><td colSpan={5} className="p-8 text-center text-slate-400 italic">Belum ada acara ditambahkan.</td></tr> : null}
                 </tbody>
                 </table>
             </div>
           </div>
       </div>
+
+      {/* MODAL INPUT LINK HASIL */}
+      {linkModal.show && (
+        <div className="fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-[80] animate-in fade-in">
+          <div className="bg-white rounded-2xl w-full max-w-md p-6 relative shadow-2xl">
+            <button onClick={() => setLinkModal({ show: false, eventId: '', url: '', eventName: '' })} className="absolute top-4 right-4 text-slate-400 hover:text-slate-800"><X size={20} /></button>
+            <h2 className="text-xl font-bold text-slate-800 mb-1 flex items-center gap-2"><FileText className="text-blue-600" /> Input Link Hasil</h2>
+            <p className="text-sm text-slate-500 mb-4">{linkModal.eventName}</p>
+            <div className="mb-4">
+              <label className="text-xs font-bold text-slate-600 mb-1 block">Google Drive / PDF URL</label>
+              <input 
+                autoFocus 
+                type="url" 
+                value={linkModal.url} 
+                onChange={e => setLinkModal({...linkModal, url: e.target.value})} 
+                className="w-full border border-slate-300 rounded-xl p-3 text-sm focus:ring-2 focus:ring-blue-500 outline-none" 
+                placeholder="https://..." 
+              />
+            </div>
+            <div className="flex gap-2 justify-end">
+              <button onClick={() => setLinkModal({ show: false, eventId: '', url: '', eventName: '' })} className="px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl transition">Batal</button>
+              <button onClick={() => { 
+                wrapAsync(async () => { 
+                  await onEditEvent(linkModal.eventId, { resultUrl: linkModal.url }); 
+                  setLinkModal({ show: false, eventId: '', url: '', eventName: '' }); 
+                }); 
+              }} className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-md transition">Simpan Link</button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {showResetModal && (
         <div className="fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-[70] animate-in fade-in">
@@ -1209,7 +1354,7 @@ function AdminPanel({ tournament, events, onUpdateTournament, onAddEvent, onAddM
             <p className="text-center text-slate-500 text-sm mb-6 leading-relaxed">Tindakan ini akan mengembalikan status lomba ke <b>"Akan Datang"</b> dan <b>menghapus seluruh riwayat diskualifikasi</b>. Masukkan PIN Superuser untuk konfirmasi.</p>
             <form onSubmit={(e) => {
               e.preventDefault();
-              if (simpleHash(resetPin) === MASTER_PIN_HASH) {
+              if (simpleHash(resetPin) === masterPinHash) {
                 wrapAsync(async () => {
                   await onResetTournament();
                   setShowResetModal(false);
