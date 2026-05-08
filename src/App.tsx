@@ -521,7 +521,7 @@ function GlobalLandingPage({ tournaments, onSelectTournament, onMasterLogin }: a
           <div className="mb-12">
             <h2 className="text-2xl font-bold mb-6 flex items-center gap-2 border-b border-slate-800 pb-2"><MonitorPlay className="text-red-500"/> Sedang Berlangsung</h2>
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {live.map((t:any) => <TourCard key={t.id} t={t} badge="LIVE NOW" badgeColor="bg-red-500/20 text-red-400 animate-pulse border border-red-500/30" onSelectTournament={onSelectTournament} />)}
+              {live.map((t:any) => <TourCard key={t.id} t={t} badge="Real-Time Reporting" badgeColor="bg-red-500/20 text-red-400 animate-pulse border border-red-500/30" onSelectTournament={onSelectTournament} />)}
             </div>
           </div>
         ) : null}
@@ -830,7 +830,7 @@ function LiveScoreboard({ tournament, dqs, events, isOnline, onBack, onLoginRequ
                 <div className="relative z-10 w-full max-w-lg mx-auto">
                     <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4 sm:gap-0">
                         <h2 className="text-slate-800 text-2xl md:text-3xl font-bold flex items-center gap-2"><MonitorPlay className="text-red-500" /> Sedang Berlomba</h2>
-                        <span className="bg-red-500 text-white text-xs px-3 py-1 rounded-full font-bold animate-pulse">LIVE</span>
+                        <span className="bg-red-500 text-white text-xs px-3 py-1 rounded-full font-bold animate-pulse">Real-Time Reporting</span>
                     </div>
                     <div className="flex gap-4">
                         <div className="flex-1 bg-slate-50 border border-slate-200 rounded-2xl p-4 text-center shadow-inner"><div className="text-slate-400 text-sm uppercase mb-1">Acara</div><div className="text-slate-800 text-6xl md:text-8xl font-bold tracking-tighter">{ls.currentEventNumber || '-'}</div></div>
@@ -843,7 +843,7 @@ function LiveScoreboard({ tournament, dqs, events, isOnline, onBack, onLoginRequ
         
         <div className="w-full max-w-7xl mx-auto p-4 md:p-8 flex-1 flex flex-col">
             <h3 className="text-slate-800 font-extrabold text-lg md:text-xl mb-4 flex items-center gap-2">
-                <AlertOctagon size={24} className="text-red-500" /> INFORMASI DISKUALIFIKASI TERKINI
+                <AlertOctagon size={24} className="text-red-500" /> INFORMASI DISKUALIFIKASI
             </h3>
             <div className="bg-white rounded-xl shadow-md border border-slate-200 overflow-hidden flex flex-col">
                 {/* Header Tabel */}
