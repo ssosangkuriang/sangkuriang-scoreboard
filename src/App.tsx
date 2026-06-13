@@ -719,7 +719,6 @@ function TournamentPublicView({ tournament, dqs, events, isOnline, onBack, onLog
     return <LiveScoreboard tournament={tournament} dqs={dqs} events={events} isOnline={isOnline} onBack={onBack} onLoginRequest={onLoginRequest} />;
   }
 
-  const validEventDate = new Date(tournament.eventDate);
   const isFinished = tournament.status === 'finished';
 
   return (
