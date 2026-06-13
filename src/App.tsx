@@ -95,6 +95,30 @@ const getWIBTime = () => {
   return new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' }) + ' WIB';
 };
 
+const formatDateRange = (startStr: string, endStr?: string) => {
+  if (!startStr) return '-';
+  const start = new Date(startStr);
+  if (isNaN(start.getTime())) return '-';
+  
+  const formatOpt: Intl.DateTimeFormatOptions = { day: 'numeric', month: 'long', year: 'numeric' };
+  const startFmt = start.toLocaleDateString('id-ID', formatOpt);
+  
+  if (!endStr || startStr.substring(0, 10) === endStr.substring(0, 10)) {
+    return startFmt;
+  }
+  
+  const end = new Date(endStr);
+  if (isNaN(end.getTime())) return startFmt;
+  
+  if (start.getMonth() === end.getMonth() && start.getFullYear() === end.getFullYear()) {
+    return `${start.getDate()} - ${end.toLocaleDateString('id-ID', formatOpt)}`;
+  }
+  if (start.getFullYear() === end.getFullYear()) {
+    return `${start.toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })} - ${end.toLocaleDateString('id-ID', formatOpt)}`;
+  }
+  return `${start.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })} - ${end.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}`;
+};
+
 const simpleHash = (str: string) => {
   let hash = 0; if (str.length === 0) return hash.toString();
   for (let i = 0; i < str.length; i++) {
@@ -128,7 +152,8 @@ type Tournament = {
   title: string;
   venue: string;
   eventDate: string; 
-  status: 'upcoming' | 'live' | 'finished';
+  endDate?: string;
+  status: 'upcoming' | 'live' | 'paused' | 'finished';
   resultUrl: string; 
   pins: { admin: string, announcer: string, callroom: string };
   liveState: LiveState;
@@ -499,12 +524,12 @@ const TourCard = ({ t, badge, badgeColor, onSelectTournament }: any) => (
       </div>
       <h3 className="text-xl font-bold mb-2 text-white group-hover:text-blue-400 transition">{t.title}</h3>
       <div className="text-sm text-slate-400 mb-2 flex items-center gap-2"><MapPin size={14}/> {t.venue}</div>
-      <div className="text-sm text-slate-400 flex items-center gap-2"><Calendar size={14}/> {new Date(t.eventDate).toLocaleDateString('id-ID', {day:'numeric', month:'long', year:'numeric'})}</div>
+      <div className="text-sm text-slate-400 flex items-center gap-2"><Calendar size={14}/> {formatDateRange(t.eventDate, t.endDate)}</div>
   </div>
 );
 
 function GlobalLandingPage({ tournaments, onSelectTournament, onMasterLogin }: any) {
-  const live = tournaments.filter((t: any) => t.status === 'live');
+  const activeTournaments = tournaments.filter((t: any) => t.status === 'live' || t.status === 'paused');
   const upcoming = tournaments.filter((t: any) => t.status === 'upcoming');
   const finished = tournaments.filter((t: any) => t.status === 'finished');
 
@@ -517,11 +542,11 @@ function GlobalLandingPage({ tournaments, onSelectTournament, onMasterLogin }: a
           <p className="text-slate-400 text-lg">Pilih kompetisi untuk melihat Live Scoreboard & Jadwal</p>
         </div>
 
-        {live.length > 0 ? (
+        {activeTournaments.length > 0 ? (
           <div className="mb-12">
             <h2 className="text-2xl font-bold mb-6 flex items-center gap-2 border-b border-slate-800 pb-2"><MonitorPlay className="text-red-500"/> Sedang Berlangsung</h2>
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {live.map((t:any) => <TourCard key={t.id} t={t} badge="Informasi Terkini" badgeColor="bg-red-500/20 text-red-400 animate-pulse border border-red-500/30" onSelectTournament={onSelectTournament} />)}
+              {activeTournaments.map((t:any) => <TourCard key={t.id} t={t} badge={t.status === 'paused' ? 'JEDA / ISTIRAHAT' : 'Real-Time Reporting'} badgeColor={t.status === 'paused' ? 'bg-yellow-500/20 text-yellow-500 border border-yellow-500/30' : 'bg-red-500/20 text-red-400 animate-pulse border border-red-500/30'} onSelectTournament={onSelectTournament} />)}
             </div>
           </div>
         ) : null}
@@ -555,7 +580,7 @@ function GlobalLandingPage({ tournaments, onSelectTournament, onMasterLogin }: a
 
 function MasterDashboard({ tournaments, onCreate, onEdit, onDelete, onLogout, onRestoreLegacy, onChangeMasterPin }: any) {
   const [showCreate, setShowCreate] = useState(false);
-  const [form, setForm] = useState({ title: '', venue: '', eventDate: '', adminPin: '1234', announcerPin: '1234', callroomPin: '1234' });
+  const [form, setForm] = useState({ title: '', venue: '', eventDate: '', endDate: '', adminPin: '1234', announcerPin: '1234', callroomPin: '1234' });
 
   const [showPinModal, setShowPinModal] = useState(false);
   const [newMasterPin, setNewMasterPin] = useState('');
@@ -563,7 +588,7 @@ function MasterDashboard({ tournaments, onCreate, onEdit, onDelete, onLogout, on
   const handleCreate = (e: any) => {
     e.preventDefault();
     onCreate({
-      title: form.title, venue: form.venue, eventDate: new Date(form.eventDate).toISOString(), resultUrl: '',
+      title: form.title, venue: form.venue, eventDate: new Date(form.eventDate).toISOString(), endDate: form.endDate ? new Date(form.endDate).toISOString() : new Date(form.eventDate).toISOString(), resultUrl: '',
       pins: { admin: simpleHash(form.adminPin), announcer: simpleHash(form.announcerPin), callroom: simpleHash(form.callroomPin) }
     });
     setShowCreate(false);
@@ -605,7 +630,10 @@ function MasterDashboard({ tournaments, onCreate, onEdit, onDelete, onLogout, on
                 <h3 className="font-bold text-blue-900 border-b pb-2">Informasi Umum</h3>
                 <div><label className="block text-xs font-bold text-slate-500 mb-1">Nama Kejuaraan</label><input required type="text" value={form.title} onChange={e=>setForm({...form, title: e.target.value})} className="w-full p-2 border rounded bg-slate-50" /></div>
                 <div><label className="block text-xs font-bold text-slate-500 mb-1">Lokasi / Venue</label><input required type="text" value={form.venue} onChange={e=>setForm({...form, venue: e.target.value})} className="w-full p-2 border rounded bg-slate-50" /></div>
-                <div><label className="block text-xs font-bold text-slate-500 mb-1">Tanggal Mulai</label><input required type="date" value={form.eventDate} onChange={e=>setForm({...form, eventDate: e.target.value})} className="w-full p-2 border rounded bg-slate-50" /></div>
+                <div className="grid grid-cols-2 gap-2">
+                  <div><label className="block text-xs font-bold text-slate-500 mb-1">Tanggal Mulai</label><input required type="date" value={form.eventDate} onChange={e=>setForm({...form, eventDate: e.target.value})} className="w-full p-2 border rounded bg-slate-50" /></div>
+                  <div><label className="block text-xs font-bold text-slate-500 mb-1">Tanggal Selesai</label><input required type="date" value={form.endDate} onChange={e=>setForm({...form, endDate: e.target.value})} className="w-full p-2 border rounded bg-slate-50" min={form.eventDate} /></div>
+                </div>
              </div>
              <div className="space-y-4">
                 <h3 className="font-bold text-blue-900 border-b pb-2">Pengaturan Akses (PIN)</h3>
@@ -628,10 +656,10 @@ function MasterDashboard({ tournaments, onCreate, onEdit, onDelete, onLogout, on
                 <tr key={t.id} className="border-b last:border-0 hover:bg-slate-50">
                   <td className="p-4">
                     <div className="font-bold text-blue-900 text-lg">{t.title}</div>
-                    <div className="text-sm text-slate-500">{new Date(t.eventDate).toLocaleDateString('id-ID')} | {t.venue}</div>
+                    <div className="text-sm text-slate-500">{formatDateRange(t.eventDate, t.endDate)} | {t.venue}</div>
                   </td>
                   <td className="p-4">
-                    <span className={`text-xs font-bold px-2 py-1 rounded-full uppercase ${t.status === 'live' ? 'bg-red-100 text-red-600' : t.status === 'finished' ? 'bg-blue-100 text-blue-600' : 'bg-yellow-100 text-yellow-600'}`}>{t.status}</span>
+                    <span className={`text-xs font-bold px-2 py-1 rounded-full uppercase ${t.status === 'live' ? 'bg-red-100 text-red-600' : t.status === 'finished' ? 'bg-blue-100 text-blue-600' : t.status === 'paused' ? 'bg-yellow-100 text-yellow-600' : 'bg-slate-100 text-slate-600'}`}>{t.status}</span>
                   </td>
                   <td className="p-4 text-right space-x-2">
                     <button onClick={() => onEdit(t.id)} className="bg-slate-800 text-white px-4 py-2 rounded font-bold text-sm hover:bg-slate-700 transition shadow">Kelola Event (Admin)</button>
@@ -728,8 +756,10 @@ function TournamentPublicView({ tournament, dqs, events, isOnline, onBack, onLog
             <div className="flex justify-center mb-6">
                 {isFinished ? (
                      <span className="bg-blue-500/20 text-blue-400 text-sm px-3 py-1 rounded-full font-bold flex items-center gap-2 border border-blue-500/30"><CheckCircle size={14} /> LOMBA TELAH SELESAI</span>
+                ) : tournament.status === 'paused' ? (
+                     <span className="bg-yellow-500/20 text-yellow-400 text-sm px-3 py-1 rounded-full font-bold flex items-center gap-2 border border-yellow-500/30"><Timer size={14}/> LOMBA SEDANG JEDA</span>
                 ) : (
-                     <span className="bg-yellow-500/20 text-yellow-400 text-sm px-3 py-1 rounded-full font-bold flex items-center gap-2 border border-yellow-500/30"><Timer size={14}/> AKAN DATANG</span>
+                     <span className="bg-slate-500/20 text-slate-300 text-sm px-3 py-1 rounded-full font-bold flex items-center gap-2 border border-slate-500/30"><Timer size={14}/> AKAN DATANG</span>
                 )}
             </div>
 
@@ -760,7 +790,7 @@ function TournamentPublicView({ tournament, dqs, events, isOnline, onBack, onLog
             ) : (
                 <div className="text-sm text-slate-500 border-t border-slate-700 pt-6">
                     Lomba dijadwalkan pada:<br/>
-                    <span className="text-white font-bold text-lg">{!isNaN(validEventDate.getTime()) ? validEventDate.toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }) : '-'}</span>
+                    <span className="text-white font-bold text-lg">{formatDateRange(tournament.eventDate, tournament.endDate)}</span>
                 </div>
             )}
         </div>
@@ -830,7 +860,7 @@ function LiveScoreboard({ tournament, dqs, events, isOnline, onBack, onLoginRequ
                 <div className="relative z-10 w-full max-w-lg mx-auto">
                     <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4 sm:gap-0">
                         <h2 className="text-slate-800 text-2xl md:text-3xl font-bold flex items-center gap-2"><MonitorPlay className="text-red-500" /> Sedang Berlomba</h2>
-                        <span className="bg-red-500 text-white text-xs px-3 py-1 rounded-full font-bold animate-pulse">REAL-TIME REPORT</span>
+                        <span className="bg-red-500 text-white text-xs px-3 py-1 rounded-full font-bold animate-pulse">LIVE</span>
                     </div>
                     <div className="flex gap-4">
                         <div className="flex-1 bg-slate-50 border border-slate-200 rounded-2xl p-4 text-center shadow-inner"><div className="text-slate-400 text-sm uppercase mb-1">Acara</div><div className="text-slate-800 text-6xl md:text-8xl font-bold tracking-tighter">{ls.currentEventNumber || '-'}</div></div>
@@ -843,7 +873,7 @@ function LiveScoreboard({ tournament, dqs, events, isOnline, onBack, onLoginRequ
         
         <div className="w-full max-w-7xl mx-auto p-4 md:p-8 flex-1 flex flex-col">
             <h3 className="text-slate-800 font-extrabold text-lg md:text-xl mb-4 flex items-center gap-2">
-                <AlertOctagon size={24} className="text-red-500" /> INFORMASI DISKUALIFIKASI
+                <AlertOctagon size={24} className="text-red-500" /> INFORMASI DISKUALIFIKASI TERKINI
             </h3>
             <div className="bg-white rounded-xl shadow-md border border-slate-200 overflow-hidden flex flex-col">
                 <div className="flex bg-slate-800 text-white text-[10px] sm:text-sm font-bold uppercase py-3 md:py-4 px-3 md:px-6 items-center shrink-0">
@@ -1001,7 +1031,8 @@ function AdminPanel({ tournament, events, masterPinHash, onUpdateTournament, onA
   const [infoForm, setInfoForm] = useState({
     title: tournament.title || '',
     venue: tournament.venue || '',
-    eventDate: tournament.eventDate ? tournament.eventDate.substring(0, 10) : ''
+    eventDate: tournament.eventDate ? tournament.eventDate.substring(0, 10) : '',
+    endDate: tournament.endDate ? tournament.endDate.substring(0, 10) : (tournament.eventDate ? tournament.eventDate.substring(0, 10) : '')
   });
   const [infoMessage, setInfoMessage] = useState('');
 
@@ -1113,7 +1144,8 @@ function AdminPanel({ tournament, events, masterPinHash, onUpdateTournament, onA
       await onUpdateTournament({
         title: infoForm.title,
         venue: infoForm.venue,
-        eventDate: new Date(infoForm.eventDate).toISOString()
+        eventDate: new Date(infoForm.eventDate).toISOString(),
+        endDate: new Date(infoForm.endDate).toISOString()
       });
       setInfoMessage('Informasi berhasil disimpan!');
       setTimeout(() => setInfoMessage(''), 4000);
@@ -1152,8 +1184,8 @@ function AdminPanel({ tournament, events, masterPinHash, onUpdateTournament, onA
           
           <div className="mb-6 p-4 rounded-lg bg-slate-50 border border-slate-100">
               <div className="text-xs text-slate-500 uppercase font-bold tracking-wider mb-1">Status Saat Ini</div>
-              <div className={`text-lg font-black uppercase ${isLive ? 'text-red-500' : tournament.status === 'finished' ? 'text-blue-600' : 'text-yellow-600'}`}>
-                  {isLive ? 'SEDANG BERLANGSUNG (LIVE)' : tournament.status === 'finished' ? 'SELESAI' : 'AKAN DATANG'}
+              <div className={`text-lg font-black uppercase ${isLive ? 'text-red-500' : tournament.status === 'finished' ? 'text-blue-600' : tournament.status === 'paused' ? 'text-yellow-600' : 'text-slate-600'}`}>
+                  {isLive ? 'SEDANG BERLANGSUNG (LIVE)' : tournament.status === 'finished' ? 'SELESAI' : tournament.status === 'paused' ? 'SEDANG JEDA / ISTIRAHAT' : 'AKAN DATANG'}
               </div>
           </div>
 
@@ -1164,9 +1196,24 @@ function AdminPanel({ tournament, events, masterPinHash, onUpdateTournament, onA
                  </button>
              )}
              {isLive && (
-                 <button onClick={() => { wrapAsync(async() => await onUpdateTournament({ status: 'finished' })); }} className="w-full py-4 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-bold flex justify-center items-center gap-2 transition shadow-lg">
-                     <CheckCircle size={20}/> SELESAIKAN PERTANDINGAN
-                 </button>
+                 <>
+                   <button onClick={() => { wrapAsync(async() => await onUpdateTournament({ status: 'paused' })); }} className="w-full py-3 bg-yellow-500 hover:bg-yellow-400 text-white rounded-xl font-bold flex justify-center items-center gap-2 transition shadow-md">
+                       <Timer size={18}/> JEDA LOMBA (ISTIRAHAT)
+                   </button>
+                   <button onClick={() => { wrapAsync(async() => await onUpdateTournament({ status: 'finished' })); }} className="w-full py-3 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-bold flex justify-center items-center gap-2 transition shadow-md">
+                       <CheckCircle size={18}/> SELESAIKAN PERTANDINGAN
+                   </button>
+                 </>
+             )}
+             {tournament.status === 'paused' && (
+                 <>
+                   <button onClick={() => { wrapAsync(async() => await onUpdateTournament({ status: 'live' })); }} className="w-full py-4 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl font-bold flex justify-center items-center gap-2 transition shadow-lg">
+                       <Play size={20}/> LANJUTKAN LOMBA
+                   </button>
+                   <button onClick={() => { wrapAsync(async() => await onUpdateTournament({ status: 'finished' })); }} className="w-full py-3 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-bold flex justify-center items-center gap-2 transition shadow-md mt-2">
+                       <CheckCircle size={18}/> SELESAIKAN PERTANDINGAN
+                   </button>
+                 </>
              )}
              
              <div className="pt-4 border-t border-slate-100 mt-6">
@@ -1196,9 +1243,15 @@ function AdminPanel({ tournament, events, masterPinHash, onUpdateTournament, onA
               <label className="text-xs text-slate-500 font-bold mb-1 block">Lokasi / Venue</label>
               <input required type="text" value={infoForm.venue} onChange={(e) => setInfoForm({...infoForm, venue: e.target.value})} className="w-full p-2 border rounded text-sm bg-slate-50 focus:bg-white transition-colors" />
             </div>
-            <div>
-              <label className="text-xs text-slate-500 font-bold mb-1 block">Tanggal Mulai</label>
-              <input required type="date" value={infoForm.eventDate} onChange={(e) => setInfoForm({...infoForm, eventDate: e.target.value})} className="w-full p-2 border rounded text-sm bg-slate-50 focus:bg-white transition-colors" />
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <label className="text-xs text-slate-500 font-bold mb-1 block">Tanggal Mulai</label>
+                <input required type="date" value={infoForm.eventDate} onChange={(e) => setInfoForm({...infoForm, eventDate: e.target.value})} className="w-full p-2 border rounded text-sm bg-slate-50 focus:bg-white transition-colors" />
+              </div>
+              <div>
+                <label className="text-xs text-slate-500 font-bold mb-1 block">Tanggal Selesai</label>
+                <input required type="date" value={infoForm.endDate} onChange={(e) => setInfoForm({...infoForm, endDate: e.target.value})} className="w-full p-2 border rounded text-sm bg-slate-50 focus:bg-white transition-colors" min={infoForm.eventDate} />
+              </div>
             </div>
             
             {infoMessage && <div className="text-xs font-bold text-emerald-700 bg-emerald-50 border border-emerald-100 p-2 rounded-lg text-center animate-in fade-in">{infoMessage}</div>}
