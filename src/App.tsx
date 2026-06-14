@@ -305,10 +305,16 @@ export default function App() {
   };
 
   const updateLiveState = async (newState: Partial<LiveState>) => {
-    if (!user || !activeTournamentId || !activeTournament) return;
-    await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'tournaments', activeTournamentId), {
-      liveState: { ...activeTournament.liveState, ...newState }
+    if (!user || !activeTournamentId) return;
+    
+    // FIX BUG: "Data Collision" antara perangkat Announcer dan Call Room
+    // Kita gunakan dot notation dari Firebase agar update tidak menimpa state satu sama lain.
+    const updatePayload: Record<string, any> = {};
+    Object.entries(newState).forEach(([key, value]) => {
+      updatePayload[`liveState.${key}`] = value;
     });
+
+    await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'tournaments', activeTournamentId), updatePayload);
   };
 
   const handleRestoreLegacyData = async () => {
