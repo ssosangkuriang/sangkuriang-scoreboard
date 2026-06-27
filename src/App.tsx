@@ -718,6 +718,22 @@ function TournamentPublicView({ tournament, dqs, events, isOnline, onBack, onLog
   const [showResultsList, setShowResultsList] = useState(false);
   const [showPdfUrl, setShowPdfUrl] = useState<string | null>(null);
 
+  // State untuk navigasi antar hasil acara
+  const eventsWithResults = events.filter((ev: any) => ev.resultUrl);
+  const currentResultIndex = eventsWithResults.findIndex((ev: any) => ev.resultUrl === showPdfUrl);
+
+  const handleNextResult = () => {
+    if (currentResultIndex < eventsWithResults.length - 1) {
+      setShowPdfUrl(eventsWithResults[currentResultIndex + 1].resultUrl);
+    }
+  };
+
+  const handlePrevResult = () => {
+    if (currentResultIndex > 0) {
+      setShowPdfUrl(eventsWithResults[currentResultIndex - 1].resultUrl);
+    }
+  };
+
   useEffect(() => {
     if (tournament.status === 'live' || tournament.status === 'finished') return;
     
@@ -883,14 +899,46 @@ function TournamentPublicView({ tournament, dqs, events, isOnline, onBack, onLog
           </div>
         )}
 
-        {/* MODAL PDF VIEWER */}
+        {/* MODAL PDF VIEWER DENGAN NAVIGASI */}
         {showPdfUrl && (
           <div className="fixed inset-0 z-[90] bg-black/90 flex flex-col p-4 animate-in fade-in">
               <div className="flex justify-between items-center mb-4 text-white">
-                  <h2 className="font-bold text-lg flex items-center gap-2"><FileText /> Detail Hasil Acara</h2>
-                  <button onClick={() => setShowPdfUrl(null)} className="p-2 bg-slate-800 rounded-full hover:bg-slate-700"><X /></button>
+                  <div className="flex flex-col">
+                    <h2 className="font-bold text-lg flex items-center gap-2"><FileText /> Detail Hasil Acara</h2>
+                    {currentResultIndex !== -1 && (
+                      <span className="text-blue-300 text-sm font-semibold truncate max-w-[250px] md:max-w-md">
+                        {eventsWithResults[currentResultIndex].number}. {eventsWithResults[currentResultIndex].name}
+                      </span>
+                    )}
+                  </div>
+                  <button onClick={() => setShowPdfUrl(null)} className="p-2 bg-slate-800 rounded-full hover:bg-slate-700 shrink-0"><X /></button>
               </div>
-              <iframe src={showPdfUrl} className="flex-1 w-full rounded-lg bg-white" title="Hasil Acara"></iframe>
+              
+              <div className="flex-1 w-full relative flex items-center">
+                  {/* Tombol Previous */}
+                  {currentResultIndex > 0 && (
+                    <button 
+                      onClick={handlePrevResult}
+                      className="absolute left-2 z-10 bg-slate-800/80 hover:bg-blue-600 text-white p-3 rounded-full shadow-lg transition-colors backdrop-blur-sm"
+                      title="Acara Sebelumnya"
+                    >
+                      <ChevronLeft size={24} />
+                    </button>
+                  )}
+
+                  <iframe src={showPdfUrl} className="w-full h-full rounded-lg bg-white" title="Hasil Acara"></iframe>
+
+                  {/* Tombol Next */}
+                  {currentResultIndex !== -1 && currentResultIndex < eventsWithResults.length - 1 && (
+                    <button 
+                      onClick={handleNextResult}
+                      className="absolute right-2 z-10 bg-slate-800/80 hover:bg-blue-600 text-white p-3 rounded-full shadow-lg transition-colors backdrop-blur-sm"
+                      title="Acara Selanjutnya"
+                    >
+                      <ChevronRight size={24} />
+                    </button>
+                  )}
+              </div>
           </div>
         )}
     </div>
@@ -908,6 +956,22 @@ function LiveScoreboard({ tournament, dqs, events, isOnline, onBack, onLoginRequ
 
   const [showResultsList, setShowResultsList] = useState(false);
   const [showPdfUrl, setShowPdfUrl] = useState<string | null>(null);
+
+  // State untuk navigasi antar hasil acara
+  const eventsWithResults = events.filter((ev: any) => ev.resultUrl);
+  const currentResultIndex = eventsWithResults.findIndex((ev: any) => ev.resultUrl === showPdfUrl);
+
+  const handleNextResult = () => {
+    if (currentResultIndex < eventsWithResults.length - 1) {
+      setShowPdfUrl(eventsWithResults[currentResultIndex + 1].resultUrl);
+    }
+  };
+
+  const handlePrevResult = () => {
+    if (currentResultIndex > 0) {
+      setShowPdfUrl(eventsWithResults[currentResultIndex - 1].resultUrl);
+    }
+  };
 
   useEffect(() => {
       if (dqPage > totalPages) setDqPage(1);
@@ -1061,14 +1125,46 @@ function LiveScoreboard({ tournament, dqs, events, isOnline, onBack, onLoginRequ
           </div>
         )}
 
-        {/* MODAL PDF VIEWER */}
+        {/* MODAL PDF VIEWER DENGAN NAVIGASI */}
         {showPdfUrl && (
           <div className="fixed inset-0 z-[90] bg-black/90 flex flex-col p-4 animate-in fade-in">
               <div className="flex justify-between items-center mb-4 text-white">
-                  <h2 className="font-bold text-lg flex items-center gap-2"><FileText /> Detail Hasil Acara</h2>
-                  <button onClick={() => setShowPdfUrl(null)} className="p-2 bg-slate-800 rounded-full hover:bg-slate-700"><X /></button>
+                  <div className="flex flex-col">
+                    <h2 className="font-bold text-lg flex items-center gap-2"><FileText /> Detail Hasil Acara</h2>
+                    {currentResultIndex !== -1 && (
+                      <span className="text-blue-300 text-sm font-semibold truncate max-w-[250px] md:max-w-md">
+                        {eventsWithResults[currentResultIndex].number}. {eventsWithResults[currentResultIndex].name}
+                      </span>
+                    )}
+                  </div>
+                  <button onClick={() => setShowPdfUrl(null)} className="p-2 bg-slate-800 rounded-full hover:bg-slate-700 shrink-0"><X /></button>
               </div>
-              <iframe src={showPdfUrl} className="flex-1 w-full rounded-lg bg-white" title="Hasil Acara"></iframe>
+              
+              <div className="flex-1 w-full relative flex items-center">
+                  {/* Tombol Previous */}
+                  {currentResultIndex > 0 && (
+                    <button 
+                      onClick={handlePrevResult}
+                      className="absolute left-2 z-10 bg-slate-800/80 hover:bg-blue-600 text-white p-3 rounded-full shadow-lg transition-colors backdrop-blur-sm"
+                      title="Acara Sebelumnya"
+                    >
+                      <ChevronLeft size={24} />
+                    </button>
+                  )}
+
+                  <iframe src={showPdfUrl} className="w-full h-full rounded-lg bg-white" title="Hasil Acara"></iframe>
+
+                  {/* Tombol Next */}
+                  {currentResultIndex !== -1 && currentResultIndex < eventsWithResults.length - 1 && (
+                    <button 
+                      onClick={handleNextResult}
+                      className="absolute right-2 z-10 bg-slate-800/80 hover:bg-blue-600 text-white p-3 rounded-full shadow-lg transition-colors backdrop-blur-sm"
+                      title="Acara Selanjutnya"
+                    >
+                      <ChevronRight size={24} />
+                    </button>
+                  )}
+              </div>
           </div>
         )}
     </div>
