@@ -145,6 +145,7 @@ type LiveState = {
   callRoomSeries: number;
   lastUpdate: string; 
   callRoomLastUpdate: string; 
+  pauseUntil?: string | null; // Untuk menyimpan deadline waktu jeda
 };
 
 type Tournament = {
@@ -307,8 +308,6 @@ export default function App() {
   const updateLiveState = async (newState: Partial<LiveState>) => {
     if (!user || !activeTournamentId) return;
     
-    // FIX BUG: "Data Collision" antara perangkat Announcer dan Call Room
-    // Kita gunakan dot notation dari Firebase agar update tidak menimpa state satu sama lain.
     const updatePayload: Record<string, any> = {};
     Object.entries(newState).forEach(([key, value]) => {
       updatePayload[`liveState.${key}`] = value;
@@ -698,12 +697,25 @@ function MasterDashboard({ tournaments, onCreate, onEdit, onDelete, onLogout, on
 function TournamentPublicView({ tournament, dqs, events, isOnline, onBack, onLoginRequest }: any) {
   const [timeLeft, setTimeLeft] = useState({ days: 0, hours: 0, minutes: 0, seconds: 0 });
   const [showPdf, setShowPdf] = useState(false);
+  const [showResultsList, setShowResultsList] = useState(false);
+  const [showPdfUrl, setShowPdfUrl] = useState<string | null>(null);
 
   useEffect(() => {
-    if (tournament.status !== 'upcoming') return;
+    if (tournament.status === 'live' || tournament.status === 'finished') return;
+    
     const timer = setInterval(() => {
       const now = new Date().getTime();
-      const targetDate = new Date(tournament.eventDate);
+      
+      // Jika status Jeda dan Admin menyetel waktu pauseUntil, gunakan waktu itu. 
+      // Jika Upcoming, gunakan eventDate.
+      let targetDateStr = tournament.status === 'paused' ? tournament.liveState?.pauseUntil : tournament.eventDate;
+      
+      if (!targetDateStr) {
+        setTimeLeft({ days: 0, hours: 0, minutes: 0, seconds: 0 });
+        return;
+      }
+
+      const targetDate = new Date(targetDateStr);
       const target = isNaN(targetDate.getTime()) ? now : targetDate.getTime();
       const distance = target - now;
 
@@ -719,7 +731,7 @@ function TournamentPublicView({ tournament, dqs, events, isOnline, onBack, onLog
       }
     }, 1000);
     return () => clearInterval(timer);
-  }, [tournament.eventDate, tournament.status]);
+  }, [tournament.eventDate, tournament.status, tournament.liveState?.pauseUntil]);
 
   if (tournament.status === 'live') {
     return <LiveScoreboard tournament={tournament} dqs={dqs} events={events} isOnline={isOnline} onBack={onBack} onLoginRequest={onLoginRequest} />;
@@ -729,6 +741,7 @@ function TournamentPublicView({ tournament, dqs, events, isOnline, onBack, onLog
 
   return (
     <div className="min-h-screen bg-slate-900 text-white font-sans flex flex-col relative overflow-hidden">
+      {/* POP-UP HASIL PDF KESELURUHAN (Hanya Untuk Status Selesai) */}
       {showPdf && tournament.resultUrl ? (
           <div className="fixed inset-0 z-[100] bg-black/90 flex flex-col p-4 animate-in fade-in">
               <div className="flex justify-between items-center mb-4 text-white">
@@ -751,6 +764,14 @@ function TournamentPublicView({ tournament, dqs, events, isOnline, onBack, onLog
           </div>
           <div className="flex items-center gap-3">
               <span className={`text-[10px] flex items-center gap-1 ${isOnline ? 'text-emerald-400' : 'text-red-500'}`}>{isOnline ? <Wifi size={10} /> : <WifiOff size={10} />}</span>
+              
+              {/* TOMBOL HASIL ACARA (Muncul di Header saat Jeda atau Selesai) */}
+              {(tournament.status === 'paused' || isFinished) && (
+                <button onClick={() => setShowResultsList(true)} className="text-xs bg-blue-600 hover:bg-blue-500 text-white px-3 py-1.5 rounded-lg transition shadow-md flex items-center gap-2 font-bold whitespace-nowrap">
+                  <FileText size={14} /> <span className="hidden sm:inline">Hasil Acara</span>
+                </button>
+              )}
+
               <button onClick={onBack} className="text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 px-3 py-1.5 rounded-lg transition border border-slate-700 flex items-center gap-2"><ChevronLeft size={14} /> Beranda</button>
               <button onClick={onLoginRequest} className="text-slate-500 hover:text-white transition p-2"><Settings size={20} /></button>
           </div>
@@ -794,13 +815,66 @@ function TournamentPublicView({ tournament, dqs, events, isOnline, onBack, onLog
                  )
             ) : (
                 <div className="text-sm text-slate-500 border-t border-slate-700 pt-6">
-                    Lomba dijadwalkan pada:<br/>
-                    <span className="text-white font-bold text-lg">{formatDateRange(tournament.eventDate, tournament.endDate)}</span>
+                    {tournament.status === 'paused' ? 'Akan dilanjutkan pada:' : 'Lomba dijadwalkan pada:'}<br/>
+                    <span className="text-white font-bold text-lg">
+                        {tournament.status === 'paused' && tournament.liveState?.pauseUntil 
+                            ? new Date(tournament.liveState.pauseUntil).toLocaleString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' }) + ' WIB'
+                            : formatDateRange(tournament.eventDate, tournament.endDate)}
+                    </span>
                 </div>
             )}
         </div>
       </div>
       <footer className="bg-slate-950 text-slate-600 py-4 text-center text-xs border-t border-slate-800 z-10 shrink-0">&copy; anak magang SSO 2026</footer>
+
+      {/* MODAL DAFTAR HASIL ACARA */}
+      {showResultsList && (
+          <div className="fixed inset-0 z-[80] bg-black/80 flex items-center justify-center p-4 animate-in fade-in">
+             <div className="bg-white rounded-2xl w-full max-w-2xl max-h-[80vh] flex flex-col relative shadow-2xl">
+                <div className="p-5 md:p-6 border-b border-slate-100 flex justify-between items-center shrink-0">
+                   <h2 className="text-lg md:text-xl font-bold text-slate-800 flex items-center gap-2"><FileText className="text-blue-600"/> Daftar Hasil Per Acara</h2>
+                   <button onClick={() => setShowResultsList(false)} className="text-slate-400 hover:text-red-500 transition"><X size={24}/></button>
+                </div>
+                <div className="p-0 overflow-y-auto flex-1">
+                   {events.length === 0 ? (
+                       <div className="p-8 text-center text-slate-500 italic">Belum ada data acara.</div>
+                   ) : (
+                       <table className="w-full text-left text-sm md:text-base">
+                          <thead className="bg-slate-50 sticky top-0 border-b border-slate-200">
+                             <tr><th className="p-4 font-bold text-slate-600">No</th><th className="p-4 font-bold text-slate-600">Acara</th><th className="p-4 font-bold text-slate-600 text-right">Aksi</th></tr>
+                          </thead>
+                          <tbody>
+                             {events.map((ev: any, idx: number) => (
+                                 <tr key={ev.id} className={`border-b border-slate-100 ${idx % 2 === 0 ? 'bg-white' : 'bg-slate-50'}`}>
+                                    <td className="p-4 font-bold text-slate-800 w-12">{ev.number}</td>
+                                    <td className="p-4 font-semibold text-slate-700">{ev.name}</td>
+                                    <td className="p-4 text-right w-32">
+                                       {ev.resultUrl ? (
+                                           <button onClick={() => setShowPdfUrl(ev.resultUrl)} className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-bold text-xs shadow-sm transition whitespace-nowrap">Lihat Hasil</button>
+                                       ) : (
+                                           <span className="text-xs text-slate-400 italic whitespace-nowrap">Belum tersedia</span>
+                                       )}
+                                    </td>
+                                 </tr>
+                             ))}
+                          </tbody>
+                       </table>
+                   )}
+                </div>
+             </div>
+          </div>
+        )}
+
+        {/* MODAL PDF VIEWER */}
+        {showPdfUrl && (
+          <div className="fixed inset-0 z-[90] bg-black/90 flex flex-col p-4 animate-in fade-in">
+              <div className="flex justify-between items-center mb-4 text-white">
+                  <h2 className="font-bold text-lg flex items-center gap-2"><FileText /> Detail Hasil Acara</h2>
+                  <button onClick={() => setShowPdfUrl(null)} className="p-2 bg-slate-800 rounded-full hover:bg-slate-700"><X /></button>
+              </div>
+              <iframe src={showPdfUrl} className="flex-1 w-full rounded-lg bg-white" title="Hasil Acara"></iframe>
+          </div>
+        )}
     </div>
   );
 }
@@ -1045,6 +1119,10 @@ function AdminPanel({ tournament, events, masterPinHash, onUpdateTournament, onA
   const [resetPin, setResetPin] = useState('');
   const [resetError, setResetError] = useState(false);
 
+  // Modal Jeda Lomba
+  const [showPauseModal, setShowPauseModal] = useState(false);
+  const [pauseResumeTime, setPauseResumeTime] = useState('');
+
   const wrapAsync = async (fn: () => Promise<void>) => { setLoading(true); try { await fn(); } finally { setLoading(false); }};
   const handleAddEvent = (e: React.FormEvent) => { e.preventDefault(); if(!newEvent.number) return; wrapAsync(async () => { await onAddEvent({ number: parseInt(newEvent.number), name: newEvent.name, totalSeries: parseInt(newEvent.totalSeries) }); setNewEvent({ number: '', name: '', totalSeries: '' }); }); };
   
@@ -1176,6 +1254,20 @@ function AdminPanel({ tournament, events, masterPinHash, onUpdateTournament, onA
     }
   };
 
+  const handlePauseSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    wrapAsync(async () => {
+      // Menyiasati TypeScript untuk memungkinkan update properti bertingkat (dot notation)
+      const payload: any = { status: 'paused' };
+      if (pauseResumeTime) {
+        payload['liveState.pauseUntil'] = new Date(pauseResumeTime).toISOString();
+      }
+      await onUpdateTournament(payload);
+      setShowPauseModal(false);
+      setPauseResumeTime('');
+    });
+  };
+
   const isUpcoming = tournament.status === 'upcoming';
   const isLive = tournament.status === 'live';
 
@@ -1202,7 +1294,7 @@ function AdminPanel({ tournament, events, masterPinHash, onUpdateTournament, onA
              )}
              {isLive && (
                  <>
-                   <button onClick={() => { wrapAsync(async() => await onUpdateTournament({ status: 'paused' })); }} className="w-full py-3 bg-yellow-500 hover:bg-yellow-400 text-white rounded-xl font-bold flex justify-center items-center gap-2 transition shadow-md">
+                   <button onClick={() => setShowPauseModal(true)} className="w-full py-3 bg-yellow-500 hover:bg-yellow-400 text-white rounded-xl font-bold flex justify-center items-center gap-2 transition shadow-md">
                        <Timer size={18}/> JEDA LOMBA (ISTIRAHAT)
                    </button>
                    <button onClick={() => { wrapAsync(async() => await onUpdateTournament({ status: 'finished' })); }} className="w-full py-3 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-bold flex justify-center items-center gap-2 transition shadow-md">
@@ -1400,6 +1492,22 @@ function AdminPanel({ tournament, events, masterPinHash, onUpdateTournament, onA
                 }); 
               }} className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-md transition">Simpan Link</button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL SETTING JEDA LOMBA */}
+      {showPauseModal && (
+        <div className="fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-[70] animate-in fade-in">
+          <div className="bg-white rounded-2xl w-full max-w-sm p-8 relative shadow-2xl">
+            <button onClick={() => setShowPauseModal(false)} className="absolute top-4 right-4 text-slate-400 hover:text-slate-800"><X size={20} /></button>
+            <h2 className="text-xl font-bold mb-2 flex items-center gap-2 text-yellow-600"><Timer /> Atur Waktu Jeda</h2>
+            <p className="text-sm text-slate-500 mb-6 leading-relaxed">Pilih waktu kapan perlombaan ini akan dilanjutkan. Ini akan memunculkan hitung mundur bagi penonton di beranda.</p>
+            <form onSubmit={handlePauseSubmit}>
+              <label className="text-xs font-bold text-slate-600 mb-1 block">Waktu Dilanjutkan</label>
+              <input type="datetime-local" value={pauseResumeTime} onChange={e => setPauseResumeTime(e.target.value)} className="w-full p-4 border rounded-xl mb-6 outline-none focus:ring-2 focus:ring-yellow-500 bg-slate-50" required />
+              <button type="submit" className="w-full bg-yellow-500 text-white py-3 rounded-xl font-bold hover:bg-yellow-600 transition shadow-lg">Jeda Lomba Sekarang</button>
+            </form>
           </div>
         </div>
       )}
