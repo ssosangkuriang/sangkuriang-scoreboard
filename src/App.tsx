@@ -589,6 +589,7 @@ function MasterDashboard({ tournaments, onCreate, onEdit, onDelete, onLogout, on
 
   const [showPinModal, setShowPinModal] = useState(false);
   const [newMasterPin, setNewMasterPin] = useState('');
+  const [deleteId, setDeleteId] = useState<string | null>(null);
 
   const handleCreate = (e: any) => {
     e.preventDefault();
@@ -668,7 +669,7 @@ function MasterDashboard({ tournaments, onCreate, onEdit, onDelete, onLogout, on
                   </td>
                   <td className="p-4 text-right space-x-2">
                     <button onClick={() => onEdit(t.id)} className="bg-slate-800 text-white px-4 py-2 rounded font-bold text-sm hover:bg-slate-700 transition shadow">Kelola Event (Admin)</button>
-                    <button onClick={() => onDelete(t.id)} className="bg-red-50 text-red-500 hover:bg-red-100 px-3 py-2 rounded transition"><Trash2 size={16}/></button>
+                    <button onClick={() => setDeleteId(t.id)} className="bg-red-50 text-red-500 hover:bg-red-100 px-3 py-2 rounded transition"><Trash2 size={16}/></button>
                   </td>
                 </tr>
               ))}
@@ -687,6 +688,23 @@ function MasterDashboard({ tournaments, onCreate, onEdit, onDelete, onLogout, on
               <input autoFocus type="password" value={newMasterPin} onChange={e=>setNewMasterPin(e.target.value)} className="w-full text-center text-3xl font-bold p-4 border rounded-xl mb-4 outline-none focus:ring-2 focus:ring-blue-500 bg-slate-50" placeholder="PIN BARU" required />
               <button type="submit" className="w-full bg-blue-600 text-white py-3 rounded-xl font-bold hover:bg-blue-700 transition shadow-lg">Simpan PIN Baru</button>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL KONFIRMASI HAPUS LOMBA */}
+      {deleteId && (
+        <div className="fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-[70] animate-in fade-in">
+          <div className="bg-white rounded-2xl w-full max-w-sm p-8 relative shadow-2xl text-center">
+            <h2 className="text-xl font-bold mb-2 flex items-center justify-center gap-2 text-red-600"><Trash2 /> Hapus Lomba?</h2>
+            <p className="text-sm text-slate-500 mb-6 leading-relaxed">Tindakan ini permanen dan tidak dapat dibatalkan. Seluruh data acara dan diskualifikasi pada lomba ini akan ikut terhapus.</p>
+            <div className="flex gap-3">
+              <button onClick={() => setDeleteId(null)} className="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 py-3 rounded-xl font-bold transition">Batal</button>
+              <button onClick={() => {
+                onDelete(deleteId);
+                setDeleteId(null);
+              }} className="flex-1 bg-red-600 text-white py-3 rounded-xl font-bold hover:bg-red-700 transition shadow-lg">Ya, Hapus</button>
+            </div>
           </div>
         </div>
       )}
@@ -1119,9 +1137,10 @@ function AdminPanel({ tournament, events, masterPinHash, onUpdateTournament, onA
   const [resetPin, setResetPin] = useState('');
   const [resetError, setResetError] = useState(false);
 
-  // Modal Jeda Lomba
+  // Modal Jeda & Selesai
   const [showPauseModal, setShowPauseModal] = useState(false);
   const [pauseResumeTime, setPauseResumeTime] = useState('');
+  const [showFinishConfirm, setShowFinishConfirm] = useState(false);
 
   const wrapAsync = async (fn: () => Promise<void>) => { setLoading(true); try { await fn(); } finally { setLoading(false); }};
   const handleAddEvent = (e: React.FormEvent) => { e.preventDefault(); if(!newEvent.number) return; wrapAsync(async () => { await onAddEvent({ number: parseInt(newEvent.number), name: newEvent.name, totalSeries: parseInt(newEvent.totalSeries) }); setNewEvent({ number: '', name: '', totalSeries: '' }); }); };
@@ -1297,7 +1316,7 @@ function AdminPanel({ tournament, events, masterPinHash, onUpdateTournament, onA
                    <button onClick={() => setShowPauseModal(true)} className="w-full py-3 bg-yellow-500 hover:bg-yellow-400 text-white rounded-xl font-bold flex justify-center items-center gap-2 transition shadow-md">
                        <Timer size={18}/> JEDA LOMBA (ISTIRAHAT)
                    </button>
-                   <button onClick={() => { wrapAsync(async() => await onUpdateTournament({ status: 'finished' })); }} className="w-full py-3 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-bold flex justify-center items-center gap-2 transition shadow-md">
+                   <button onClick={() => setShowFinishConfirm(true)} className="w-full py-3 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-bold flex justify-center items-center gap-2 transition shadow-md">
                        <CheckCircle size={18}/> SELESAIKAN PERTANDINGAN
                    </button>
                  </>
@@ -1307,10 +1326,15 @@ function AdminPanel({ tournament, events, masterPinHash, onUpdateTournament, onA
                    <button onClick={() => { wrapAsync(async() => await onUpdateTournament({ status: 'live' })); }} className="w-full py-4 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl font-bold flex justify-center items-center gap-2 transition shadow-lg">
                        <Play size={20}/> LANJUTKAN LOMBA
                    </button>
-                   <button onClick={() => { wrapAsync(async() => await onUpdateTournament({ status: 'finished' })); }} className="w-full py-3 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-bold flex justify-center items-center gap-2 transition shadow-md mt-2">
+                   <button onClick={() => setShowFinishConfirm(true)} className="w-full py-3 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-bold flex justify-center items-center gap-2 transition shadow-md mt-2">
                        <CheckCircle size={18}/> SELESAIKAN PERTANDINGAN
                    </button>
                  </>
+             )}
+             {tournament.status === 'finished' && (
+                 <button onClick={() => { wrapAsync(async() => await onUpdateTournament({ status: 'live' })); }} className="w-full py-4 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl font-bold flex justify-center items-center gap-2 transition shadow-lg">
+                     <Play size={20}/> BUKA KEMBALI LOMBA (LIVE)
+                 </button>
              )}
              
              <div className="pt-4 border-t border-slate-100 mt-6">
@@ -1536,6 +1560,25 @@ function AdminPanel({ tournament, events, masterPinHash, onUpdateTournament, onA
               {resetError && <p className="text-red-500 text-center mb-4 text-sm font-bold">PIN Superuser Salah!</p>}
               <button type="submit" className="w-full bg-red-600 text-white py-3 rounded-xl font-bold hover:bg-red-700 transition shadow-lg">Konfirmasi Reset Lomba</button>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL KONFIRMASI SELESAI */}
+      {showFinishConfirm && (
+        <div className="fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-[70] animate-in fade-in">
+          <div className="bg-white rounded-2xl w-full max-w-sm p-8 relative shadow-2xl text-center">
+            <h2 className="text-xl font-bold mb-2 flex items-center justify-center gap-2 text-blue-600"><CheckCircle /> Selesaikan Lomba?</h2>
+            <p className="text-sm text-slate-500 mb-6 leading-relaxed">Penonton di beranda akan melihat halaman hasil lomba secara penuh. Jika ini tidak disengaja, Anda dapat membuka kembali (Live) lomba ini nanti lewat menu kontrol.</p>
+            <div className="flex gap-3">
+              <button onClick={() => setShowFinishConfirm(false)} className="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 py-3 rounded-xl font-bold transition">Batal</button>
+              <button onClick={() => {
+                wrapAsync(async () => {
+                  await onUpdateTournament({ status: 'finished' });
+                  setShowFinishConfirm(false);
+                });
+              }} className="flex-1 bg-blue-600 text-white py-3 rounded-xl font-bold hover:bg-blue-700 transition shadow-lg">Selesaikan</button>
+            </div>
           </div>
         </div>
       )}
