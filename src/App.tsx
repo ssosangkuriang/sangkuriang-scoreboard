@@ -759,14 +759,23 @@ const Header = ({ role, title, venue, onHome, onLogout, isOnline, lang, setLang,
   );
 };
 
-const LogoBar = ({ onMasterLogin, lang, setLang, t }: any) => (
+const LogoBar = ({ onMasterLogin, lang, setLang, t }: any) => {
+  const currentTime = useLiveClock();
+
+  return (
   <nav className="border-b border-white/10 bg-slate-900/80 backdrop-blur-md sticky top-0 z-50 p-3 sm:p-4">
     <div className="max-w-6xl mx-auto flex justify-between items-center">
       <div className="flex items-center gap-2 sm:gap-3">
           <img src="/sangkuriang%201.png" alt="Logo" className="h-8 sm:h-10 w-auto object-contain" onError={(e:any) => e.target.style.display='none'} />
-          <div className="font-bold text-lg sm:text-xl leading-tight text-white">
+          <div className="font-bold text-lg sm:text-xl leading-tight text-white flex flex-col justify-center">
             <div className="truncate">SANGKURIANG</div>
-            <div className="text-blue-400 text-[10px] sm:text-sm tracking-widest truncate">SWIM ORGANIZER</div>
+            <div className="flex items-center gap-2 mt-0.5 sm:mt-0">
+               <span className="text-blue-400 text-[10px] sm:text-sm tracking-widest truncate hidden sm:block">SWIM ORGANIZER</span>
+               <div className="flex sm:hidden items-center gap-1.5 text-[10px] font-mono text-slate-400 bg-slate-800/50 px-1.5 py-0.5 rounded border border-slate-700/50">
+                   <Clock size={10} className="text-blue-400"/>
+                   <span>{currentTime.toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' })}</span>
+               </div>
+            </div>
           </div>
       </div>
       <div className="flex items-center gap-2 sm:gap-3">
@@ -779,14 +788,15 @@ const LogoBar = ({ onMasterLogin, lang, setLang, t }: any) => (
         </button>
 
         {onMasterLogin && (
-          <button onClick={onMasterLogin} className="text-[10px] sm:text-xs text-slate-400 hover:text-white flex gap-1 items-center transition bg-slate-800 px-3 py-1.5 sm:py-1.5 rounded-xl sm:rounded-full border border-slate-700 h-8 sm:h-auto">
+          <button onClick={onMasterLogin} className="text-[10px] sm:text-xs text-slate-400 hover:text-white flex gap-1 items-center transition bg-slate-800 w-8 h-8 sm:w-auto sm:h-auto justify-center sm:px-3 sm:py-1.5 rounded-xl sm:rounded-full border border-slate-700">
             <ShieldAlert size={14}/> <span className="hidden sm:inline">{t[lang].role_master}</span>
           </button>
         )}
       </div>
     </div>
   </nav>
-);
+  );
+};
 
 const TourCard = ({ tour, badge, badgeColor, onSelectTournament }: any) => (
   <div onClick={() => onSelectTournament(tour.id)} className="bg-slate-800/80 backdrop-blur border border-slate-700 p-6 rounded-2xl shadow-xl hover:border-blue-500 transition-colors cursor-pointer group text-left">
