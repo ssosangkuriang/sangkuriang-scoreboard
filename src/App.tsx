@@ -767,12 +767,12 @@ const LogoBar = ({ onMasterLogin, lang, setLang, t }: any) => {
     <div className="max-w-6xl mx-auto flex justify-between items-center">
       <div className="flex items-center gap-2 sm:gap-3">
           <img src="/sangkuriang%201.png" alt="Logo" className="h-8 sm:h-10 w-auto object-contain" onError={(e:any) => e.target.style.display='none'} />
-          <div className="font-bold text-lg sm:text-xl leading-tight text-white flex flex-col justify-center">
-            <div className="truncate">SANGKURIANG</div>
-            <div className="flex items-center gap-2 mt-0.5 sm:mt-0">
-               <span className="text-blue-400 text-[10px] sm:text-sm tracking-widest truncate hidden sm:block">SWIM ORGANIZER</span>
-               <div className="flex sm:hidden items-center gap-1.5 text-[10px] font-mono text-slate-400 bg-slate-800/50 px-1.5 py-0.5 rounded border border-slate-700/50">
-                   <Clock size={10} className="text-blue-400"/>
+          <div className="font-bold leading-tight text-white flex flex-col justify-center min-w-0">
+            <div className="text-sm sm:text-xl truncate uppercase tracking-wide">SANGKURIANG</div>
+            <div className="flex items-center gap-1.5 sm:gap-2 mt-0.5">
+               <span className="text-blue-400 text-[8px] sm:text-sm tracking-widest truncate">SWIM ORGANIZER</span>
+               <div className="flex sm:hidden items-center gap-1 text-[8px] font-mono text-slate-400 bg-slate-800/50 px-1.5 py-0.5 rounded border border-slate-700/50">
+                   <Clock size={8} className="text-blue-400"/>
                    <span>{currentTime.toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' })}</span>
                </div>
             </div>
@@ -1069,16 +1069,13 @@ function TournamentPublicView({ tournament, dqs, events, isOnline, onBack, onLog
               <img src="/sangkuriang%201.png" alt="Logo" className="h-8 sm:h-10 w-auto object-contain" onError={(e:any) => e.target.style.display='none'} />
               <div className="flex flex-col justify-center min-w-0">
                   <h1 className="font-extrabold text-sm sm:text-lg leading-tight sm:leading-none tracking-wide uppercase truncate">Sangkuriang</h1>
-                  
-                  {/* Jam Mobile di bawah judul */}
-                  <div className="flex items-center gap-2 mt-0.5 sm:hidden">
-                       <span className="text-[10px] text-blue-400 font-bold tracking-[0.2em] uppercase hidden sm:block">Swim Organizer</span>
-                       <div className="flex items-center gap-1.5 text-[10px] font-mono text-slate-400 bg-slate-800/50 px-1.5 py-0.5 rounded border border-slate-700/50">
-                           <Clock size={10} className="text-blue-400"/>
+                  <div className="flex items-center gap-1.5 sm:gap-2 mt-0.5">
+                       <span className="text-[8px] sm:text-[10px] text-blue-400 font-bold tracking-[0.2em] uppercase truncate">Swim Organizer</span>
+                       <div className="flex sm:hidden items-center gap-1 text-[8px] font-mono text-slate-400 bg-slate-800/50 px-1.5 py-0.5 rounded border border-slate-700/50">
+                           <Clock size={8} className="text-blue-400"/>
                            <span>{currentTime.toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' })}</span>
                        </div>
                   </div>
-                  <p className="text-[10px] text-blue-400 font-bold tracking-[0.2em] uppercase hidden sm:block">Swim Organizer</p>
               </div>
           </div>
 
@@ -1278,20 +1275,17 @@ function LiveScoreboard({ tournament, dqs, events, isOnline, onBack, onLoginRequ
     <div className="min-h-screen bg-slate-50 flex flex-col relative">
         <header className="bg-slate-900 text-white shrink-0 flex items-center justify-between px-3 sm:px-6 border-b border-slate-800 shadow-xl z-50 py-3 sm:py-0 sm:h-16">
             <div className="flex items-center gap-2 sm:gap-4 truncate w-full sm:w-auto pr-2">
-                <img src="/sangkuriang%201.png" alt="Logo" className="hidden sm:block h-10 w-auto object-contain" onError={(e:any) => e.target.style.display='none'} />
+                <img src="/sangkuriang%201.png" alt="Logo" className="hidden sm:block h-8 sm:h-10 w-auto object-contain" onError={(e:any) => e.target.style.display='none'} />
                 <div className="flex flex-col justify-center min-w-0">
                     <h1 className="font-extrabold text-sm sm:text-lg leading-tight sm:leading-none tracking-wide uppercase truncate">{tournament.title}</h1>
                     
                     {/* Jam Real-time di HP ada di bawah judul */}
-                    <div className="flex items-center gap-2 mt-0.5 sm:hidden">
-                       <span className="text-[10px] text-blue-400 font-bold tracking-[0.2em] uppercase hidden sm:block">Swim Organizer</span>
-                       <div className="flex items-center gap-1.5 text-[10px] font-mono text-slate-400 bg-slate-800/50 px-1.5 py-0.5 rounded border border-slate-700/50">
-                           <Clock size={10} className="text-blue-400"/>
+                    <div className="flex items-center gap-1.5 mt-0.5 sm:hidden">
+                       <div className="flex items-center gap-1 text-[8px] font-mono text-slate-400 bg-slate-800/50 px-1.5 py-0.5 rounded border border-slate-700/50">
+                           <Clock size={8} className="text-blue-400"/>
                            <span>{currentTime.toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' })}</span>
                        </div>
                     </div>
-
-                    <p className="text-[10px] text-blue-400 font-bold tracking-[0.2em] uppercase hidden sm:block">Swim Organizer</p>
                 </div>
             </div>
 
