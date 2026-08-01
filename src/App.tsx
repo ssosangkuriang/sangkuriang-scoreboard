@@ -74,7 +74,9 @@ const fallbackConfig = {
 
 let firebaseConfig = fallbackConfig;
 try {
+  // @ts-ignore
   if (typeof __firebase_config !== 'undefined' && __firebase_config) {
+    // @ts-ignore
     firebaseConfig = typeof __firebase_config === 'string' ? JSON.parse(__firebase_config) : __firebase_config;
   }
 } catch (e) {
@@ -151,7 +153,7 @@ const t = {
     btn_home: "Beranda",
     btn_logout: "Keluar",
     btn_results: "Hasil Acara",
-    btn_results_full: "Hasil Lengkap",
+    btn_results_full: "Lihat Hasil Keseluruhan",
     btn_back: "Kembali",
     call_room: "Pemanggilan",
     call_room_sub: "Call Room",
@@ -205,16 +207,16 @@ const t = {
     btn_home: "Home",
     btn_logout: "Logout",
     btn_results: "Results",
-    btn_results_full: "Full Results",
+    btn_results_full: "View Full Results",
     btn_back: "Back",
     call_room: "Call Room",
-    call_room_sub: "Marshalling Area",
+    call_room_sub: "", // Dikosongkan agar tidak ganda
     last_update: "Last Update",
     event: "Event",
     series: "Heat",
     lane: "Lane",
     waiting: "Waiting...",
-    racing_now: "Racing Now",
+    racing_now: "LIVE", // Diubah menjadi LIVE
     dq_info: "LATEST DISQUALIFICATION INFO",
     dq_reason: "Reason / Infraction",
     dq_empty: "No disqualification information at this time.",
@@ -346,8 +348,10 @@ export default function App() {
   useEffect(() => {
     const initAuth = async () => {
       try {
+        // @ts-ignore
         if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
            try {
+               // @ts-ignore
                await signInWithCustomToken(auth, __initial_auth_token);
            } catch (tokenErr) {
                await signInAnonymously(auth);
@@ -535,6 +539,7 @@ export default function App() {
                       onEditEvent={async (id: string, data: any) => { if(user) await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'events', id), data); }}
                       onDeleteEvent={async (id: string) => { if(user) await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'events', id)); }}
                       onResetTournament={async () => await handleResetTournament(activeTournament.id, activeDqs.map(d => d.id))}
+                      lang={lang} t={t}
                     />
                   )}
                   {role === 'announcer' && (
@@ -542,10 +547,11 @@ export default function App() {
                       tournament={activeTournament} events={activeEvents} dqs={activeDqs} updateLiveState={updateLiveState}
                       onAddDQ={async (data: any) => { if(user) await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'dqs'), { ...data, tournamentId: activeTournament.id, createdAt: Date.now() }); }}
                       onDeleteDQ={async (id: string) => { if(user) await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'dqs', id)); }}
+                      lang={lang} t={t}
                     />
                   )}
                   {role === 'callroom' && (
-                    <CallRoomPanel tournament={activeTournament} events={activeEvents} updateLiveState={updateLiveState} />
+                    <CallRoomPanel tournament={activeTournament} events={activeEvents} updateLiveState={updateLiveState} lang={lang} t={t} />
                   )}
                </main>
             </div>
@@ -562,32 +568,19 @@ const Header = ({ role, title, venue, onHome, onLogout, isOnline, lang, setLang,
   const currentTime = useLiveClock();
   
   return (
-    <header className="bg-slate-900 text-white shadow-lg sticky top-0 z-50 py-2 sm:py-0 sm:h-16 flex items-center px-3 sm:px-6 border-b border-slate-800">
+    <header className="bg-slate-900 text-white shadow-lg sticky top-0 z-50 py-3 sm:py-0 sm:h-16 flex items-center px-4 sm:px-6 border-b border-slate-800">
       <div className="flex justify-between items-center w-full">
-        {/* Kiri: Judul Lomba dan Status */}
-        <div className="flex items-center gap-2 sm:gap-4 truncate w-auto pr-2">
+        {/* Kiri: Judul Role dan Indikator Online (Sangat Ringkas di HP) */}
+        <div className="flex items-center gap-3 w-auto">
             <div className="flex items-center gap-2 sm:gap-3">
               {role === 'admin' && <Settings className="text-blue-400 w-5 h-5 sm:w-6 sm:h-6 shrink-0" />}
               {role === 'announcer' && <Mic className="text-purple-400 w-5 h-5 sm:w-6 sm:h-6 shrink-0" />}
               {role === 'callroom' && <Users className="text-emerald-400 w-5 h-5 sm:w-6 sm:h-6 shrink-0" />}
-              <div className="flex flex-col justify-center min-w-0 flex-1">
-                  <h1 className="font-extrabold text-sm sm:text-lg uppercase leading-tight sm:leading-none truncate block">
+              <div className="flex flex-col justify-center min-w-0">
+                  <h1 className="font-extrabold text-sm sm:text-lg uppercase leading-tight truncate">
                     {role === 'admin' ? t[lang].role_admin : role === 'announcer' ? t[lang].role_announcer : t[lang].role_callroom}
                   </h1>
-                  
-                  {/* Jam Real-time (Mobile Version) di bawah judul */}
-                  <div className="flex items-center gap-2 mt-0.5 sm:hidden">
-                     <span className={`text-[10px] flex items-center gap-1 ${isOnline ? 'text-emerald-400' : 'text-red-500'}`}>
-                        {isOnline ? <Wifi size={10} /> : <WifiOff size={10} />} {isOnline ? 'ONLINE' : 'OFFLINE'}
-                     </span>
-                     <div className="flex items-center gap-1.5 text-[10px] font-mono text-slate-400 bg-slate-800/50 px-1.5 py-0.5 rounded border border-slate-700/50">
-                         <Clock size={10} className="text-blue-400"/>
-                         <span>{currentTime.toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' })}</span>
-                     </div>
-                  </div>
-                  
-                  {/* Status Online (Desktop Version) */}
-                  <span className={`text-[10px] items-center gap-1 hidden sm:flex ${isOnline ? 'text-emerald-400' : 'text-red-500'} mt-0.5`}>
+                  <span className={`text-[9px] sm:text-[10px] flex items-center gap-1 ${isOnline ? 'text-emerald-400' : 'text-red-500'} mt-0.5`}>
                     {isOnline ? <Wifi size={10} /> : <WifiOff size={10} />} {isOnline ? 'ONLINE' : 'OFFLINE'}
                   </span>
               </div>
@@ -600,8 +593,8 @@ const Header = ({ role, title, venue, onHome, onLogout, isOnline, lang, setLang,
              <ClockDisplay time={currentTime} />
         </div>
 
-        {/* Kanan: Navigasi, Judul Lomba (Desktop) */}
-        <div className="flex items-center gap-1.5 sm:gap-3 shrink-0 ml-auto">
+        {/* Kanan: Navigasi, Judul Lomba (Desktop), dan Tombol Icon (HP) */}
+        <div className="flex items-center gap-2 sm:gap-3 shrink-0 ml-auto">
             <div className="hidden md:block text-right mr-2 max-w-[200px] xl:max-w-xs">
                 <div className="text-xs font-bold text-slate-300 truncate">{title}</div>
                 <div className="text-[10px] text-slate-500 truncate">{venue}</div>
@@ -609,18 +602,18 @@ const Header = ({ role, title, venue, onHome, onLogout, isOnline, lang, setLang,
 
             <button 
               onClick={() => setLang(lang === 'id' ? 'en' : 'id')} 
-              className="flex items-center justify-center bg-slate-800 hover:bg-slate-700 text-white w-8 h-8 sm:w-auto sm:h-auto sm:px-3 sm:py-1.5 rounded-lg border border-slate-700 transition"
+              className="flex items-center justify-center bg-slate-800 hover:bg-slate-700 text-white w-9 h-9 sm:w-auto sm:h-auto sm:px-3 sm:py-1.5 rounded-xl border border-slate-700 transition"
               title="Switch Language"
             >
-              <Globe size={16} className="text-blue-400" />
+              <Globe size={18} className="text-blue-400 sm:w-4 sm:h-4" />
               <span className="font-bold text-xs hidden sm:inline sm:ml-1.5">{lang === 'id' ? 'ID' : 'EN'}</span>
             </button>
 
-            <button onClick={onHome} className="w-8 h-8 sm:w-auto sm:h-auto sm:px-3 sm:py-1.5 flex items-center justify-center bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg transition border border-slate-700" title={t[lang].btn_home}>
-                <Home size={16} /> <span className="text-xs hidden sm:inline sm:ml-1.5">{t[lang].btn_home}</span>
+            <button onClick={onHome} className="w-9 h-9 sm:w-auto sm:h-auto sm:px-3 sm:py-1.5 flex items-center justify-center bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl transition border border-slate-700" title={t[lang].btn_home}>
+                <Home size={18} className="sm:w-4 sm:h-4" /> <span className="text-xs hidden sm:inline sm:ml-1.5">{t[lang].btn_home}</span>
             </button>
-            <button onClick={onLogout} className="w-8 h-8 sm:w-auto sm:h-auto sm:px-3 sm:py-1.5 flex items-center justify-center bg-red-600 hover:bg-red-700 rounded-lg transition" title={t[lang].btn_logout}>
-                <LogOut size={16} /> <span className="text-xs font-bold hidden sm:inline sm:ml-1.5">{t[lang].btn_logout}</span>
+            <button onClick={onLogout} className="w-9 h-9 sm:w-auto sm:h-auto sm:px-3 sm:py-1.5 flex items-center justify-center bg-red-600 hover:bg-red-700 rounded-xl transition" title={t[lang].btn_logout}>
+                <LogOut size={18} className="sm:w-4 sm:h-4" /> <span className="text-xs font-bold hidden sm:inline sm:ml-1.5">{t[lang].btn_logout}</span>
             </button>
         </div>
       </div>
@@ -628,7 +621,7 @@ const Header = ({ role, title, venue, onHome, onLogout, isOnline, lang, setLang,
   );
 };
 
-const LogoBar = ({ onMasterLogin, lang, setLang }: any) => (
+const LogoBar = ({ onMasterLogin, lang, setLang, t }: any) => (
   <nav className="border-b border-white/10 bg-slate-900/80 backdrop-blur-md sticky top-0 z-50 p-3 sm:p-4">
     <div className="max-w-6xl mx-auto flex justify-between items-center">
       <div className="flex items-center gap-2 sm:gap-3">
@@ -641,14 +634,14 @@ const LogoBar = ({ onMasterLogin, lang, setLang }: any) => (
       <div className="flex items-center gap-2 sm:gap-3">
         <button 
           onClick={() => setLang(lang === 'id' ? 'en' : 'id')} 
-          className="flex items-center justify-center bg-slate-800 hover:bg-slate-700 text-white w-7 h-7 sm:w-auto sm:h-auto sm:px-3 sm:py-1.5 rounded-full sm:rounded-lg border border-slate-700 transition"
+          className="flex items-center justify-center bg-slate-800 hover:bg-slate-700 text-white w-8 h-8 sm:w-auto sm:h-auto sm:px-3 sm:py-1.5 rounded-xl sm:rounded-lg border border-slate-700 transition"
         >
-          <Globe size={14} className="text-blue-400" />
+          <Globe size={16} className="text-blue-400 sm:w-3.5 sm:h-3.5" />
           <span className="font-bold text-xs hidden sm:inline sm:ml-1.5">{lang === 'id' ? 'ID' : 'EN'}</span>
         </button>
 
         {onMasterLogin && (
-          <button onClick={onMasterLogin} className="text-[10px] sm:text-xs text-slate-400 hover:text-white flex gap-1 items-center transition bg-slate-800 px-2 sm:px-3 py-1.5 rounded-full border border-slate-700">
+          <button onClick={onMasterLogin} className="text-[10px] sm:text-xs text-slate-400 hover:text-white flex gap-1 items-center transition bg-slate-800 px-3 py-1.5 sm:py-1.5 rounded-xl sm:rounded-full border border-slate-700 h-8 sm:h-auto">
             <ShieldAlert size={14}/> <span className="hidden sm:inline">Master</span>
           </button>
         )}
@@ -923,13 +916,13 @@ function TournamentPublicView({ tournament, dqs, events, isOnline, onBack, onLog
 
       <div className="absolute inset-0 opacity-20 bg-[url('https://images.unsplash.com/photo-1530549387789-4c1017266635?ixlib=rb-1.2.1&auto=format&fit=crop&w=1920&q=80')] bg-cover bg-center" />
       
-      <header className="bg-slate-900/80 backdrop-blur-md text-white shrink-0 flex items-center justify-between px-3 sm:px-6 border-b border-slate-800 z-50 py-2 sm:py-0 sm:h-16">
-          <div className="flex items-center gap-2 sm:gap-4 truncate w-full sm:w-auto pr-2">
+      <header className="bg-slate-900/80 backdrop-blur-md text-white h-16 shrink-0 flex items-center justify-between px-3 sm:px-6 border-b border-slate-800 z-50">
+          <div className="flex items-center gap-2 sm:gap-4 truncate">
               <img src="/sangkuriang%201.png" alt="Logo" className="h-8 sm:h-10 w-auto object-contain" onError={(e:any) => e.target.style.display='none'} />
-              <div className="flex flex-col justify-center min-w-0 flex-1">
-                  <h1 className="font-extrabold text-base sm:text-lg leading-tight sm:leading-none tracking-wide uppercase truncate block">Sangkuriang</h1>
+              <div className="flex flex-col justify-center min-w-0">
+                  <h1 className="font-extrabold text-sm sm:text-lg leading-tight sm:leading-none tracking-wide uppercase truncate">Sangkuriang</h1>
                   
-                  {/* Live Clock (Mobile Version) di bawah judul */}
+                  {/* Jam Mobile di bawah judul */}
                   <div className="flex items-center gap-2 mt-0.5 sm:hidden">
                        <span className="text-[10px] text-blue-400 font-bold tracking-[0.2em] uppercase hidden sm:block">Swim Organizer</span>
                        <div className="flex items-center gap-1.5 text-[10px] font-mono text-slate-400 bg-slate-800/50 px-1.5 py-0.5 rounded border border-slate-700/50">
@@ -941,8 +934,8 @@ function TournamentPublicView({ tournament, dqs, events, isOnline, onBack, onLog
               </div>
           </div>
 
-          {/* Central Live Clock (Desktop Version) */}
-          <div className="absolute left-1/2 transform -translate-x-1/2 bg-slate-800/80 px-3 sm:px-4 py-1.5 rounded-full border border-slate-700/50 flex-col items-center hidden md:flex">
+          {/* Jam Tengah Desktop */}
+          <div className="absolute left-1/2 transform -translate-x-1/2 bg-slate-800/80 px-4 py-1.5 rounded-full border border-slate-700/50 flex-col items-center hidden md:flex">
              <span className="text-[8px] text-slate-400 uppercase font-bold tracking-[0.2em] -mb-1">Time</span>
              <ClockDisplay time={currentTime} />
           </div>
@@ -952,20 +945,21 @@ function TournamentPublicView({ tournament, dqs, events, isOnline, onBack, onLog
               
               <button 
                 onClick={() => setLang(lang === 'id' ? 'en' : 'id')} 
-                className="flex items-center justify-center bg-slate-800 hover:bg-slate-700 text-white w-7 h-7 sm:w-auto sm:h-auto sm:px-3 sm:py-1.5 rounded-lg border border-slate-700 transition"
+                className="flex items-center justify-center bg-slate-800 hover:bg-slate-700 text-white w-8 h-8 sm:w-auto sm:h-auto sm:px-3 sm:py-1.5 rounded-xl border border-slate-700 transition"
+                title="Switch Language"
               >
-                <Globe size={14} className="text-blue-400" />
+                <Globe size={16} className="text-blue-400 sm:w-3.5 sm:h-3.5" />
                 <span className="font-bold text-xs hidden sm:inline sm:ml-1.5">{lang === 'id' ? 'ID' : 'EN'}</span>
               </button>
 
               {(tournament.status === 'paused' || isFinished) && (
-                <button onClick={() => setShowResultsList(true)} className="w-7 h-7 sm:w-auto sm:h-auto sm:px-3 sm:py-1.5 flex items-center justify-center bg-blue-600 hover:bg-blue-500 text-white rounded-lg transition shadow-md">
-                  <FileText size={14} /> <span className="text-xs font-bold hidden sm:inline sm:ml-1.5">{t[lang].btn_results}</span>
+                <button onClick={() => setShowResultsList(true)} className="w-8 h-8 sm:w-auto sm:h-auto sm:px-3 sm:py-1.5 flex items-center justify-center bg-blue-600 hover:bg-blue-500 text-white rounded-xl transition shadow-md" title={t[lang].btn_results}>
+                  <FileText size={16} className="sm:w-3.5 sm:h-3.5" /> <span className="text-xs font-bold hidden sm:inline sm:ml-1.5">{t[lang].btn_results}</span>
                 </button>
               )}
 
-              <button onClick={onBack} className="w-7 h-7 sm:w-auto sm:h-auto sm:px-3 sm:py-1.5 flex items-center justify-center bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg transition border border-slate-700"><ChevronLeft size={14} /> <span className="text-xs hidden sm:inline sm:ml-1.5">{t[lang].btn_home}</span></button>
-              <button onClick={onLoginRequest} className="w-7 h-7 sm:w-auto sm:h-auto flex items-center justify-center text-slate-400 hover:text-white transition"><Settings size={16}/></button>
+              <button onClick={onBack} className="w-8 h-8 sm:w-auto sm:h-auto sm:px-3 sm:py-1.5 flex items-center justify-center bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl transition border border-slate-700" title={t[lang].btn_home}><ChevronLeft size={16} className="sm:w-3.5 sm:h-3.5" /> <span className="text-xs hidden sm:inline sm:ml-1.5">{t[lang].btn_home}</span></button>
+              <button onClick={onLoginRequest} className="w-8 h-8 sm:w-auto sm:h-auto flex items-center justify-center text-slate-400 hover:text-white transition" title="Login"><Settings size={18}/></button>
           </div>
       </header>
       
@@ -1134,13 +1128,13 @@ function LiveScoreboard({ tournament, dqs, events, isOnline, onBack, onLoginRequ
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col relative">
-        <header className="bg-slate-900 text-white shrink-0 flex items-center justify-between px-3 sm:px-6 border-b border-slate-800 shadow-xl z-50 py-2 sm:py-0 sm:h-16">
+        <header className="bg-slate-900 text-white shrink-0 flex items-center justify-between px-3 sm:px-6 border-b border-slate-800 shadow-xl z-50 py-3 sm:py-0 sm:h-16">
             <div className="flex items-center gap-2 sm:gap-4 truncate w-full sm:w-auto pr-2">
                 <img src="/sangkuriang%201.png" alt="Logo" className="hidden sm:block h-10 w-auto object-contain" onError={(e:any) => e.target.style.display='none'} />
-                <div className="flex flex-col justify-center min-w-0 flex-1">
-                    <h1 className="font-extrabold text-sm sm:text-lg leading-tight sm:leading-none tracking-wide uppercase truncate block">{tournament.title}</h1>
+                <div className="flex flex-col justify-center min-w-0">
+                    <h1 className="font-extrabold text-sm sm:text-lg leading-tight sm:leading-none tracking-wide uppercase truncate">{tournament.title}</h1>
                     
-                    {/* Live Clock (Mobile Version) */}
+                    {/* Jam Real-time di HP ada di bawah judul */}
                     <div className="flex items-center gap-2 mt-0.5 sm:hidden">
                        <span className="text-[10px] text-blue-400 font-bold tracking-[0.2em] uppercase hidden sm:block">Swim Organizer</span>
                        <div className="flex items-center gap-1.5 text-[10px] font-mono text-slate-400 bg-slate-800/50 px-1.5 py-0.5 rounded border border-slate-700/50">
@@ -1148,12 +1142,13 @@ function LiveScoreboard({ tournament, dqs, events, isOnline, onBack, onLoginRequ
                            <span>{currentTime.toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' })}</span>
                        </div>
                     </div>
+
                     <p className="text-[10px] text-blue-400 font-bold tracking-[0.2em] uppercase hidden sm:block">Swim Organizer</p>
                 </div>
             </div>
 
-            {/* Central Live Clock (Desktop) */}
-            <div className="absolute left-1/2 transform -translate-x-1/2 bg-slate-800/80 px-2 sm:px-4 py-1 sm:py-1.5 rounded-full border border-slate-700/50 flex-col items-center hidden md:flex">
+            {/* Jam Real-time di Desktop ada di tengah */}
+            <div className="absolute left-1/2 transform -translate-x-1/2 bg-slate-800/80 px-4 py-1.5 rounded-full border border-slate-700/50 flex-col items-center hidden md:flex">
                <span className="text-[8px] text-slate-400 uppercase font-bold tracking-[0.2em] -mb-1">Time</span>
                <ClockDisplay time={currentTime} />
             </div>
@@ -1163,20 +1158,20 @@ function LiveScoreboard({ tournament, dqs, events, isOnline, onBack, onLoginRequ
                 
                 <button 
                   onClick={() => setLang(lang === 'id' ? 'en' : 'id')} 
-                  className="flex items-center justify-center bg-slate-800 hover:bg-slate-700 text-white w-7 h-7 sm:w-auto sm:h-auto sm:px-3 sm:py-1.5 rounded-lg border border-slate-700 transition"
+                  className="flex items-center justify-center bg-slate-800 hover:bg-slate-700 text-white w-9 h-9 sm:w-auto sm:h-auto sm:px-3 sm:py-1.5 rounded-xl border border-slate-700 transition"
                   title="Switch Language"
                 >
-                  <Globe size={14} className="text-blue-400" />
+                  <Globe size={18} className="text-blue-400 sm:w-4 sm:h-4" />
                   <span className="font-bold text-xs hidden sm:inline sm:ml-1.5">{lang === 'id' ? 'ID' : 'EN'}</span>
                 </button>
 
-                <button onClick={() => setShowResultsList(true)} className="w-7 h-7 sm:w-auto sm:h-auto sm:px-3 sm:py-1.5 flex items-center justify-center bg-blue-600 hover:bg-blue-500 text-white rounded-lg transition shadow-md" title={t[lang].btn_results}>
-                    <FileText size={14} /> <span className="text-xs font-bold hidden sm:inline sm:ml-1.5">{t[lang].btn_results}</span>
+                <button onClick={() => setShowResultsList(true)} className="w-9 h-9 sm:w-auto sm:h-auto sm:px-3 sm:py-1.5 flex items-center justify-center bg-blue-600 hover:bg-blue-500 text-white rounded-xl transition shadow-md" title={t[lang].btn_results}>
+                    <FileText size={18} className="sm:w-4 sm:h-4" /> <span className="text-xs font-bold hidden sm:inline sm:ml-1.5">{t[lang].btn_results}</span>
                 </button>
-                <button onClick={onBack} className="w-7 h-7 sm:w-auto sm:h-auto sm:px-3 sm:py-1.5 flex items-center justify-center bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg transition border border-slate-700" title={t[lang].btn_home}>
-                    <ChevronLeft size={14} /> <span className="text-xs hidden sm:inline sm:ml-1.5">{t[lang].btn_home}</span>
+                <button onClick={onBack} className="w-9 h-9 sm:w-auto sm:h-auto sm:px-3 sm:py-1.5 flex items-center justify-center bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl transition border border-slate-700" title={t[lang].btn_home}>
+                    <ChevronLeft size={18} className="sm:w-4 sm:h-4" /> <span className="text-xs hidden sm:inline sm:ml-1.5">{t[lang].btn_home}</span>
                 </button>
-                <button onClick={onLoginRequest} className="w-7 h-7 sm:w-auto sm:h-auto flex items-center justify-center text-slate-400 hover:text-white transition" title="Login"><Settings size={16}/></button>
+                <button onClick={onLoginRequest} className="w-9 h-9 sm:w-auto sm:h-auto flex items-center justify-center text-slate-400 hover:text-white transition" title="Login"><Settings size={20}/></button>
             </div>
         </header>
 
@@ -1188,7 +1183,7 @@ function LiveScoreboard({ tournament, dqs, events, isOnline, onBack, onLoginRequ
                     <div className="flex justify-between items-start sm:items-center mb-3 sm:mb-6">
                         <div>
                             <h2 className="text-white text-lg sm:text-2xl md:text-3xl font-bold flex items-center gap-1.5 sm:gap-2"><Users className="text-blue-400 w-5 h-5 sm:w-8 sm:h-8" /> {t[lang].call_room}</h2>
-                            <span className="text-blue-200/60 text-[10px] sm:text-sm block mt-0.5 sm:mt-1">{t[lang].call_room_sub}</span>
+                            {t[lang].call_room_sub && <span className="text-blue-200/60 text-[10px] sm:text-sm block mt-0.5 sm:mt-1">{t[lang].call_room_sub}</span>}
                         </div>
                         <div className="text-right">
                             <span className="text-blue-200/40 text-[8px] sm:text-[10px] uppercase block">{t[lang].last_update}</span>
@@ -1406,7 +1401,7 @@ function LoginModal({ targetRole, onClose, onLogin, lang, t }: any) {
   );
 }
 
-function AdminPanel({ tournament, events, masterPinHash, onUpdateTournament, onAddEvent, onAddMultipleEvents, onEditEvent, onDeleteEvent, onResetTournament }: any) {
+function AdminPanel({ tournament, events, masterPinHash, onUpdateTournament, onAddEvent, onAddMultipleEvents, onEditEvent, onDeleteEvent, onResetTournament, lang, t }: any) {
   const [loading, setLoading] = useState(false);
   const [newEvent, setNewEvent] = useState({ number: '', name: '', totalSeries: '' });
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -1826,6 +1821,7 @@ function AdminPanel({ tournament, events, masterPinHash, onUpdateTournament, onA
         </div>
       )}
 
+      {/* MODAL KONFIRMASI RESET LOMBA */}
       {showResetModal && (
         <div className="fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-[70] animate-in fade-in">
           <div className="bg-white rounded-2xl w-full max-w-sm p-8 relative zoom-in-95 duration-200 shadow-2xl">
@@ -1877,7 +1873,7 @@ function AdminPanel({ tournament, events, masterPinHash, onUpdateTournament, onA
 }
 
 // 6. ANNOUNCER PANEL (Live Display + DQ Input)
-function AnnouncerPanel({ tournament, events, dqs, updateLiveState, onAddDQ, onDeleteDQ }: any) {
+function AnnouncerPanel({ tournament, events, dqs, updateLiveState, onAddDQ, onDeleteDQ, lang, t }: any) {
   const [loading, setLoading] = useState(false);
   const [newDQ, setNewDQ] = useState({ eventNumber: '', series: '', lane: '', reason: '' });
   
@@ -1925,7 +1921,7 @@ function AnnouncerPanel({ tournament, events, dqs, updateLiveState, onAddDQ, onD
       <div className="md:col-span-2 space-y-6">
         <div className="bg-slate-900 text-white rounded-2xl shadow-2xl overflow-hidden border-4 border-slate-800">
             <div className="bg-black p-2 text-center text-yellow-400 font-mono text-sm tracking-widest uppercase border-b border-slate-800">Live Timing Display Control</div>
-            <div className="p-12 text-center min-h-[300px] flex flex-col justify-center items-center">
+            <div className="p-8 sm:p-12 text-center min-h-[300px] flex flex-col justify-center items-center">
                 {needsStart ? (
                     <div className="animate-in fade-in zoom-in">
                         <p className="text-slate-400 mb-4">Papan skor belum menampilkan data.</p>
@@ -1936,20 +1932,27 @@ function AnnouncerPanel({ tournament, events, dqs, updateLiveState, onAddDQ, onD
                     </div>
                 ) : activeEvent ? (
                 <>
-                    <div className="text-blue-400 text-2xl font-bold uppercase tracking-widest mb-2">Acara {activeEvent.number}</div>
-                    <h1 className="text-5xl font-extrabold text-white mb-8 leading-tight">{activeEvent.name}</h1>
-                    <div className="inline-flex items-center justify-center bg-slate-800 rounded-xl p-6 border border-slate-700">
-                    <div className="text-center px-8 border-r border-slate-600"><span className="block text-slate-400 text-sm uppercase mb-1">Seri</span><span className="block text-6xl font-black text-purple-400">{ls.currentSeries}</span></div>
-                    <div className="text-center px-8"><span className="block text-slate-400 text-sm uppercase mb-1">Total</span><span className="block text-6xl font-black text-slate-500">{activeEvent.totalSeries}</span></div>
+                    <div className="text-blue-400 text-xl sm:text-2xl font-bold uppercase tracking-widest mb-2">{t[lang].event} {activeEvent.number}</div>
+                    
+                    {/* Perbaikan Teks Judul Acara (Responsive font-size & max-width) */}
+                    <div className="w-full flex items-center justify-center h-24 sm:h-32 mb-6 sm:mb-8">
+                       <h1 className="text-3xl sm:text-5xl font-extrabold text-white leading-tight line-clamp-3 overflow-hidden text-balance">
+                           {activeEvent.name}
+                       </h1>
+                    </div>
+
+                    <div className="inline-flex items-center justify-center bg-slate-800 rounded-xl p-4 sm:p-6 border border-slate-700">
+                    <div className="text-center px-4 sm:px-8 border-r border-slate-600"><span className="block text-slate-400 text-[10px] sm:text-sm uppercase mb-1">{t[lang].series}</span><span className="block text-5xl sm:text-6xl font-black text-purple-400">{ls.currentSeries}</span></div>
+                    <div className="text-center px-4 sm:px-8"><span className="block text-slate-400 text-[10px] sm:text-sm uppercase mb-1">Total</span><span className="block text-5xl sm:text-6xl font-black text-slate-500">{activeEvent.totalSeries}</span></div>
                     </div>
                 </>
                 ) : <div className="text-slate-500 italic">Tidak ada data acara.</div>}
             </div>
             {!needsStart && activeEvent ? (
                 <div className="bg-slate-800 p-4 border-t border-slate-700 flex justify-between items-center">
-                    <button onClick={() => handleNav('prev')} className="flex items-center gap-2 px-6 py-3 bg-slate-700 hover:bg-slate-600 rounded-lg font-bold text-slate-300"><ChevronLeft /> PREV</button>
-                    <div className="flex items-center gap-2 text-slate-400 text-sm"><Megaphone size={16} /> Announcer Control</div>
-                    <div>{canGoNext ? <button onClick={() => handleNav('next')} className="flex items-center gap-2 px-8 py-3 bg-purple-600 hover:bg-purple-500 text-white rounded-lg font-bold shadow-lg transition">NEXT <ChevronRight /></button> : <button disabled className="flex items-center gap-2 px-6 py-3 bg-slate-700 text-slate-500 rounded-lg font-bold cursor-not-allowed border border-slate-600"><Lock size={16} /> {blockReason}</button>}</div>
+                    <button onClick={() => handleNav('prev')} className="flex items-center gap-2 px-4 sm:px-6 py-3 bg-slate-700 hover:bg-slate-600 rounded-lg font-bold text-slate-300 text-sm sm:text-base"><ChevronLeft size={18} /> <span className="hidden sm:inline">PREV</span></button>
+                    <div className="flex items-center gap-2 text-slate-400 text-[10px] sm:text-sm"><Megaphone size={16} /> Announcer Control</div>
+                    <div>{canGoNext ? <button onClick={() => handleNav('next')} className="flex items-center gap-2 px-6 sm:px-8 py-3 bg-purple-600 hover:bg-purple-500 text-white rounded-lg font-bold shadow-lg transition text-sm sm:text-base"><span className="hidden sm:inline">NEXT</span> <ChevronRight size={18} /></button> : <button disabled className="flex items-center gap-2 px-4 sm:px-6 py-3 bg-slate-700 text-slate-500 rounded-lg font-bold cursor-not-allowed border border-slate-600 text-sm sm:text-base"><Lock size={16} /> <span className="hidden sm:inline">{blockReason}</span></button>}</div>
                 </div>
             ) : null}
         </div>
@@ -1989,7 +1992,7 @@ function AnnouncerPanel({ tournament, events, dqs, updateLiveState, onAddDQ, onD
   );
 }
 
-function CallRoomPanel({ tournament, events, updateLiveState }: any) {
+function CallRoomPanel({ tournament, events, updateLiveState, lang, t }: any) {
   const [loading, setLoading] = useState(false);
   const ls = tournament.liveState || DEFAULT_LIVE_STATE;
   const currentCallEvent = events.find((e: any) => e.id === ls.callRoomEventId);
@@ -2027,7 +2030,7 @@ function CallRoomPanel({ tournament, events, updateLiveState }: any) {
         <div className="md:col-span-2 space-y-6">
           <div className="bg-white rounded-xl shadow-lg border border-emerald-100 overflow-hidden">
             <div className="bg-emerald-600 text-white p-4 flex justify-between items-center"><h2 className="font-bold text-lg flex items-center gap-2"><ClipboardList /> STATUS PEMANGGILAN</h2><span className="bg-emerald-800 text-xs px-2 py-1 rounded">LIVE CONTROL</span></div>
-            <div className="p-12 text-center min-h-[300px] flex flex-col justify-center items-center bg-emerald-50">
+            <div className="p-8 sm:p-12 text-center min-h-[300px] flex flex-col justify-center items-center bg-emerald-50">
               {needsStart ? (
                  <div className="animate-in fade-in zoom-in">
                     <p className="text-emerald-700 mb-4 font-medium">Siap Memanggil Peserta.</p>
@@ -2039,9 +2042,25 @@ function CallRoomPanel({ tournament, events, updateLiveState }: any) {
               ) : currentCallEvent ? (
                 <>
                   <div className="text-emerald-700 font-bold tracking-widest uppercase mb-1">Sedang Memanggil</div>
-                  <h1 className="text-3xl font-extrabold text-slate-800 mb-4">{currentCallEvent.number}. {currentCallEvent.name}</h1>
-                  <div className="inline-block bg-white shadow-sm border border-emerald-200 rounded-lg p-6 mb-8"><span className="text-6xl font-black text-emerald-600">{ls.callRoomSeries}</span><span className="text-sm text-slate-400 block uppercase mt-2">Dari {currentCallEvent.totalSeries} Seri</span></div>
-                  <div className="flex gap-4 justify-center"><button onClick={() => handleNav('prev')} className="px-6 py-3 rounded-lg border-2 border-slate-200 text-slate-500 hover:bg-slate-50 font-bold transition">Prev</button><button onClick={() => handleNav('next')} className="px-10 py-3 rounded-lg bg-emerald-600 text-white hover:bg-emerald-700 font-bold shadow-lg transition transform active:scale-95 flex items-center gap-2">PANGGIL NEXT <ChevronRight size={20} /></button></div>
+                  
+                  {/* Perbaikan Judul Acara (Responsive) */}
+                  <div className="w-full flex items-center justify-center h-20 sm:h-24 mb-4 sm:mb-6">
+                      <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-800 leading-tight line-clamp-3 overflow-hidden text-balance">
+                          {currentCallEvent.number}. {currentCallEvent.name}
+                      </h1>
+                  </div>
+
+                  <div className="inline-block bg-white shadow-sm border border-emerald-200 rounded-lg p-6 mb-8">
+                     <span className="text-6xl font-black text-emerald-600">{ls.callRoomSeries}</span>
+                     <span className="text-xs sm:text-sm text-slate-400 block uppercase mt-2">Dari {currentCallEvent.totalSeries} Seri</span>
+                  </div>
+                  
+                  <div className="flex gap-2 sm:gap-4 justify-center w-full px-4 sm:px-0">
+                     <button onClick={() => handleNav('prev')} className="flex-1 sm:flex-none px-4 sm:px-6 py-3 rounded-lg border-2 border-slate-200 text-slate-500 hover:bg-slate-50 font-bold transition text-sm sm:text-base">Prev</button>
+                     <button onClick={() => handleNav('next')} className="flex-[2] sm:flex-none px-6 sm:px-10 py-3 rounded-lg bg-emerald-600 text-white hover:bg-emerald-700 font-bold shadow-lg transition transform active:scale-95 flex items-center justify-center gap-2 text-sm sm:text-base">
+                        PANGGIL NEXT <ChevronRight size={20} />
+                     </button>
+                  </div>
                 </>
               ) : <div className="text-slate-400 italic">Menunggu Data...</div>}
             </div>
