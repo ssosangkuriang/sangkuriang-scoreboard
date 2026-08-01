@@ -30,7 +30,6 @@ import {
   Timer,
   ShieldAlert,
   Trophy,
-  DownloadCloud,
   Upload,
   Globe
 } from 'lucide-react';
@@ -658,7 +657,7 @@ const LogoBar = ({ onMasterLogin, lang, setLang, t }: any) => (
   </nav>
 );
 
-const TourCard = ({ tour, badge, badgeColor, onSelectTournament, lang, t }: any) => (
+const TourCard = ({ tour, badge, badgeColor, onSelectTournament }: any) => (
   <div onClick={() => onSelectTournament(tour.id)} className="bg-slate-800/80 backdrop-blur border border-slate-700 p-6 rounded-2xl shadow-xl hover:border-blue-500 transition-colors cursor-pointer group text-left">
       <div className="flex justify-between items-start mb-4">
         <span className={`${badgeColor} text-xs px-2 py-1 rounded font-bold uppercase`}>{badge}</span>
@@ -688,7 +687,7 @@ function GlobalLandingPage({ tournaments, onSelectTournament, onMasterLogin, lan
           <div className="mb-10 sm:mb-12">
             <h2 className="text-xl sm:text-2xl font-bold mb-4 sm:mb-6 flex items-center gap-2 border-b border-slate-800 pb-2"><MonitorPlay className="text-red-500 w-5 h-5 sm:w-6 sm:h-6"/> {t[lang].status_live}</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-              {activeTournaments.map((tour:any) => <TourCard key={tour.id} tour={tour} badge={tour.status === 'paused' ? t[lang].badge_paused : t[lang].badge_live} badgeColor={tour.status === 'paused' ? 'bg-yellow-500/20 text-yellow-500 border border-yellow-500/30' : 'bg-red-500/20 text-red-400 animate-pulse border border-red-500/30'} onSelectTournament={onSelectTournament} lang={lang} t={t}/>)}
+              {activeTournaments.map((tour:any) => <TourCard key={tour.id} tour={tour} badge={tour.status === 'paused' ? t[lang].badge_paused : t[lang].badge_live} badgeColor={tour.status === 'paused' ? 'bg-yellow-500/20 text-yellow-500 border border-yellow-500/30' : 'bg-red-500/20 text-red-400 animate-pulse border border-red-500/30'} onSelectTournament={onSelectTournament} />)}
             </div>
           </div>
         ) : null}
@@ -697,7 +696,7 @@ function GlobalLandingPage({ tournaments, onSelectTournament, onMasterLogin, lan
           <div className="mb-10 sm:mb-12">
             <h2 className="text-xl sm:text-2xl font-bold mb-4 sm:mb-6 flex items-center gap-2 border-b border-slate-800 pb-2"><Timer className="text-yellow-500 w-5 h-5 sm:w-6 sm:h-6"/> {t[lang].status_upcoming}</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-              {upcoming.map((tour:any) => <TourCard key={tour.id} tour={tour} badge={t[lang].badge_upcoming} badgeColor="bg-yellow-500/20 text-yellow-400 border border-yellow-500/30" onSelectTournament={onSelectTournament} lang={lang} t={t}/>)}
+              {upcoming.map((tour:any) => <TourCard key={tour.id} tour={tour} badge={t[lang].badge_upcoming} badgeColor="bg-yellow-500/20 text-yellow-400 border border-yellow-500/30" onSelectTournament={onSelectTournament} />)}
             </div>
           </div>
         ) : null}
@@ -706,7 +705,7 @@ function GlobalLandingPage({ tournaments, onSelectTournament, onMasterLogin, lan
           <div className="mb-10 sm:mb-12 opacity-80">
             <h2 className="text-xl sm:text-2xl font-bold mb-4 sm:mb-6 flex items-center gap-2 border-b border-slate-800 pb-2"><CheckCircle className="text-blue-500 w-5 h-5 sm:w-6 sm:h-6"/> {t[lang].status_finished}</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-              {finished.map((tour:any) => <TourCard key={tour.id} tour={tour} badge={t[lang].badge_finished} badgeColor="bg-[#1e3a8a] text-blue-300 border border-[#1e40af]" onSelectTournament={onSelectTournament} lang={lang} t={t}/>)}
+              {finished.map((tour:any) => <TourCard key={tour.id} tour={tour} badge={t[lang].badge_finished} badgeColor="bg-[#1e3a8a] text-blue-300 border border-[#1e40af]" onSelectTournament={onSelectTournament} />)}
             </div>
           </div>
         ) : null}
