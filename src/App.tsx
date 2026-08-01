@@ -30,7 +30,6 @@ import {
   Timer,
   ShieldAlert,
   Trophy,
-  DownloadCloud,
   Upload,
   Globe
 } from 'lucide-react';
@@ -767,7 +766,7 @@ const Header = ({ role, title, venue, onHome, onLogout, isOnline, lang, t }: any
   );
 };
 
-const LogoBar = ({ onMasterLogin, lang, setLang, t }: any) => {
+const LogoBar = ({ onMasterLogin, lang, setLang }: any) => {
   const currentTime = useLiveClock();
   return (
     <nav className="border-b border-white/10 bg-slate-900/80 backdrop-blur-md sticky top-0 z-50 p-4">
@@ -806,7 +805,7 @@ const LogoBar = ({ onMasterLogin, lang, setLang, t }: any) => {
   );
 };
 
-const TourCard = ({ t: tour, badge, badgeColor, onSelectTournament, lang, t }: any) => (
+const TourCard = ({ tour, badge, badgeColor, onSelectTournament, lang }: any) => (
   <div onClick={() => onSelectTournament(tour.id)} className="bg-slate-800/80 backdrop-blur border border-slate-700 p-6 rounded-2xl shadow-xl hover:border-blue-500 transition-colors cursor-pointer group text-left relative overflow-hidden">
       <div className="flex justify-between items-start mb-4">
         <span className={`${badgeColor} text-xs px-2 py-1 rounded font-bold uppercase`}>{badge}</span>
@@ -868,7 +867,7 @@ function GlobalLandingPage({ tournaments, onSelectTournament, onMasterLogin, lan
   );
 }
 
-function MasterDashboard({ tournaments, onCreate, onEdit, onDelete, onLogout, onRestoreLegacy, onChangeMasterPin, lang, t }: any) {
+function MasterDashboard({ tournaments, onCreate, onEdit, onDelete, onLogout, onChangeMasterPin, lang, t }: any) {
   const [showCreate, setShowCreate] = useState(false);
   const [form, setForm] = useState({ title: '', venue: '', eventDate: '', endDate: '', adminPin: '1234', announcerPin: '1234', callroomPin: '1234' });
 
