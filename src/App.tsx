@@ -31,7 +31,8 @@ import {
   ShieldAlert,
   Trophy,
   DownloadCloud,
-  Upload
+  Upload,
+  Globe
 } from 'lucide-react';
 
 // --- FIREBASE IMPORTS ---
@@ -74,9 +75,7 @@ const fallbackConfig = {
 
 let firebaseConfig = fallbackConfig;
 try {
-  // @ts-ignore
   if (typeof __firebase_config !== 'undefined' && __firebase_config) {
-    // @ts-ignore
     firebaseConfig = typeof __firebase_config === 'string' ? JSON.parse(__firebase_config) : __firebase_config;
   }
 } catch (e) {
@@ -95,13 +94,14 @@ const getWIBTime = () => {
   return new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' }) + ' WIB';
 };
 
-const formatDateRange = (startStr: string, endStr?: string) => {
+const formatDateRange = (startStr: string, endStr?: string, lang: 'id' | 'en' = 'id') => {
   if (!startStr) return '-';
   const start = new Date(startStr);
   if (isNaN(start.getTime())) return '-';
   
+  const locale = lang === 'id' ? 'id-ID' : 'en-US';
   const formatOpt: Intl.DateTimeFormatOptions = { day: 'numeric', month: 'long', year: 'numeric' };
-  const startFmt = start.toLocaleDateString('id-ID', formatOpt);
+  const startFmt = start.toLocaleDateString(locale, formatOpt);
   
   if (!endStr || startStr.substring(0, 10) === endStr.substring(0, 10)) {
     return startFmt;
@@ -111,12 +111,12 @@ const formatDateRange = (startStr: string, endStr?: string) => {
   if (isNaN(end.getTime())) return startFmt;
   
   if (start.getMonth() === end.getMonth() && start.getFullYear() === end.getFullYear()) {
-    return `${start.getDate()} - ${end.toLocaleDateString('id-ID', formatOpt)}`;
+    return `${start.getDate()} - ${end.toLocaleDateString(locale, formatOpt)}`;
   }
   if (start.getFullYear() === end.getFullYear()) {
-    return `${start.toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })} - ${end.toLocaleDateString('id-ID', formatOpt)}`;
+    return `${start.toLocaleDateString(locale, { day: 'numeric', month: 'short' })} - ${end.toLocaleDateString(locale, formatOpt)}`;
   }
-  return `${start.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })} - ${end.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}`;
+  return `${start.toLocaleDateString(locale, { day: 'numeric', month: 'short', year: 'numeric' })} - ${end.toLocaleDateString(locale, { day: 'numeric', month: 'short', year: 'numeric' })}`;
 };
 
 const simpleHash = (str: string) => {
@@ -130,6 +130,284 @@ const simpleHash = (str: string) => {
 };
 
 const MASTER_PIN_HASH = simpleHash("123456");
+
+// --- DICTIONARY BILINGUAL ---
+const t = {
+  id: {
+    connecting: "Menghubungkan ke Server...",
+    title_swimming_portal: "Portal Kejuaraan Renang",
+    subtitle_swimming_portal: "Pilih kompetisi untuk melihat Live Scoreboard & Jadwal",
+    status_live: "Sedang Berlangsung",
+    status_upcoming: "Akan Datang",
+    status_finished: "Selesai",
+    badge_live: "Real-Time Reporting",
+    badge_upcoming: "COMING SOON",
+    badge_finished: "SELESAI",
+    badge_paused: "JEDA / ISTIRAHAT",
+    no_tournament: "Belum ada data kejuaraan di dalam sistem.",
+    footer_text: "© anak magang SSO 2026",
+    role_admin: "Admin Lomba",
+    role_announcer: "Announcer",
+    role_callroom: "Call Room",
+    role_master: "Superuser Master",
+    btn_home: "Beranda",
+    btn_logout: "Keluar",
+    btn_results: "Hasil",
+    btn_results_full: "Lihat Hasil Keseluruhan",
+    btn_back: "Kembali",
+    call_room: "Pemanggilan",
+    call_room_sub: "Call Room",
+    last_update: "Terakhir Update",
+    event: "Acara",
+    series: "Seri",
+    lane: "Lin",
+    waiting: "Menunggu...",
+    racing_now: "Sedang Berlomba",
+    dq_info: "INFORMASI DISKUALIFIKASI TERKINI",
+    dq_reason: "Keterangan / Alasan",
+    dq_empty: "Tidak ada informasi diskualifikasi saat ini.",
+    page: "Hal",
+    of: "dari",
+    prev: "Sebelumnya",
+    next: "Selanjutnya",
+    results_list_title: "Daftar Hasil Per Acara",
+    results_detail_title: "Detail Hasil Acara",
+    no: "No",
+    action: "Aksi",
+    not_available: "Belum tersedia",
+    view_result: "Lihat Hasil",
+    no_events: "Belum ada data acara.",
+    login_title: "Pilih Akses Petugas",
+    login_sub: "Untuk",
+    login_btn: "Masuk",
+    wrong_pin: "PIN Salah",
+    scheduled_on: "Lomba dijadwalkan pada:",
+    paused_until: "Akan dilanjutkan pada:",
+    waiting_admin_result: "Menunggu admin mengunggah hasil perlombaan...",
+    days: "HARI", hours: "JAM", minutes: "MENIT", seconds: "DETIK",
+    master_dash_title: "Daftar Semua Lomba",
+    btn_restore: "Restore Data",
+    btn_create_tour: "Buat Lomba Baru",
+    tour_info: "Informasi Umum",
+    tour_name: "Nama Kejuaraan",
+    tour_venue: "Lokasi / Venue",
+    tour_start: "Tanggal Mulai",
+    tour_end: "Tanggal Selesai",
+    access_settings: "Pengaturan Akses (PIN)",
+    pin_admin: "PIN Admin Lomba",
+    pin_announcer: "PIN Announcer",
+    pin_callroom: "PIN Call Room",
+    btn_cancel: "Batal",
+    btn_save_create: "SIMPAN & BUAT LOMBA",
+    col_tour: "Lomba",
+    col_status: "Status",
+    manage_event: "Kelola Event",
+    del_tour_title: "Hapus Lomba?",
+    del_tour_desc: "Tindakan ini permanen dan tidak dapat dibatalkan. Seluruh data acara dan diskualifikasi pada lomba ini akan ikut terhapus.",
+    btn_del_yes: "Ya, Hapus",
+    change_master_pin: "Ubah PIN Master",
+    input_new_pin: "PIN BARU",
+    save_new_pin: "Simpan PIN Baru",
+    control_tour: "Kontrol Lomba",
+    current_status: "Status Saat Ini",
+    status_live_caps: "SEDANG BERLANGSUNG (LIVE)",
+    status_finished_caps: "SELESAI",
+    status_paused_caps: "SEDANG JEDA / ISTIRAHAT",
+    status_upcoming_caps: "AKAN DATANG",
+    btn_start_tour: "MULAI LOMBA",
+    btn_pause_tour: "JEDA LOMBA (ISTIRAHAT)",
+    btn_finish_tour: "SELESAIKAN PERTANDINGAN",
+    btn_resume_tour: "LANJUTKAN LOMBA",
+    btn_reopen_tour: "BUKA KEMBALI LOMBA (LIVE)",
+    link_pdf: "Link Hasil Lengkap (PDF URL)",
+    link_desc: "Gunakan link publik agar bisa dibuka oleh penonton saat lomba selesai.",
+    btn_reset_tour: "RESET ULANG LOMBA",
+    edit_tour_info: "Edit Informasi Lomba",
+    btn_save_info: "SIMPAN INFORMASI",
+    info_saved: "Informasi berhasil disimpan!",
+    edit_pin_desc: "Kosongkan jika tidak diubah",
+    btn_save_pin: "SIMPAN PIN BARU",
+    pin_saved: "PIN akses berhasil diperbarui!",
+    event_list: "Daftar Acara (Events)",
+    import_excel: "IMPOR EXCEL",
+    event_name_placeholder: "Nama Acara (Contoh: 50m Gaya Bebas)",
+    btn_add: "TAMBAH",
+    col_result: "Hasil",
+    status_available: "ADA",
+    status_empty: "KOSONG",
+    input_link_result: "Input Link Hasil",
+    btn_save_link: "Simpan Link",
+    set_pause_time: "Atur Waktu Jeda",
+    pause_desc: "Pilih waktu kapan perlombaan ini akan dilanjutkan. Ini akan memunculkan hitung mundur bagi penonton di beranda.",
+    resume_time: "Waktu Dilanjutkan",
+    btn_do_pause: "Jeda Lomba Sekarang",
+    reset_tour_title: "Reset Lomba",
+    reset_tour_desc: "Tindakan ini akan mengembalikan status lomba ke \"Akan Datang\" dan menghapus seluruh riwayat diskualifikasi. Masukkan PIN Superuser untuk konfirmasi.",
+    pin_master_placeholder: "PIN MASTER",
+    wrong_master_pin: "PIN Superuser Salah!",
+    btn_confirm_reset: "Konfirmasi Reset Lomba",
+    finish_tour_title: "Selesaikan Lomba?",
+    finish_tour_desc: "Penonton di beranda akan melihat halaman hasil lomba secara penuh. Jika ini tidak disengaja, Anda dapat membuka kembali (Live) lomba ini nanti lewat menu kontrol.",
+    btn_finish_confirm: "Selesaikan",
+    announcer_display_control: "Live Timing Display Control",
+    board_no_data: "Papan skor belum menampilkan data.",
+    start_first_event: "MULAI ACARA PERTAMA",
+    total: "Total",
+    announcer_control: "Announcer Control",
+    input_dq: "Input Diskualifikasi",
+    dq_reason_desc: "Alasan / Keterangan Pelanggaran",
+    btn_announce_dq: "UMUMKAN DQ",
+    dq_history: "Riwayat DQ",
+    dq_none: "Nihil.",
+    call_room_status: "STATUS PEMANGGILAN",
+    live_control: "LIVE CONTROL",
+    ready_call: "Siap Memanggil Peserta.",
+    init_call_room: "INISIALISASI CALL ROOM",
+    calling_now: "Sedang Memanggil",
+    of_series: "Dari",
+    call_next: "PANGGIL NEXT",
+    pool_now: "Sedang Berlangsung di Kolam",
+    next_event_prep: "Event Selanjutnya (Persiapan)",
+    no_next_event: "Tidak ada event selanjutnya.",
+  },
+  en: {
+    connecting: "Connecting to Server...",
+    title_swimming_portal: "Swimming Championship Portal",
+    subtitle_swimming_portal: "Select a competition to view the Live Scoreboard & Schedule",
+    status_live: "Live Now",
+    status_upcoming: "Upcoming",
+    status_finished: "Finished",
+    badge_live: "Real-Time Reporting",
+    badge_upcoming: "COMING SOON",
+    badge_finished: "FINISHED",
+    badge_paused: "PAUSED / BREAK",
+    no_tournament: "No championship data available in the system.",
+    footer_text: "© SSO Interns 2026",
+    role_admin: "Event Admin",
+    role_announcer: "Announcer",
+    role_callroom: "Call Room",
+    role_master: "Superuser Master",
+    btn_home: "Home",
+    btn_logout: "Logout",
+    btn_results: "Results",
+    btn_results_full: "View Full Results",
+    btn_back: "Back",
+    call_room: "Call Room",
+    call_room_sub: "Marshalling",
+    last_update: "Last Update",
+    event: "Event",
+    series: "Heat",
+    lane: "Lane",
+    waiting: "Waiting...",
+    racing_now: "Racing Now",
+    dq_info: "LATEST DISQUALIFICATION INFO",
+    dq_reason: "Reason / Infraction",
+    dq_empty: "No disqualification records at the moment.",
+    page: "Page",
+    of: "of",
+    prev: "Prev",
+    next: "Next",
+    results_list_title: "Event Results List",
+    results_detail_title: "Result Detail",
+    no: "No",
+    action: "Action",
+    not_available: "Not available",
+    view_result: "View Result",
+    no_events: "No events added yet.",
+    login_title: "Select Official Access",
+    login_sub: "For",
+    login_btn: "Login",
+    wrong_pin: "Incorrect PIN",
+    scheduled_on: "Event is scheduled for:",
+    paused_until: "Will resume at:",
+    waiting_admin_result: "Waiting for admin to upload the results...",
+    days: "DAYS", hours: "HRS", minutes: "MINS", seconds: "SECS",
+    master_dash_title: "All Tournaments List",
+    btn_restore: "Restore Data",
+    btn_create_tour: "Create New Event",
+    tour_info: "General Info",
+    tour_name: "Championship Name",
+    tour_venue: "Location / Venue",
+    tour_start: "Start Date",
+    tour_end: "End Date",
+    access_settings: "Access Settings (PIN)",
+    pin_admin: "Admin PIN",
+    pin_announcer: "Announcer PIN",
+    pin_callroom: "Call Room PIN",
+    btn_cancel: "Cancel",
+    btn_save_create: "SAVE & CREATE EVENT",
+    col_tour: "Tournament",
+    col_status: "Status",
+    manage_event: "Manage Events",
+    del_tour_title: "Delete Event?",
+    del_tour_desc: "This action is permanent and cannot be undone. All event data and DQs for this tournament will be deleted.",
+    btn_del_yes: "Yes, Delete",
+    change_master_pin: "Change Master PIN",
+    input_new_pin: "NEW PIN",
+    save_new_pin: "Save New PIN",
+    control_tour: "Event Controls",
+    current_status: "Current Status",
+    status_live_caps: "LIVE IN PROGRESS",
+    status_finished_caps: "FINISHED",
+    status_paused_caps: "PAUSED / ON BREAK",
+    status_upcoming_caps: "UPCOMING",
+    btn_start_tour: "START EVENT",
+    btn_pause_tour: "PAUSE EVENT (BREAK)",
+    btn_finish_tour: "FINISH EVENT",
+    btn_resume_tour: "RESUME EVENT",
+    btn_reopen_tour: "REOPEN EVENT (LIVE)",
+    link_pdf: "Full Result Link (PDF URL)",
+    link_desc: "Use a public link so the audience can open it when the event finishes.",
+    btn_reset_tour: "RESET EVENT",
+    edit_tour_info: "Edit Event Information",
+    btn_save_info: "SAVE INFO",
+    info_saved: "Information saved successfully!",
+    edit_pin_desc: "Leave blank to keep current PIN",
+    btn_save_pin: "SAVE NEW PIN",
+    pin_saved: "Access PIN updated successfully!",
+    event_list: "Events List",
+    import_excel: "IMPORT EXCEL",
+    event_name_placeholder: "Event Name (e.g. 50m Freestyle)",
+    btn_add: "ADD",
+    col_result: "Result",
+    status_available: "YES",
+    status_empty: "NO",
+    input_link_result: "Input Result Link",
+    btn_save_link: "Save Link",
+    set_pause_time: "Set Pause Time",
+    pause_desc: "Select the time when this event will resume. This will show a countdown for the audience.",
+    resume_time: "Resume Time",
+    btn_do_pause: "Pause Event Now",
+    reset_tour_title: "Reset Event",
+    reset_tour_desc: "This action will revert the status to \"Upcoming\" and delete all DQ history. Enter Master PIN to confirm.",
+    pin_master_placeholder: "MASTER PIN",
+    wrong_master_pin: "Incorrect Master PIN!",
+    btn_confirm_reset: "Confirm Event Reset",
+    finish_tour_title: "Finish Event?",
+    finish_tour_desc: "The audience will see the full results page. If this was a mistake, you can reopen (Live) this event later via the control menu.",
+    btn_finish_confirm: "Finish",
+    announcer_display_control: "Live Timing Display Control",
+    board_no_data: "Scoreboard has no data yet.",
+    start_first_event: "START FIRST EVENT",
+    total: "Total",
+    announcer_control: "Announcer Control",
+    input_dq: "Input Disqualification",
+    dq_reason_desc: "Reason / Infraction Description",
+    btn_announce_dq: "ANNOUNCE DQ",
+    dq_history: "DQ History",
+    dq_none: "None.",
+    call_room_status: "MARSHALLING STATUS",
+    live_control: "LIVE CONTROL",
+    ready_call: "Ready to marshal athletes.",
+    init_call_room: "INITIALIZE CALL ROOM",
+    calling_now: "Currently Calling",
+    of_series: "Of",
+    call_next: "CALL NEXT",
+    pool_now: "Live in the Pool",
+    next_event_prep: "Next Event (Preparation)",
+    no_next_event: "No next event available.",
+  }
+};
 
 // --- TIPE DATA ---
 type LiveState = {
@@ -145,7 +423,7 @@ type LiveState = {
   callRoomSeries: number;
   lastUpdate: string; 
   callRoomLastUpdate: string; 
-  pauseUntil?: string | null; // Untuk menyimpan deadline waktu jeda
+  pauseUntil?: string | null; 
 };
 
 type Tournament = {
@@ -178,6 +456,8 @@ export default function App() {
   const [activeTournamentId, setActiveTournamentId] = useState<string | null>(null);
   const [role, setRole] = useState<'master' | 'admin' | 'announcer' | 'callroom' | 'public' | null>(null);
   
+  const [lang, setLang] = useState<'id'|'en'>('id'); // Toggles Language
+
   const [showLoginModal, setShowLoginModal] = useState<boolean>(false);
   const [targetLoginRole, setTargetLoginRole] = useState<'master' | 'admin' | 'announcer' | 'callroom' | null>(null);
 
@@ -227,7 +507,7 @@ export default function App() {
            await signInAnonymously(auth);
         }
       } catch (err) { 
-        console.warn("Auth inisialisasi: ", err); 
+        console.warn("Auth initialization error: ", err); 
       }
     };
     initAuth();
@@ -316,58 +596,6 @@ export default function App() {
     await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'tournaments', activeTournamentId), updatePayload);
   };
 
-  const handleRestoreLegacyData = async () => {
-    if (!user) return;
-    const confirmRestore = window.confirm("Fungsi ini akan mengimpor data 'PIALA KADISDIK SUMEDANG' sesuai dengan gambar sebelumnya ke sistem baru. Lanjutkan?");
-    if (!confirmRestore) return;
-    
-    try {
-        const tDocRef = await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'tournaments'), {
-          title: "PIALA KADISDIK SUMEDANG FINSWIMMING 2026",
-          venue: "Kolam Renang Yadika, Tanjungsari, Sumedang",
-          eventDate: '2026-04-01T00:00:00.000Z', 
-          status: 'finished',
-          resultUrl: '',
-          pins: { admin: simpleHash('1234'), announcer: simpleHash('1234'), callroom: simpleHash('1234') },
-          liveState: DEFAULT_LIVE_STATE,
-          createdAt: Date.now()
-        });
-
-        const tId = tDocRef.id;
-
-        await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'events'), { tournamentId: tId, number: 55, name: "Event 55 (Placeholder)", totalSeries: 3 });
-        await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'events'), { tournamentId: tId, number: 56, name: "Event 56 (Placeholder)", totalSeries: 2 });
-        
-        const evt61Ref = await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'events'), { tournamentId: tId, number: 61, name: "Mixed 11 & Under 4x50 Kick Surface Relay", totalSeries: 1 });
-        const evt64Ref = await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'events'), { tournamentId: tId, number: 64, name: "Mixed 12 & Over 4x50 Bi Fins Relay", totalSeries: 1 });
-
-        await updateDoc(tDocRef, {
-          liveState: {
-            currentEventId: evt61Ref.id,
-            currentEventNumber: 61,
-            currentEventName: "Mixed 11 & Under 4x50 Kick Surface Relay",
-            currentEventTotalSeries: 1,
-            currentSeries: 1,
-            callRoomEventId: evt64Ref.id,
-            callRoomEventNumber: 64,
-            callRoomEventName: "Mixed 12 & Over 4x50 Bi Fins Relay",
-            callRoomEventTotalSeries: 1,
-            callRoomSeries: 1,
-            lastUpdate: getWIBTime(),
-            callRoomLastUpdate: "18.49.35 WIB"
-          }
-        });
-
-        await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'dqs'), { tournamentId: tId, eventNumber: 56, series: 1, lane: 3, reason: "Melepas snorkel pada meter ke 90 meter", timestamp: getWIBTime(), createdAt: Date.now() });
-        await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'dqs'), { tournamentId: tId, eventNumber: 55, series: 2, lane: 1, reason: "fins lepas pada jarak 10 meter", timestamp: getWIBTime(), createdAt: Date.now() - 1000 });
-
-        alert("Berhasil! Data lama telah dipulihkan ke deployment baru.");
-    } catch (e) {
-        console.error(e);
-        alert("Gagal memulihkan data.");
-    }
-  };
-
   const processLogin = (roleName: string, pin: string) => {
     const hashed = simpleHash(pin);
     if (roleName === 'master') {
@@ -383,7 +611,7 @@ export default function App() {
     return false;
   };
 
-  if (!user) return <div className="h-screen flex items-center justify-center text-slate-500 font-sans gap-2"><Loader2 className="animate-spin"/> Menghubungkan ke Server...</div>;
+  if (!user) return <div className="h-screen flex items-center justify-center text-slate-500 font-sans gap-2"><Loader2 className="animate-spin"/> {t[lang].connecting}</div>;
 
   return (
     <>
@@ -392,6 +620,7 @@ export default function App() {
           targetRole={targetLoginRole} 
           onClose={() => setShowLoginModal(false)}
           onLogin={processLogin}
+          lang={lang} t={t}
         />
       )}
 
@@ -400,6 +629,7 @@ export default function App() {
           tournaments={tournaments}
           onSelectTournament={(id: string) => { setActiveTournamentId(id); setRole('public'); setViewMode('tournament'); }}
           onMasterLogin={() => { setTargetLoginRole('master'); setShowLoginModal(true); }}
+          lang={lang} setLang={setLang} t={t}
         />
       )}
 
@@ -410,13 +640,13 @@ export default function App() {
           onEdit={(id: string) => { setActiveTournamentId(id); setRole('admin'); setViewMode('tournament'); }}
           onDelete={handleDeleteTournament}
           onLogout={() => { setRole(null); setViewMode('global'); }}
-          onRestoreLegacy={handleRestoreLegacyData}
           onChangeMasterPin={async (newPin: string) => {
             if (user) {
               await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'settings', 'master'), { pinHash: simpleHash(newPin) });
-              alert('PIN Superuser berhasil diperbarui!');
+              alert(t[lang].pin_saved);
             }
           }}
+          lang={lang} t={t}
         />
       )}
 
@@ -427,16 +657,18 @@ export default function App() {
               tournament={activeTournament} dqs={activeDqs} events={activeEvents} isOnline={isOnline}
               onBack={() => { setActiveTournamentId(null); setViewMode('global'); }}
               onLoginRequest={() => { setRole(null); }}
+              lang={lang} setLang={setLang} t={t}
             />
           ) : !role ? (
             <RoleSelectionPanel 
               tournament={activeTournament}
               onBack={() => { setRole('public'); }} 
               onLoginRequest={(r:any) => { setTargetLoginRole(r); setShowLoginModal(true); }} 
+              lang={lang} t={t}
             />
           ) : (
             <div className="flex flex-col min-h-screen">
-               <Header role={role} title={activeTournament.title} venue={activeTournament.venue} onHome={() => { setRole('public'); }} onLogout={() => { setRole('public'); }} isOnline={isOnline} />
+               <Header role={role} title={activeTournament.title} venue={activeTournament.venue} onHome={() => { setRole('public'); }} onLogout={() => { setRole('public'); }} isOnline={isOnline} lang={lang} t={t} />
                <main className="flex-1 max-w-7xl mx-auto w-full p-4 md:p-6">
                   {role === 'admin' && (
                     <AdminPanel 
@@ -453,6 +685,7 @@ export default function App() {
                       onEditEvent={async (id: string, data: any) => { if(user) await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'events', id), data); }}
                       onDeleteEvent={async (id: string) => { if(user) await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'events', id)); }}
                       onResetTournament={async () => await handleResetTournament(activeTournament.id, activeDqs.map(d => d.id))}
+                      lang={lang} t={t}
                     />
                   )}
                   {role === 'announcer' && (
@@ -460,10 +693,11 @@ export default function App() {
                       tournament={activeTournament} events={activeEvents} dqs={activeDqs} updateLiveState={updateLiveState}
                       onAddDQ={async (data: any) => { if(user) await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'dqs'), { ...data, tournamentId: activeTournament.id, createdAt: Date.now() }); }}
                       onDeleteDQ={async (id: string) => { if(user) await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'dqs', id)); }}
+                      lang={lang} t={t}
                     />
                   )}
                   {role === 'callroom' && (
-                    <CallRoomPanel tournament={activeTournament} events={activeEvents} updateLiveState={updateLiveState} />
+                    <CallRoomPanel tournament={activeTournament} events={activeEvents} updateLiveState={updateLiveState} lang={lang} t={t} />
                   )}
                </main>
             </div>
@@ -476,114 +710,165 @@ export default function App() {
 
 // --- SUB-COMPONENTS ---
 
-const Header = ({ role, title, venue, onHome, onLogout, isOnline }: any) => (
-  <header className="bg-slate-900 text-white p-4 shadow-lg sticky top-0 z-50">
-    <div className="max-w-7xl mx-auto flex justify-between items-center">
-      <div className="flex items-center gap-3">
-        {role === 'admin' && <Settings className="text-blue-400" />}
-        {role === 'announcer' && <Mic className="text-purple-400" />}
-        {role === 'callroom' && <Users className="text-emerald-400" />}
-        <div>
-          <span className="font-bold text-lg uppercase leading-none block">{role === 'admin' ? 'Admin Lomba' : role}</span>
-          <span className={`text-[10px] flex items-center gap-1 ${isOnline ? 'text-emerald-400' : 'text-red-500'}`}>
-            {isOnline ? <Wifi size={10} /> : <WifiOff size={10} />} {isOnline ? 'ONLINE' : 'OFFLINE'}
-          </span>
+// Live Clock Hook
+function useLiveClock() {
+  const [time, setTime] = useState(new Date());
+  useEffect(() => {
+    const timer = setInterval(() => setTime(new Date()), 1000);
+    return () => clearInterval(timer);
+  }, []);
+  return time;
+}
+
+const ClockDisplay = ({ time, isMobile }: { time: Date, isMobile?: boolean }) => {
+  return (
+    <div className={`font-mono font-bold text-blue-300 tracking-widest ${isMobile ? 'text-[10px]' : 'text-sm'}`}>
+      {time.toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+    </div>
+  );
+}
+
+const Header = ({ role, title, venue, onHome, onLogout, isOnline, lang, t }: any) => {
+  const currentTime = useLiveClock();
+  return (
+    <header className="bg-slate-900 text-white p-4 shadow-lg sticky top-0 z-50">
+      <div className="max-w-7xl mx-auto flex justify-between items-center">
+        <div className="flex items-center gap-3">
+          {role === 'admin' && <Settings className="text-blue-400" />}
+          {role === 'announcer' && <Mic className="text-purple-400" />}
+          {role === 'callroom' && <Users className="text-emerald-400" />}
+          <div>
+            <span className="font-bold text-lg uppercase leading-none block">{role === 'admin' ? t[lang].role_admin : role === 'announcer' ? t[lang].role_announcer : t[lang].role_callroom}</span>
+            <span className={`text-[10px] flex items-center gap-1 ${isOnline ? 'text-emerald-400' : 'text-red-500'}`}>
+              {isOnline ? <Wifi size={10} /> : <WifiOff size={10} />} {isOnline ? 'ONLINE' : 'OFFLINE'}
+            </span>
+          </div>
+        </div>
+
+        {/* Central Live Clock */}
+        <div className="hidden sm:block absolute left-1/2 transform -translate-x-1/2 bg-slate-800/80 px-4 py-1.5 rounded-full border border-slate-700/50">
+           <ClockDisplay time={currentTime} />
+        </div>
+
+        <div className="flex items-center gap-3">
+          <div className="hidden md:block text-right mr-2 max-w-[200px]">
+              <div className="text-xs font-bold text-slate-300 truncate">{title}</div>
+              <div className="text-[10px] text-slate-500 truncate">{venue}</div>
+          </div>
+          {/* Mobile Clock */}
+          <div className="sm:hidden block px-2">
+             <ClockDisplay time={currentTime} isMobile={true} />
+          </div>
+          <button onClick={onHome} className="p-2 bg-slate-800 hover:bg-slate-700 rounded-full transition" title={t[lang].btn_home}><Home size={16} /></button>
+          <button onClick={onLogout} className="p-2 bg-red-600 hover:bg-red-700 rounded-full transition" title={t[lang].btn_logout}><LogOut size={16} /></button>
         </div>
       </div>
-      <div className="flex items-center gap-3">
-         <div className="hidden md:block text-right mr-2">
-            <div className="text-xs font-bold text-slate-300">{title}</div>
-            <div className="text-[10px] text-slate-500">{venue}</div>
-         </div>
-         <button onClick={onHome} className="p-2 bg-slate-800 hover:bg-slate-700 rounded-full transition" title="Lihat Public View"><Home size={16} /></button>
-         <button onClick={onLogout} className="p-2 bg-red-600 hover:bg-red-700 rounded-full transition" title="Logout"><LogOut size={16} /></button>
-      </div>
-    </div>
-  </header>
-);
+    </header>
+  );
+};
 
-const LogoBar = ({ onMasterLogin }: { onMasterLogin?: () => void }) => (
-  <nav className="border-b border-white/10 bg-slate-900/80 backdrop-blur-md sticky top-0 z-50 p-4">
-    <div className="max-w-6xl mx-auto flex justify-between items-center">
-      <div className="flex items-center gap-3">
-          <img src="/sangkuriang%201.png" alt="Logo" className="h-10 w-auto object-contain" onError={(e:any) => e.target.style.display='none'} />
-          <div className="font-bold text-xl leading-tight text-white">
-            <div>SANGKURIANG</div>
-            <div className="text-blue-400 text-sm tracking-widest">SWIM ORGANIZER</div>
-          </div>
-      </div>
-      {onMasterLogin && (
-        <button onClick={onMasterLogin} className="text-xs text-slate-500 hover:text-white flex gap-1 items-center transition bg-slate-800 px-3 py-1.5 rounded-full border border-slate-700">
-          <ShieldAlert size={14}/> Master
-        </button>
-      )}
-    </div>
-  </nav>
-);
+const LogoBar = ({ onMasterLogin, lang, setLang, t }: any) => {
+  const currentTime = useLiveClock();
+  return (
+    <nav className="border-b border-white/10 bg-slate-900/80 backdrop-blur-md sticky top-0 z-50 p-4">
+      <div className="max-w-6xl mx-auto flex justify-between items-center relative">
+        <div className="flex items-center gap-3 z-10">
+            <img src="/sangkuriang%201.png" alt="Logo" className="h-10 w-auto object-contain" onError={(e:any) => e.target.style.display='none'} />
+            <div className="font-bold text-xl leading-tight text-white hidden sm:block">
+              <div>SANGKURIANG</div>
+              <div className="text-blue-400 text-sm tracking-widest">SWIM ORGANIZER</div>
+            </div>
+        </div>
 
-const TourCard = ({ t, badge, badgeColor, onSelectTournament }: any) => (
-  <div onClick={() => onSelectTournament(t.id)} className="bg-slate-800/80 backdrop-blur border border-slate-700 p-6 rounded-2xl shadow-xl hover:border-blue-500 transition-colors cursor-pointer group text-left">
+        {/* Central Live Clock */}
+        <div className="absolute left-1/2 transform -translate-x-1/2 bg-slate-800/50 px-4 py-1.5 rounded-full border border-slate-700/50 flex flex-col items-center">
+            <span className="text-[8px] text-slate-400 uppercase font-bold tracking-[0.2em] -mb-1">Time</span>
+            <ClockDisplay time={currentTime} />
+        </div>
+
+        <div className="flex items-center gap-2 z-10">
+          <button 
+            onClick={() => setLang(lang === 'id' ? 'en' : 'id')} 
+            className="flex items-center gap-1.5 bg-slate-800 hover:bg-slate-700 text-white text-xs px-3 py-1.5 rounded-full border border-slate-700 transition"
+          >
+            <Globe size={14} className="text-blue-400" />
+            <span className="font-bold">{lang === 'id' ? 'ID' : 'EN'}</span>
+          </button>
+
+          {onMasterLogin && (
+            <button onClick={onMasterLogin} className="text-xs text-slate-400 hover:text-white flex gap-1 items-center transition bg-slate-800/50 px-2 py-1.5 rounded-full">
+              <ShieldAlert size={14}/>
+            </button>
+          )}
+        </div>
+      </div>
+    </nav>
+  );
+};
+
+const TourCard = ({ t: tour, badge, badgeColor, onSelectTournament, lang, t }: any) => (
+  <div onClick={() => onSelectTournament(tour.id)} className="bg-slate-800/80 backdrop-blur border border-slate-700 p-6 rounded-2xl shadow-xl hover:border-blue-500 transition-colors cursor-pointer group text-left relative overflow-hidden">
       <div className="flex justify-between items-start mb-4">
         <span className={`${badgeColor} text-xs px-2 py-1 rounded font-bold uppercase`}>{badge}</span>
         <Trophy size={20} className="text-slate-500 group-hover:text-blue-400 transition"/>
       </div>
-      <h3 className="text-xl font-bold mb-2 text-white group-hover:text-blue-400 transition">{t.title}</h3>
-      <div className="text-sm text-slate-400 mb-2 flex items-center gap-2"><MapPin size={14}/> {t.venue}</div>
-      <div className="text-sm text-slate-400 flex items-center gap-2"><Calendar size={14}/> {formatDateRange(t.eventDate, t.endDate)}</div>
+      <h3 className="text-xl font-bold mb-2 text-white group-hover:text-blue-400 transition relative z-10">{tour.title}</h3>
+      <div className="text-sm text-slate-400 mb-2 flex items-center gap-2 relative z-10"><MapPin size={14} className="shrink-0"/> <span className="truncate">{tour.venue}</span></div>
+      <div className="text-sm text-slate-400 flex items-center gap-2 relative z-10"><Calendar size={14} className="shrink-0"/> {formatDateRange(tour.eventDate, tour.endDate, lang)}</div>
   </div>
 );
 
-function GlobalLandingPage({ tournaments, onSelectTournament, onMasterLogin }: any) {
-  const activeTournaments = tournaments.filter((t: any) => t.status === 'live' || t.status === 'paused');
-  const upcoming = tournaments.filter((t: any) => t.status === 'upcoming');
-  const finished = tournaments.filter((t: any) => t.status === 'finished');
+function GlobalLandingPage({ tournaments, onSelectTournament, onMasterLogin, lang, setLang, t }: any) {
+  const activeTournaments = tournaments.filter((tr: any) => tr.status === 'live' || tr.status === 'paused');
+  const upcoming = tournaments.filter((tr: any) => tr.status === 'upcoming');
+  const finished = tournaments.filter((tr: any) => tr.status === 'finished');
 
   return (
     <div className="min-h-screen bg-slate-950 text-white font-sans flex flex-col relative overflow-y-auto">
-      <LogoBar onMasterLogin={onMasterLogin} />
+      <LogoBar onMasterLogin={onMasterLogin} lang={lang} setLang={setLang} t={t} />
       <div className="flex-1 max-w-6xl mx-auto w-full p-6 py-12">
         <div className="text-center mb-12">
-          <h1 className="text-4xl md:text-5xl font-extrabold mb-4 bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-emerald-400">Portal Kejuaraan Renang</h1>
-          <p className="text-slate-400 text-lg">Pilih kompetisi untuk melihat Live Scoreboard & Jadwal</p>
+          <h1 className="text-4xl md:text-5xl font-extrabold mb-4 bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-emerald-400">{t[lang].title_swimming_portal}</h1>
+          <p className="text-slate-400 text-lg">{t[lang].subtitle_swimming_portal}</p>
         </div>
 
         {activeTournaments.length > 0 ? (
           <div className="mb-12">
-            <h2 className="text-2xl font-bold mb-6 flex items-center gap-2 border-b border-slate-800 pb-2"><MonitorPlay className="text-red-500"/> Sedang Berlangsung</h2>
+            <h2 className="text-2xl font-bold mb-6 flex items-center gap-2 border-b border-slate-800 pb-2"><MonitorPlay className="text-red-500"/> {t[lang].status_live}</h2>
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {activeTournaments.map((t:any) => <TourCard key={t.id} t={t} badge={t.status === 'paused' ? 'JEDA / ISTIRAHAT' : 'Real-Time Reporting'} badgeColor={t.status === 'paused' ? 'bg-yellow-500/20 text-yellow-500 border border-yellow-500/30' : 'bg-red-500/20 text-red-400 animate-pulse border border-red-500/30'} onSelectTournament={onSelectTournament} />)}
+              {activeTournaments.map((tr:any) => <TourCard key={tr.id} tour={tr} badge={tr.status === 'paused' ? t[lang].badge_paused : t[lang].badge_live} badgeColor={tr.status === 'paused' ? 'bg-yellow-500/20 text-yellow-500 border border-yellow-500/30' : 'bg-red-500/20 text-red-400 animate-pulse border border-red-500/30'} onSelectTournament={onSelectTournament} lang={lang} t={t} />)}
             </div>
           </div>
         ) : null}
 
         {upcoming.length > 0 ? (
           <div className="mb-12">
-            <h2 className="text-2xl font-bold mb-6 flex items-center gap-2 border-b border-slate-800 pb-2"><Timer className="text-yellow-500"/> Akan Datang</h2>
+            <h2 className="text-2xl font-bold mb-6 flex items-center gap-2 border-b border-slate-800 pb-2"><Timer className="text-yellow-500"/> {t[lang].status_upcoming}</h2>
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {upcoming.map((t:any) => <TourCard key={t.id} t={t} badge="COMING SOON" badgeColor="bg-yellow-500/20 text-yellow-400 border border-yellow-500/30" onSelectTournament={onSelectTournament} />)}
+              {upcoming.map((tr:any) => <TourCard key={tr.id} tour={tr} badge={t[lang].badge_upcoming} badgeColor="bg-yellow-500/20 text-yellow-400 border border-yellow-500/30" onSelectTournament={onSelectTournament} lang={lang} t={t} />)}
             </div>
           </div>
         ) : null}
 
         {finished.length > 0 ? (
           <div className="mb-12 opacity-80">
-            <h2 className="text-2xl font-bold mb-6 flex items-center gap-2 border-b border-slate-800 pb-2"><CheckCircle className="text-blue-500"/> Selesai</h2>
+            <h2 className="text-2xl font-bold mb-6 flex items-center gap-2 border-b border-slate-800 pb-2"><CheckCircle className="text-blue-500"/> {t[lang].status_finished}</h2>
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {finished.map((t:any) => <TourCard key={t.id} t={t} badge="SELESAI" badgeColor="bg-[#1e3a8a] text-blue-300 border border-[#1e40af]" onSelectTournament={onSelectTournament} />)}
+              {finished.map((tr:any) => <TourCard key={tr.id} tour={tr} badge={t[lang].badge_finished} badgeColor="bg-[#1e3a8a] text-blue-300 border border-[#1e40af]" onSelectTournament={onSelectTournament} lang={lang} t={t} />)}
             </div>
           </div>
         ) : null}
         
         {tournaments.length === 0 ? (
-            <div className="text-center text-slate-500 py-20 italic">Belum ada data kejuaraan di dalam sistem.</div>
+            <div className="text-center text-slate-500 py-20 italic">{t[lang].no_tournament}</div>
         ) : null}
       </div>
-      <footer className="bg-slate-950 text-slate-600 py-4 text-center text-xs border-t border-slate-900 shrink-0">&copy; anak magang SSO 2026</footer>
+      <footer className="bg-slate-950 text-slate-600 py-4 text-center text-xs border-t border-slate-900 shrink-0">{t[lang].footer_text}</footer>
     </div>
   );
 }
 
-function MasterDashboard({ tournaments, onCreate, onEdit, onDelete, onLogout, onRestoreLegacy, onChangeMasterPin }: any) {
+function MasterDashboard({ tournaments, onCreate, onEdit, onDelete, onLogout, onRestoreLegacy, onChangeMasterPin, lang, t }: any) {
   const [showCreate, setShowCreate] = useState(false);
   const [form, setForm] = useState({ title: '', venue: '', eventDate: '', endDate: '', adminPin: '1234', announcerPin: '1234', callroomPin: '1234' });
 
@@ -613,63 +898,62 @@ function MasterDashboard({ tournaments, onCreate, onEdit, onDelete, onLogout, on
     <div className="min-h-screen bg-slate-50 font-sans text-slate-900">
       <header className="bg-blue-900 text-white p-4 shadow-lg sticky top-0 z-50">
         <div className="max-w-6xl mx-auto flex justify-between items-center">
-          <div className="font-bold text-xl flex items-center gap-2"><ShieldAlert className="text-blue-400"/> SUPERUSER MASTER</div>
+          <div className="font-bold text-xl flex items-center gap-2"><ShieldAlert className="text-blue-400"/> {t[lang].role_master}</div>
           <div className="flex gap-3">
-             <button onClick={() => setShowPinModal(true)} className="bg-blue-800 hover:bg-blue-700 px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2"><Lock size={16}/> Ubah PIN</button>
-             <button onClick={onLogout} className="bg-blue-800 hover:bg-blue-700 px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2"><LogOut size={16}/> Logout</button>
+             <button onClick={() => setShowPinModal(true)} className="bg-blue-800 hover:bg-blue-700 px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2"><Lock size={16}/> {t[lang].change_master_pin}</button>
+             <button onClick={onLogout} className="bg-blue-800 hover:bg-blue-700 px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2"><LogOut size={16}/> {t[lang].btn_logout}</button>
           </div>
         </div>
       </header>
       
       <main className="max-w-6xl mx-auto p-6">
         <div className="flex flex-col md:flex-row justify-between items-center mb-8 gap-4">
-          <h2 className="text-2xl font-bold text-slate-800">Daftar Semua Lomba</h2>
+          <h2 className="text-2xl font-bold text-slate-800">{t[lang].master_dash_title}</h2>
           <div className="flex gap-2">
-             <button onClick={onRestoreLegacy} className="bg-[#0f9d58] hover:bg-[#0b8043] text-white px-4 py-2.5 rounded-lg font-bold flex items-center gap-2 shadow-sm transition transform active:scale-95"><DownloadCloud size={18}/> Restore Data</button>
-             <button onClick={() => setShowCreate(!showCreate)} className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2.5 rounded-lg font-bold flex items-center gap-2 shadow-sm transition"><Plus size={18}/> Buat Lomba Baru</button>
+             <button onClick={() => setShowCreate(!showCreate)} className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2.5 rounded-lg font-bold flex items-center gap-2 shadow-sm transition"><Plus size={18}/> {t[lang].btn_create_tour}</button>
           </div>
         </div>
 
         {showCreate && (
           <form onSubmit={handleCreate} className="bg-white p-6 rounded-2xl shadow-sm border border-blue-100 mb-8 grid md:grid-cols-2 gap-6 animate-in fade-in">
              <div className="space-y-4">
-                <h3 className="font-bold text-blue-900 border-b pb-2">Informasi Umum</h3>
-                <div><label className="block text-xs font-bold text-slate-500 mb-1">Nama Kejuaraan</label><input required type="text" value={form.title} onChange={e=>setForm({...form, title: e.target.value})} className="w-full p-2 border rounded bg-slate-50" /></div>
-                <div><label className="block text-xs font-bold text-slate-500 mb-1">Lokasi / Venue</label><input required type="text" value={form.venue} onChange={e=>setForm({...form, venue: e.target.value})} className="w-full p-2 border rounded bg-slate-50" /></div>
+                <h3 className="font-bold text-blue-900 border-b pb-2">{t[lang].tour_info}</h3>
+                <div><label className="block text-xs font-bold text-slate-500 mb-1">{t[lang].tour_name}</label><input required type="text" value={form.title} onChange={e=>setForm({...form, title: e.target.value})} className="w-full p-2 border rounded bg-slate-50" /></div>
+                <div><label className="block text-xs font-bold text-slate-500 mb-1">{t[lang].tour_venue}</label><input required type="text" value={form.venue} onChange={e=>setForm({...form, venue: e.target.value})} className="w-full p-2 border rounded bg-slate-50" /></div>
                 <div className="grid grid-cols-2 gap-2">
-                  <div><label className="block text-xs font-bold text-slate-500 mb-1">Tanggal Mulai</label><input required type="date" value={form.eventDate} onChange={e=>setForm({...form, eventDate: e.target.value})} className="w-full p-2 border rounded bg-slate-50" /></div>
-                  <div><label className="block text-xs font-bold text-slate-500 mb-1">Tanggal Selesai</label><input required type="date" value={form.endDate} onChange={e=>setForm({...form, endDate: e.target.value})} className="w-full p-2 border rounded bg-slate-50" min={form.eventDate} /></div>
+                  <div><label className="block text-xs font-bold text-slate-500 mb-1">{t[lang].tour_start}</label><input required type="date" value={form.eventDate} onChange={e=>setForm({...form, eventDate: e.target.value})} className="w-full p-2 border rounded bg-slate-50" /></div>
+                  <div><label className="block text-xs font-bold text-slate-500 mb-1">{t[lang].tour_end}</label><input required type="date" value={form.endDate} onChange={e=>setForm({...form, endDate: e.target.value})} className="w-full p-2 border rounded bg-slate-50" min={form.eventDate} /></div>
                 </div>
              </div>
              <div className="space-y-4">
-                <h3 className="font-bold text-blue-900 border-b pb-2">Pengaturan Akses (PIN)</h3>
-                <div><label className="block text-xs font-bold text-slate-500 mb-1">PIN Admin Lomba</label><input required type="text" value={form.adminPin} onChange={e=>setForm({...form, adminPin: e.target.value})} className="w-full p-2 border rounded bg-slate-50" /></div>
-                <div><label className="block text-xs font-bold text-slate-500 mb-1">PIN Announcer</label><input required type="text" value={form.announcerPin} onChange={e=>setForm({...form, announcerPin: e.target.value})} className="w-full p-2 border rounded bg-slate-50" /></div>
-                <div><label className="block text-xs font-bold text-slate-500 mb-1">PIN Call Room</label><input required type="text" value={form.callroomPin} onChange={e=>setForm({...form, callroomPin: e.target.value})} className="w-full p-2 border rounded bg-slate-50" /></div>
+                <h3 className="font-bold text-blue-900 border-b pb-2">{t[lang].access_settings}</h3>
+                <div><label className="block text-xs font-bold text-slate-500 mb-1">{t[lang].pin_admin}</label><input required type="text" value={form.adminPin} onChange={e=>setForm({...form, adminPin: e.target.value})} className="w-full p-2 border rounded bg-slate-50" /></div>
+                <div><label className="block text-xs font-bold text-slate-500 mb-1">{t[lang].pin_announcer}</label><input required type="text" value={form.announcerPin} onChange={e=>setForm({...form, announcerPin: e.target.value})} className="w-full p-2 border rounded bg-slate-50" /></div>
+                <div><label className="block text-xs font-bold text-slate-500 mb-1">{t[lang].pin_callroom}</label><input required type="text" value={form.callroomPin} onChange={e=>setForm({...form, callroomPin: e.target.value})} className="w-full p-2 border rounded bg-slate-50" /></div>
              </div>
              <div className="md:col-span-2 flex justify-end gap-2 border-t pt-4">
-               <button type="button" onClick={()=>setShowCreate(false)} className="px-6 py-2 rounded text-slate-500 hover:bg-slate-100 font-bold">Batal</button>
-               <button type="submit" className="px-8 py-2 rounded bg-blue-600 text-white font-bold shadow-lg">SIMPAN & BUAT LOMBA</button>
+               <button type="button" onClick={()=>setShowCreate(false)} className="px-6 py-2 rounded text-slate-500 hover:bg-slate-100 font-bold">{t[lang].btn_cancel}</button>
+               <button type="submit" className="px-8 py-2 rounded bg-blue-600 text-white font-bold shadow-lg">{t[lang].btn_save_create}</button>
              </div>
           </form>
         )}
 
         <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
           <table className="w-full text-left">
-            <thead className="bg-slate-50 border-b"><tr><th className="p-4 font-bold text-slate-600">Lomba</th><th className="p-4 font-bold text-slate-600">Status</th><th className="p-4 font-bold text-slate-600 text-right">Aksi</th></tr></thead>
+            <thead className="bg-slate-50 border-b"><tr><th className="p-4 font-bold text-slate-600">{t[lang].col_tour}</th><th className="p-4 font-bold text-slate-600">{t[lang].col_status}</th><th className="p-4 font-bold text-slate-600 text-right">{t[lang].action}</th></tr></thead>
             <tbody>
-              {tournaments.map((t:any) => (
-                <tr key={t.id} className="border-b last:border-0 hover:bg-slate-50">
+              {tournaments.map((tr:any) => (
+                <tr key={tr.id} className="border-b last:border-0 hover:bg-slate-50">
                   <td className="p-4">
-                    <div className="font-bold text-blue-900 text-lg">{t.title}</div>
-                    <div className="text-sm text-slate-500">{formatDateRange(t.eventDate, t.endDate)} | {t.venue}</div>
+                    <div className="font-bold text-blue-900 text-lg">{tr.title}</div>
+                    <div className="text-sm text-slate-500">{formatDateRange(tr.eventDate, tr.endDate, lang)} | {tr.venue}</div>
                   </td>
                   <td className="p-4">
-                    <span className={`text-xs font-bold px-2 py-1 rounded-full uppercase ${t.status === 'live' ? 'bg-red-100 text-red-600' : t.status === 'finished' ? 'bg-blue-100 text-blue-600' : t.status === 'paused' ? 'bg-yellow-100 text-yellow-600' : 'bg-slate-100 text-slate-600'}`}>{t.status}</span>
+                    <span className={`text-xs font-bold px-2 py-1 rounded-full uppercase ${tr.status === 'live' ? 'bg-red-100 text-red-600' : tr.status === 'finished' ? 'bg-blue-100 text-blue-600' : tr.status === 'paused' ? 'bg-yellow-100 text-yellow-600' : 'bg-slate-100 text-slate-600'}`}>{tr.status === 'live' ? t[lang].status_live : tr.status === 'finished' ? t[lang].status_finished : tr.status === 'paused' ? t[lang].badge_paused : t[lang].status_upcoming}</span>
                   </td>
                   <td className="p-4 text-right space-x-2">
-                    <button onClick={() => onEdit(t.id)} className="bg-slate-800 text-white px-4 py-2 rounded font-bold text-sm hover:bg-slate-700 transition shadow">Kelola Event (Admin)</button>
-                    <button onClick={() => setDeleteId(t.id)} className="bg-red-50 text-red-500 hover:bg-red-100 px-3 py-2 rounded transition"><Trash2 size={16}/></button>
+                    <button onClick={() => onEdit(tr.id)} className="bg-slate-800 text-white px-4 py-2 rounded font-bold text-sm hover:bg-slate-700 transition shadow">{t[lang].manage_event}</button>
+                    <button onClick={() => setDeleteId(tr.id)} className="bg-red-50 text-red-500 hover:bg-red-100 px-3 py-2 rounded transition"><Trash2 size={16}/></button>
                   </td>
                 </tr>
               ))}
@@ -682,11 +966,10 @@ function MasterDashboard({ tournaments, onCreate, onEdit, onDelete, onLogout, on
         <div className="fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-[70] animate-in fade-in">
           <div className="bg-white rounded-2xl w-full max-w-sm p-8 relative zoom-in-95 duration-200 shadow-2xl">
             <button type="button" onClick={() => {setShowPinModal(false); setNewMasterPin('');}} className="absolute top-4 right-4 text-slate-400 hover:text-slate-800"><X size={20} /></button>
-            <h2 className="text-xl font-bold text-center mb-3 text-slate-800 flex justify-center items-center gap-2"><Lock /> Ubah PIN Master</h2>
-            <p className="text-center text-slate-500 text-sm mb-6">Masukkan PIN baru untuk akses Superuser Master (Bawaan: 123456).</p>
+            <h2 className="text-xl font-bold text-center mb-3 text-slate-800 flex justify-center items-center gap-2"><Lock /> {t[lang].change_master_pin}</h2>
             <form onSubmit={handleUpdatePin}>
-              <input autoFocus type="password" value={newMasterPin} onChange={e=>setNewMasterPin(e.target.value)} className="w-full text-center text-3xl font-bold p-4 border rounded-xl mb-4 outline-none focus:ring-2 focus:ring-blue-500 bg-slate-50" placeholder="PIN BARU" required />
-              <button type="submit" className="w-full bg-blue-600 text-white py-3 rounded-xl font-bold hover:bg-blue-700 transition shadow-lg">Simpan PIN Baru</button>
+              <input autoFocus type="password" value={newMasterPin} onChange={e=>setNewMasterPin(e.target.value)} className="w-full text-center text-3xl font-bold p-4 border rounded-xl mb-4 outline-none focus:ring-2 focus:ring-blue-500 bg-slate-50" placeholder={t[lang].input_new_pin} required />
+              <button type="submit" className="w-full bg-blue-600 text-white py-3 rounded-xl font-bold hover:bg-blue-700 transition shadow-lg">{t[lang].save_new_pin}</button>
             </form>
           </div>
         </div>
@@ -696,14 +979,14 @@ function MasterDashboard({ tournaments, onCreate, onEdit, onDelete, onLogout, on
       {deleteId && (
         <div className="fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-[70] animate-in fade-in">
           <div className="bg-white rounded-2xl w-full max-w-sm p-8 relative shadow-2xl text-center">
-            <h2 className="text-xl font-bold mb-2 flex items-center justify-center gap-2 text-red-600"><Trash2 /> Hapus Lomba?</h2>
-            <p className="text-sm text-slate-500 mb-6 leading-relaxed">Tindakan ini permanen dan tidak dapat dibatalkan. Seluruh data acara dan diskualifikasi pada lomba ini akan ikut terhapus.</p>
+            <h2 className="text-xl font-bold mb-2 flex items-center justify-center gap-2 text-red-600"><Trash2 /> {t[lang].del_tour_title}</h2>
+            <p className="text-sm text-slate-500 mb-6 leading-relaxed">{t[lang].del_tour_desc}</p>
             <div className="flex gap-3">
-              <button onClick={() => setDeleteId(null)} className="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 py-3 rounded-xl font-bold transition">Batal</button>
+              <button onClick={() => setDeleteId(null)} className="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 py-3 rounded-xl font-bold transition">{t[lang].btn_cancel}</button>
               <button onClick={() => {
                 onDelete(deleteId);
                 setDeleteId(null);
-              }} className="flex-1 bg-red-600 text-white py-3 rounded-xl font-bold hover:bg-red-700 transition shadow-lg">Ya, Hapus</button>
+              }} className="flex-1 bg-red-600 text-white py-3 rounded-xl font-bold hover:bg-red-700 transition shadow-lg">{t[lang].btn_del_yes}</button>
             </div>
           </div>
         </div>
@@ -712,7 +995,7 @@ function MasterDashboard({ tournaments, onCreate, onEdit, onDelete, onLogout, on
   );
 }
 
-function TournamentPublicView({ tournament, dqs, events, isOnline, onBack, onLoginRequest }: any) {
+function TournamentPublicView({ tournament, dqs, events, isOnline, onBack, onLoginRequest, lang, setLang, t }: any) {
   const [timeLeft, setTimeLeft] = useState({ days: 0, hours: 0, minutes: 0, seconds: 0 });
   const [showPdf, setShowPdf] = useState(false);
   const [showResultsList, setShowResultsList] = useState(false);
@@ -739,9 +1022,6 @@ function TournamentPublicView({ tournament, dqs, events, isOnline, onBack, onLog
     
     const timer = setInterval(() => {
       const now = new Date().getTime();
-      
-      // Jika status Jeda dan Admin menyetel waktu pauseUntil, gunakan waktu itu. 
-      // Jika Upcoming, gunakan eventDate.
       let targetDateStr = tournament.status === 'paused' ? tournament.liveState?.pauseUntil : tournament.eventDate;
       
       if (!targetDateStr) {
@@ -767,47 +1047,61 @@ function TournamentPublicView({ tournament, dqs, events, isOnline, onBack, onLog
     return () => clearInterval(timer);
   }, [tournament.eventDate, tournament.status, tournament.liveState?.pauseUntil]);
 
+  const currentTime = useLiveClock();
+
   if (tournament.status === 'live') {
-    return <LiveScoreboard tournament={tournament} dqs={dqs} events={events} isOnline={isOnline} onBack={onBack} onLoginRequest={onLoginRequest} />;
+    return <LiveScoreboard tournament={tournament} dqs={dqs} events={events} isOnline={isOnline} onBack={onBack} onLoginRequest={onLoginRequest} lang={lang} setLang={setLang} t={t} />;
   }
 
   const isFinished = tournament.status === 'finished';
 
   return (
     <div className="min-h-screen bg-slate-900 text-white font-sans flex flex-col relative overflow-hidden">
-      {/* POP-UP HASIL PDF KESELURUHAN (Hanya Untuk Status Selesai) */}
       {showPdf && tournament.resultUrl ? (
           <div className="fixed inset-0 z-[100] bg-black/90 flex flex-col p-4 animate-in fade-in">
               <div className="flex justify-between items-center mb-4 text-white">
-                  <h2 className="font-bold text-lg flex items-center gap-2"><FileText /> Hasil Lengkap</h2>
+                  <h2 className="font-bold text-lg flex items-center gap-2"><FileText /> {t[lang].btn_results_full}</h2>
                   <button onClick={() => setShowPdf(false)} className="p-2 bg-slate-800 rounded-full hover:bg-slate-700"><X /></button>
               </div>
-              <iframe src={tournament.resultUrl} className="flex-1 w-full rounded-lg bg-white" title="Hasil Lomba"></iframe>
+              <iframe src={tournament.resultUrl} className="flex-1 w-full rounded-lg bg-white" title="Results"></iframe>
           </div>
       ) : null}
 
       <div className="absolute inset-0 opacity-20 bg-[url('https://images.unsplash.com/photo-1530549387789-4c1017266635?ixlib=rb-1.2.1&auto=format&fit=crop&w=1920&q=80')] bg-cover bg-center" />
       
-      <header className="bg-slate-900/80 backdrop-blur-md text-white h-16 shrink-0 flex items-center justify-between px-6 border-b border-slate-800 z-50">
-          <div className="flex items-center gap-4">
-              <img src="/sangkuriang%201.png" alt="Logo" className="h-10 w-auto object-contain" onError={(e:any) => e.target.style.display='none'} />
-              <div className="flex flex-col justify-center hidden sm:flex">
-                  <h1 className="font-extrabold text-lg leading-none tracking-wide uppercase">Sangkuriang</h1>
-                  <p className="text-xs text-blue-400 font-bold tracking-[0.2em] uppercase">Swim Organizer</p>
+      <header className="bg-slate-900/80 backdrop-blur-md text-white h-16 shrink-0 flex items-center justify-between px-4 sm:px-6 border-b border-slate-800 z-50">
+          <div className="flex items-center gap-2 sm:gap-4 truncate">
+              <img src="/sangkuriang%201.png" alt="Logo" className="h-8 sm:h-10 w-auto object-contain" onError={(e:any) => e.target.style.display='none'} />
+              <div className="flex flex-col justify-center hidden md:flex">
+                  <h1 className="font-extrabold text-base sm:text-lg leading-none tracking-wide uppercase">Sangkuriang</h1>
+                  <p className="text-[10px] text-blue-400 font-bold tracking-[0.2em] uppercase">Swim Organizer</p>
               </div>
           </div>
-          <div className="flex items-center gap-3">
-              <span className={`text-[10px] flex items-center gap-1 ${isOnline ? 'text-emerald-400' : 'text-red-500'}`}>{isOnline ? <Wifi size={10} /> : <WifiOff size={10} />}</span>
+
+          <div className="absolute left-1/2 transform -translate-x-1/2 bg-slate-800/80 px-3 sm:px-4 py-1.5 rounded-full border border-slate-700/50 flex flex-col items-center">
+             <span className="text-[8px] text-slate-400 uppercase font-bold tracking-[0.2em] -mb-1">Time</span>
+             <ClockDisplay time={currentTime} />
+          </div>
+
+          <div className="flex items-center gap-1.5 sm:gap-3">
+              <span className={`text-[10px] flex items-center gap-1 hidden sm:flex ${isOnline ? 'text-emerald-400' : 'text-red-500'}`}>{isOnline ? <Wifi size={10} /> : <WifiOff size={10} />}</span>
               
-              {/* TOMBOL HASIL ACARA (Muncul di Header saat Jeda atau Selesai) */}
+              <button 
+                onClick={() => setLang(lang === 'id' ? 'en' : 'id')} 
+                className="flex items-center gap-1 bg-slate-800 hover:bg-slate-700 text-white text-[10px] sm:text-xs px-2 sm:px-3 py-1.5 rounded-full border border-slate-700 transition"
+              >
+                <Globe size={12} className="text-blue-400" />
+                <span className="font-bold hidden sm:inline">{lang === 'id' ? 'ID' : 'EN'}</span>
+              </button>
+
               {(tournament.status === 'paused' || isFinished) && (
-                <button onClick={() => setShowResultsList(true)} className="text-xs bg-blue-600 hover:bg-blue-500 text-white px-3 py-1.5 rounded-lg transition shadow-md flex items-center gap-2 font-bold whitespace-nowrap">
-                  <FileText size={14} /> <span className="hidden sm:inline">Hasil Acara</span>
+                <button onClick={() => setShowResultsList(true)} className="text-[10px] sm:text-xs bg-blue-600 hover:bg-blue-500 text-white px-2.5 sm:px-3 py-1.5 rounded-lg transition shadow-md flex items-center gap-1 sm:gap-2 font-bold whitespace-nowrap">
+                  <FileText size={14} /> <span className="hidden sm:inline">{t[lang].btn_results}</span>
                 </button>
               )}
 
-              <button onClick={onBack} className="text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 px-3 py-1.5 rounded-lg transition border border-slate-700 flex items-center gap-2"><ChevronLeft size={14} /> Beranda</button>
-              <button onClick={onLoginRequest} className="text-slate-500 hover:text-white transition p-2"><Settings size={20} /></button>
+              <button onClick={onBack} className="text-[10px] sm:text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 px-2 sm:px-3 py-1.5 rounded-lg transition border border-slate-700 flex items-center gap-1 sm:gap-2"><ChevronLeft size={14} /> <span className="hidden sm:inline">{t[lang].btn_home}</span></button>
+              <button onClick={onLoginRequest} className="text-slate-500 hover:text-white transition p-1.5 sm:p-2"><Settings size={16} className="sm:w-5 sm:h-5" /></button>
           </div>
       </header>
       
@@ -815,11 +1109,11 @@ function TournamentPublicView({ tournament, dqs, events, isOnline, onBack, onLog
         <div className="bg-slate-800/80 backdrop-blur border border-slate-700 p-8 rounded-2xl shadow-2xl max-w-xl w-full">
             <div className="flex justify-center mb-6">
                 {isFinished ? (
-                     <span className="bg-blue-500/20 text-blue-400 text-sm px-3 py-1 rounded-full font-bold flex items-center gap-2 border border-blue-500/30"><CheckCircle size={14} /> LOMBA TELAH SELESAI</span>
+                     <span className="bg-blue-500/20 text-blue-400 text-sm px-3 py-1 rounded-full font-bold flex items-center gap-2 border border-blue-500/30"><CheckCircle size={14} /> {t[lang].badge_finished}</span>
                 ) : tournament.status === 'paused' ? (
-                     <span className="bg-yellow-500/20 text-yellow-400 text-sm px-3 py-1 rounded-full font-bold flex items-center gap-2 border border-yellow-500/30"><Timer size={14}/> LOMBA SEDANG JEDA</span>
+                     <span className="bg-yellow-500/20 text-yellow-400 text-sm px-3 py-1 rounded-full font-bold flex items-center gap-2 border border-yellow-500/30"><Timer size={14}/> {t[lang].badge_paused}</span>
                 ) : (
-                     <span className="bg-slate-500/20 text-slate-300 text-sm px-3 py-1 rounded-full font-bold flex items-center gap-2 border border-slate-500/30"><Timer size={14}/> AKAN DATANG</span>
+                     <span className="bg-slate-500/20 text-slate-300 text-sm px-3 py-1 rounded-full font-bold flex items-center gap-2 border border-slate-500/30"><Timer size={14}/> {t[lang].badge_upcoming}</span>
                 )}
             </div>
 
@@ -829,64 +1123,74 @@ function TournamentPublicView({ tournament, dqs, events, isOnline, onBack, onLog
             </div>
 
             {!isFinished ? (
-                 <div className="grid grid-cols-4 gap-3 mb-8">
-                     {Object.entries(timeLeft).map(([unit, val]) => (
-                         <div key={unit} className="bg-slate-900 p-3 rounded-xl border border-slate-700 shadow-inner">
-                             <div className="text-3xl font-black text-white mb-1">{val}</div>
-                             <div className="text-[10px] uppercase text-slate-500 tracking-wider font-bold">{unit}</div>
-                         </div>
-                     ))}
+                 <div className="grid grid-cols-4 gap-2 sm:gap-3 mb-8">
+                     <div className="bg-slate-900 p-2 sm:p-3 rounded-xl border border-slate-700 shadow-inner">
+                         <div className="text-2xl sm:text-3xl font-black text-white mb-1">{timeLeft.days}</div>
+                         <div className="text-[8px] sm:text-[10px] uppercase text-slate-500 tracking-wider font-bold">{t[lang].days}</div>
+                     </div>
+                     <div className="bg-slate-900 p-2 sm:p-3 rounded-xl border border-slate-700 shadow-inner">
+                         <div className="text-2xl sm:text-3xl font-black text-white mb-1">{timeLeft.hours}</div>
+                         <div className="text-[8px] sm:text-[10px] uppercase text-slate-500 tracking-wider font-bold">{t[lang].hours}</div>
+                     </div>
+                     <div className="bg-slate-900 p-2 sm:p-3 rounded-xl border border-slate-700 shadow-inner">
+                         <div className="text-2xl sm:text-3xl font-black text-white mb-1">{timeLeft.minutes}</div>
+                         <div className="text-[8px] sm:text-[10px] uppercase text-slate-500 tracking-wider font-bold">{t[lang].minutes}</div>
+                     </div>
+                     <div className="bg-slate-900 p-2 sm:p-3 rounded-xl border border-slate-700 shadow-inner">
+                         <div className="text-2xl sm:text-3xl font-black text-white mb-1">{timeLeft.seconds}</div>
+                         <div className="text-[8px] sm:text-[10px] uppercase text-slate-500 tracking-wider font-bold">{t[lang].seconds}</div>
+                     </div>
                  </div>
             ) : null}
             
             {isFinished ? (
                  tournament.resultUrl ? (
-                    <button onClick={() => setShowPdf(true)} className="w-full py-4 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-bold flex justify-center items-center gap-2 transition active:scale-95 shadow-lg shadow-blue-900/50 text-lg">
-                        <FileText size={20}/> LIHAT HASIL KESELURUHAN
+                    <button onClick={() => setShowPdf(true)} className="w-full py-4 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-bold flex justify-center items-center gap-2 transition active:scale-95 shadow-lg shadow-blue-900/50 text-base sm:text-lg">
+                        <FileText size={20}/> {t[lang].btn_results_full}
                     </button>
                  ) : (
-                    <div className="text-slate-500 italic bg-slate-900 p-4 rounded-xl border border-slate-800">Menunggu admin mengunggah hasil perlombaan...</div>
+                    <div className="text-slate-500 italic bg-slate-900 p-4 rounded-xl border border-slate-800 text-sm">{t[lang].waiting_admin_result}</div>
                  )
             ) : (
                 <div className="text-sm text-slate-500 border-t border-slate-700 pt-6">
-                    {tournament.status === 'paused' ? 'Akan dilanjutkan pada:' : 'Lomba dijadwalkan pada:'}<br/>
-                    <span className="text-white font-bold text-lg">
+                    {tournament.status === 'paused' ? t[lang].paused_until : t[lang].scheduled_on}<br/>
+                    <span className="text-white font-bold text-base sm:text-lg mt-1 block">
                         {tournament.status === 'paused' && tournament.liveState?.pauseUntil 
-                            ? new Date(tournament.liveState.pauseUntil).toLocaleString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' }) + ' WIB'
-                            : formatDateRange(tournament.eventDate, tournament.endDate)}
+                            ? new Date(tournament.liveState.pauseUntil).toLocaleString(lang === 'id' ? 'id-ID' : 'en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' }) + ' WIB'
+                            : formatDateRange(tournament.eventDate, tournament.endDate, lang)}
                     </span>
                 </div>
             )}
         </div>
       </div>
-      <footer className="bg-slate-950 text-slate-600 py-4 text-center text-xs border-t border-slate-800 z-10 shrink-0">&copy; anak magang SSO 2026</footer>
+      <footer className="bg-slate-950 text-slate-600 py-4 text-center text-xs border-t border-slate-800 z-10 shrink-0">{t[lang].footer_text}</footer>
 
       {/* MODAL DAFTAR HASIL ACARA */}
       {showResultsList && (
           <div className="fixed inset-0 z-[80] bg-black/80 flex items-center justify-center p-4 animate-in fade-in">
              <div className="bg-white rounded-2xl w-full max-w-2xl max-h-[80vh] flex flex-col relative shadow-2xl">
-                <div className="p-5 md:p-6 border-b border-slate-100 flex justify-between items-center shrink-0">
-                   <h2 className="text-lg md:text-xl font-bold text-slate-800 flex items-center gap-2"><FileText className="text-blue-600"/> Daftar Hasil Per Acara</h2>
+                <div className="p-4 md:p-6 border-b border-slate-100 flex justify-between items-center shrink-0">
+                   <h2 className="text-base md:text-xl font-bold text-slate-800 flex items-center gap-2"><FileText className="text-blue-600"/> {t[lang].results_list_title}</h2>
                    <button onClick={() => setShowResultsList(false)} className="text-slate-400 hover:text-red-500 transition"><X size={24}/></button>
                 </div>
                 <div className="p-0 overflow-y-auto flex-1">
                    {events.length === 0 ? (
-                       <div className="p-8 text-center text-slate-500 italic">Belum ada data acara.</div>
+                       <div className="p-8 text-center text-slate-500 italic">{t[lang].no_events}</div>
                    ) : (
-                       <table className="w-full text-left text-sm md:text-base">
+                       <table className="w-full text-left text-xs sm:text-sm md:text-base">
                           <thead className="bg-slate-50 sticky top-0 border-b border-slate-200">
-                             <tr><th className="p-4 font-bold text-slate-600">No</th><th className="p-4 font-bold text-slate-600">Acara</th><th className="p-4 font-bold text-slate-600 text-right">Aksi</th></tr>
+                             <tr><th className="p-3 md:p-4 font-bold text-slate-600">{t[lang].no}</th><th className="p-3 md:p-4 font-bold text-slate-600">{t[lang].event}</th><th className="p-3 md:p-4 font-bold text-slate-600 text-right">{t[lang].action}</th></tr>
                           </thead>
                           <tbody>
                              {events.map((ev: any, idx: number) => (
                                  <tr key={ev.id} className={`border-b border-slate-100 ${idx % 2 === 0 ? 'bg-white' : 'bg-slate-50'}`}>
-                                    <td className="p-4 font-bold text-slate-800 w-12">{ev.number}</td>
-                                    <td className="p-4 font-semibold text-slate-700">{ev.name}</td>
-                                    <td className="p-4 text-right w-32">
+                                    <td className="p-3 md:p-4 font-bold text-slate-800 w-8 md:w-12">{ev.number}</td>
+                                    <td className="p-3 md:p-4 font-semibold text-slate-700">{ev.name}</td>
+                                    <td className="p-3 md:p-4 text-right w-24 md:w-32">
                                        {ev.resultUrl ? (
-                                           <button onClick={() => setShowPdfUrl(ev.resultUrl)} className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-bold text-xs shadow-sm transition whitespace-nowrap">Lihat Hasil</button>
+                                           <button onClick={() => setShowPdfUrl(ev.resultUrl)} className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 md:px-4 md:py-2 rounded-lg font-bold text-[10px] md:text-xs shadow-sm transition whitespace-nowrap">{t[lang].view_result}</button>
                                        ) : (
-                                           <span className="text-xs text-slate-400 italic whitespace-nowrap">Belum tersedia</span>
+                                           <span className="text-[10px] md:text-xs text-slate-400 italic whitespace-nowrap">{t[lang].not_available}</span>
                                        )}
                                     </td>
                                  </tr>
@@ -904,14 +1208,14 @@ function TournamentPublicView({ tournament, dqs, events, isOnline, onBack, onLog
           <div className="fixed inset-0 z-[90] bg-black/90 flex flex-col p-4 animate-in fade-in">
               <div className="flex justify-between items-center mb-4 text-white">
                   <div className="flex flex-col">
-                    <h2 className="font-bold text-lg flex items-center gap-2"><FileText /> Detail Hasil Acara</h2>
+                    <h2 className="font-bold text-base md:text-lg flex items-center gap-2"><FileText size={18}/> {t[lang].results_detail_title}</h2>
                     {currentResultIndex !== -1 && (
-                      <span className="text-blue-300 text-sm font-semibold truncate max-w-[250px] md:max-w-md">
+                      <span className="text-blue-300 text-xs md:text-sm font-semibold truncate max-w-[200px] sm:max-w-[250px] md:max-w-md">
                         {eventsWithResults[currentResultIndex].number}. {eventsWithResults[currentResultIndex].name}
                       </span>
                     )}
                   </div>
-                  <button onClick={() => setShowPdfUrl(null)} className="p-2 bg-slate-800 rounded-full hover:bg-slate-700 shrink-0"><X /></button>
+                  <button onClick={() => setShowPdfUrl(null)} className="p-2 bg-slate-800 rounded-full hover:bg-slate-700 shrink-0"><X size={20} /></button>
               </div>
               
               <div className="flex-1 w-full relative flex items-center">
@@ -919,21 +1223,21 @@ function TournamentPublicView({ tournament, dqs, events, isOnline, onBack, onLog
                   {currentResultIndex > 0 && (
                     <button 
                       onClick={handlePrevResult}
-                      className="absolute left-2 z-10 bg-slate-800/80 hover:bg-blue-600 text-white p-3 rounded-full shadow-lg transition-colors backdrop-blur-sm"
-                      title="Acara Sebelumnya"
+                      className="absolute left-2 z-10 bg-slate-800/80 hover:bg-blue-600 text-white p-2 md:p-3 rounded-full shadow-lg transition-colors backdrop-blur-sm"
+                      title={t[lang].prev}
                     >
                       <ChevronLeft size={24} />
                     </button>
                   )}
 
-                  <iframe src={showPdfUrl} className="w-full h-full rounded-lg bg-white" title="Hasil Acara"></iframe>
+                  <iframe src={showPdfUrl} className="w-full h-full rounded-lg bg-white" title="Results"></iframe>
 
                   {/* Tombol Next */}
                   {currentResultIndex !== -1 && currentResultIndex < eventsWithResults.length - 1 && (
                     <button 
                       onClick={handleNextResult}
-                      className="absolute right-2 z-10 bg-slate-800/80 hover:bg-blue-600 text-white p-3 rounded-full shadow-lg transition-colors backdrop-blur-sm"
-                      title="Acara Selanjutnya"
+                      className="absolute right-2 z-10 bg-slate-800/80 hover:bg-blue-600 text-white p-2 md:p-3 rounded-full shadow-lg transition-colors backdrop-blur-sm"
+                      title={t[lang].next}
                     >
                       <ChevronRight size={24} />
                     </button>
@@ -946,7 +1250,7 @@ function TournamentPublicView({ tournament, dqs, events, isOnline, onBack, onLog
 }
 
 // 3A. LIVE SCOREBOARD (Split Screen)
-function LiveScoreboard({ tournament, dqs, events, isOnline, onBack, onLoginRequest }: any) {
+function LiveScoreboard({ tournament, dqs, events, isOnline, onBack, onLoginRequest, lang, setLang, t }: any) {
   const ls = tournament.liveState || DEFAULT_LIVE_STATE;
   
   const [dqPage, setDqPage] = useState(1);
@@ -977,124 +1281,137 @@ function LiveScoreboard({ tournament, dqs, events, isOnline, onBack, onLoginRequ
       if (dqPage > totalPages) setDqPage(1);
   }, [dqs.length, totalPages, dqPage]);
 
+  const currentTime = useLiveClock();
+
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col relative">
-        <header className="bg-slate-900 text-white h-16 shrink-0 flex items-center justify-between px-3 md:px-6 border-b border-slate-800 shadow-xl z-50">
-            <div className="flex items-center gap-2 md:gap-4 flex-1 overflow-hidden mr-2">
+        <header className="bg-slate-900 text-white h-16 shrink-0 flex items-center justify-between px-3 sm:px-6 border-b border-slate-800 shadow-xl z-50">
+            <div className="flex items-center gap-2 sm:gap-4 truncate">
                 <img src="/sangkuriang%201.png" alt="Logo" className="hidden sm:block h-10 w-auto object-contain" onError={(e:any) => e.target.style.display='none'} />
                 <div className="flex flex-col justify-center min-w-0">
-                    <h1 className="font-extrabold text-sm sm:text-lg leading-none tracking-wide uppercase truncate w-full">{tournament.title}</h1>
+                    <h1 className="font-extrabold text-sm sm:text-lg leading-none tracking-wide uppercase truncate w-[130px] sm:w-[150px] md:w-full">{tournament.title}</h1>
                     <p className="text-[10px] text-blue-400 font-bold tracking-[0.2em] uppercase hidden sm:block">Swim Organizer</p>
                 </div>
             </div>
-            <div className="flex items-center gap-1.5 md:gap-3 shrink-0">
-                <span className={`text-[10px] flex items-center gap-1 ${isOnline ? 'text-emerald-400' : 'text-red-500'}`}>{isOnline ? <Wifi size={10} /> : <WifiOff size={10} />}</span>
-                <button onClick={() => setShowResultsList(true)} className="text-[10px] sm:text-xs bg-blue-600 hover:bg-blue-500 text-white px-2 sm:px-3 py-1.5 rounded-lg transition shadow-md flex items-center gap-1.5 font-bold whitespace-nowrap"><FileText size={14} /> <span className="hidden sm:inline">Hasil</span></button>
-                <button onClick={onBack} className="text-[10px] sm:text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 px-2 sm:px-3 py-1.5 rounded-lg transition border border-slate-700 flex items-center gap-1.5"><ChevronLeft size={14} /> <span className="hidden md:inline">Beranda</span></button>
+
+            {/* Central Live Clock - Hide on very small screens to save space */}
+            <div className="absolute left-1/2 transform -translate-x-1/2 bg-slate-800/80 px-2 sm:px-4 py-1 sm:py-1.5 rounded-full border border-slate-700/50 flex flex-col items-center hidden md:flex">
+               <span className="text-[8px] text-slate-400 uppercase font-bold tracking-[0.2em] -mb-1">Time</span>
+               <ClockDisplay time={currentTime} />
+            </div>
+
+            <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
+                <span className={`text-[10px] flex items-center gap-1 hidden sm:flex ${isOnline ? 'text-emerald-400' : 'text-red-500'}`}>{isOnline ? <Wifi size={10} /> : <WifiOff size={10} />}</span>
+                
+                <button 
+                  onClick={() => setLang(lang === 'id' ? 'en' : 'id')} 
+                  className="flex items-center gap-1 bg-slate-800 hover:bg-slate-700 text-white text-[10px] sm:text-xs px-2 sm:px-3 py-1.5 rounded-full border border-slate-700 transition"
+                >
+                  <Globe size={12} className="text-blue-400" />
+                  <span className="font-bold hidden sm:inline">{lang === 'id' ? 'ID' : 'EN'}</span>
+                </button>
+
+                <button onClick={() => setShowResultsList(true)} className="text-[10px] sm:text-xs bg-blue-600 hover:bg-blue-500 text-white px-2.5 sm:px-3 py-1.5 rounded-lg transition shadow-md flex items-center gap-1.5 font-bold whitespace-nowrap"><FileText size={14} /> <span className="hidden sm:inline">{t[lang].btn_results}</span></button>
+                <button onClick={onBack} className="text-[10px] sm:text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 px-2.5 sm:px-3 py-1.5 rounded-lg transition border border-slate-700 flex items-center gap-1.5"><ChevronLeft size={14} /> <span className="hidden sm:inline">{t[lang].btn_home}</span></button>
                 <button onClick={onLoginRequest} className="text-slate-500 hover:text-white transition p-1.5"><Settings size={18} /></button>
             </div>
         </header>
 
         <div className="flex flex-col md:flex-row border-b border-slate-200 shadow-sm shrink-0">
-            {/* BAGIAN PEMANGGILAN (CALL ROOM) */}
-            <div className="w-full md:w-1/2 bg-slate-900 relative p-4 sm:p-6 md:p-12 min-h-[220px] md:min-h-[45vh] flex flex-col justify-center">
+            <div className="w-full md:w-1/2 bg-slate-900 relative p-4 sm:p-6 md:p-12 min-h-[200px] sm:min-h-[250px] md:min-h-[45vh] flex flex-col justify-center">
                 <div className="absolute inset-0 bg-gradient-to-br from-blue-900/40 via-slate-900 to-slate-900 z-0"></div>
                 <div className="relative z-10 w-full max-w-lg mx-auto">
-                    <div className="flex flex-row justify-between items-center mb-4 sm:mb-6 gap-2">
+                    <div className="flex flex-row justify-between items-center mb-4 sm:mb-6">
                         <div>
-                            <h2 className="text-white text-lg sm:text-2xl md:text-3xl font-bold flex items-center gap-1.5 sm:gap-2"><Users size={20} className="text-blue-400 sm:w-6 sm:h-6" /> Pemanggilan</h2>
-                            <span className="text-blue-200/60 text-[10px] sm:text-sm block mt-0.5 sm:mt-1">Call Room</span>
+                            <h2 className="text-white text-lg sm:text-2xl md:text-3xl font-bold flex items-center gap-1.5 sm:gap-2"><Users className="text-blue-400 w-5 h-5 sm:w-8 sm:h-8" /> {t[lang].call_room}</h2>
+                            <span className="text-blue-200/60 text-[10px] sm:text-sm block mt-0.5 sm:mt-1">{t[lang].call_room_sub}</span>
                         </div>
                         <div className="text-right">
-                            <span className="text-blue-200/40 text-[8px] sm:text-[10px] uppercase block">Terakhir Update</span>
-                            <span className="text-white text-sm sm:text-lg font-mono font-bold flex items-center justify-end gap-1 sm:gap-2"><Clock size={12} className="text-blue-400 sm:w-4 sm:h-4" /> {ls.callRoomLastUpdate || '-'}</span>
+                            <span className="text-blue-200/40 text-[8px] sm:text-[10px] uppercase block">{t[lang].last_update}</span>
+                            <span className="text-white text-xs sm:text-base md:text-lg font-mono font-bold flex items-center justify-end gap-1 sm:gap-2"><Clock size={12} className="text-blue-400 sm:w-4 sm:h-4" /> {ls.callRoomLastUpdate || '-'}</span>
                         </div>
                     </div>
                     <div className="flex gap-2 sm:gap-4">
                         <div className="flex-1 bg-white/5 border border-white/10 rounded-xl sm:rounded-2xl p-2 sm:p-4 text-center flex flex-col justify-center">
-                            <div className="text-blue-200 text-[10px] sm:text-sm uppercase mb-0.5 sm:mb-1">Acara</div>
-                            <div className="text-white text-5xl sm:text-6xl md:text-8xl font-bold tracking-tighter shrink-0">{ls.callRoomEventNumber || '-'}</div>
+                            <div className="text-blue-200 text-[10px] sm:text-sm uppercase mb-0.5 sm:mb-1">{t[lang].event}</div>
+                            <div className="text-white text-4xl sm:text-6xl md:text-8xl font-bold tracking-tighter shrink-0 leading-none">{ls.callRoomEventNumber || '-'}</div>
                         </div>
                         <div className="flex-1 bg-white/5 border border-white/10 rounded-xl sm:rounded-2xl p-2 sm:p-4 text-center flex flex-col justify-center">
-                            <div className="text-blue-200 text-[10px] sm:text-sm uppercase mb-0.5 sm:mb-1">Seri</div>
-                            <div className="text-white text-5xl sm:text-6xl md:text-8xl font-bold tracking-tighter shrink-0">{ls.callRoomSeries}</div>
+                            <div className="text-blue-200 text-[10px] sm:text-sm uppercase mb-0.5 sm:mb-1">{t[lang].series}</div>
+                            <div className="text-white text-4xl sm:text-6xl md:text-8xl font-bold tracking-tighter shrink-0 leading-none">{ls.callRoomSeries}</div>
                         </div>
                     </div>
-                    <p className="text-center text-blue-200/50 mt-3 sm:mt-4 text-xs sm:text-lg md:text-xl font-medium truncate px-2">{ls.callRoomEventName || 'Menunggu...'}</p>
+                    <p className="text-center text-blue-200/50 mt-3 sm:mt-4 text-xs sm:text-sm md:text-xl font-medium truncate px-2">{ls.callRoomEventName || t[lang].waiting}</p>
                 </div>
             </div>
             
-            {/* BAGIAN SEDANG BERLOMBA (LIVE) */}
-            <div className="w-full md:w-1/2 bg-white relative p-4 sm:p-6 md:p-12 min-h-[220px] md:min-h-[45vh] flex flex-col justify-center">
+            <div className="w-full md:w-1/2 bg-white relative p-4 sm:p-6 md:p-12 min-h-[200px] sm:min-h-[250px] md:min-h-[45vh] flex flex-col justify-center">
                 <div className="relative z-10 w-full max-w-lg mx-auto">
-                    <div className="flex flex-row justify-between items-center mb-4 sm:mb-6 gap-2">
-                        <h2 className="text-slate-800 text-lg sm:text-2xl md:text-3xl font-bold flex items-center gap-1.5 sm:gap-2"><MonitorPlay size={20} className="text-red-500 sm:w-6 sm:h-6" /> Sedang Berlomba</h2>
-                        <span className="bg-red-500 text-white text-[10px] sm:text-xs px-2 sm:px-3 py-1 rounded-full font-bold animate-pulse whitespace-nowrap">LIVE</span>
+                    <div className="flex flex-row justify-between items-center mb-4 sm:mb-6">
+                        <h2 className="text-slate-800 text-lg sm:text-2xl md:text-3xl font-bold flex items-center gap-1.5 sm:gap-2"><MonitorPlay className="text-red-500 w-5 h-5 sm:w-8 sm:h-8" /> {t[lang].racing_now}</h2>
+                        <span className="bg-red-500 text-white text-[10px] sm:text-xs px-2 sm:px-3 py-1 rounded-full font-bold animate-pulse">LIVE</span>
                     </div>
                     <div className="flex gap-2 sm:gap-4">
                         <div className="flex-1 bg-slate-50 border border-slate-200 rounded-xl sm:rounded-2xl p-2 sm:p-4 text-center shadow-inner flex flex-col justify-center">
-                            <div className="text-slate-400 text-[10px] sm:text-sm uppercase mb-0.5 sm:mb-1">Acara</div>
-                            <div className="text-slate-800 text-5xl sm:text-6xl md:text-8xl font-bold tracking-tighter shrink-0">{ls.currentEventNumber || '-'}</div>
+                            <div className="text-slate-400 text-[10px] sm:text-sm uppercase mb-0.5 sm:mb-1">{t[lang].event}</div>
+                            <div className="text-slate-800 text-4xl sm:text-6xl md:text-8xl font-bold tracking-tighter shrink-0 leading-none">{ls.currentEventNumber || '-'}</div>
                         </div>
                         <div className="flex-1 bg-slate-50 border border-slate-200 rounded-xl sm:rounded-2xl p-2 sm:p-4 text-center shadow-inner flex flex-col justify-center">
-                            <div className="text-slate-400 text-[10px] sm:text-sm uppercase mb-0.5 sm:mb-1">Seri</div>
-                            <div className="text-slate-800 text-5xl sm:text-6xl md:text-8xl font-bold tracking-tighter shrink-0">{ls.currentSeries}</div>
+                            <div className="text-slate-400 text-[10px] sm:text-sm uppercase mb-0.5 sm:mb-1">{t[lang].series}</div>
+                            <div className="text-slate-800 text-4xl sm:text-6xl md:text-8xl font-bold tracking-tighter shrink-0 leading-none">{ls.currentSeries}</div>
                         </div>
                     </div>
-                    <p className="text-center text-slate-500 mt-3 sm:mt-4 text-xs sm:text-lg md:text-xl font-medium truncate px-2">{ls.currentEventName || 'Menunggu...'}</p>
+                    <p className="text-center text-slate-500 mt-3 sm:mt-4 text-xs sm:text-sm md:text-xl font-medium truncate px-2">{ls.currentEventName || t[lang].waiting}</p>
                 </div>
             </div>
         </div>
         
         <div className="w-full max-w-7xl mx-auto p-4 md:p-8 flex-1 flex flex-col">
-            <h3 className="text-slate-800 font-extrabold text-lg md:text-xl mb-4 flex items-center gap-2">
-                <AlertOctagon size={24} className="text-red-500" /> INFORMASI DISKUALIFIKASI TERKINI
+            <h3 className="text-slate-800 font-extrabold text-sm sm:text-lg md:text-xl mb-3 sm:mb-4 flex items-center gap-1.5 sm:gap-2">
+                <AlertOctagon size={20} className="text-red-500 sm:w-6 sm:h-6" /> {t[lang].dq_info}
             </h3>
             <div className="bg-white rounded-xl shadow-md border border-slate-200 overflow-hidden flex flex-col">
-                {/* Header Tabel */}
-                <div className="flex bg-slate-800 text-white text-[10px] sm:text-sm font-bold uppercase py-3 md:py-4 px-3 md:px-6 items-center shrink-0">
-                    <div className="w-12 sm:w-20 text-center sm:text-left shrink-0">Acara</div>
-                    <div className="w-10 sm:w-20 text-center shrink-0">Seri</div>
-                    <div className="w-10 sm:w-20 text-center shrink-0">Lin</div>
-                    <div className="flex-1 pl-3 sm:pl-6 text-left">Keterangan / Alasan</div>
+                <div className="flex bg-slate-800 text-white text-[9px] sm:text-xs md:text-sm font-bold uppercase py-2.5 sm:py-3 md:py-4 px-2 sm:px-4 md:px-6 items-center shrink-0">
+                    <div className="w-10 sm:w-16 md:w-20 text-center sm:text-left shrink-0">{t[lang].event}</div>
+                    <div className="w-8 sm:w-12 md:w-20 text-center shrink-0">{t[lang].series}</div>
+                    <div className="w-8 sm:w-12 md:w-20 text-center shrink-0">{t[lang].lane}</div>
+                    <div className="flex-1 pl-2 sm:pl-4 md:pl-6 text-left">{t[lang].dq_reason}</div>
                 </div>
                 
-                {/* Body Tabel Tanpa Internal Scroll */}
                 <div className="flex flex-col">
                     {currentDqs.length === 0 ? (
-                        <div className="flex items-center justify-center text-slate-400 italic text-sm md:text-base py-12">Tidak ada informasi diskualifikasi saat ini.</div>
+                        <div className="flex items-center justify-center text-slate-400 italic text-xs sm:text-sm md:text-base py-8 sm:py-12">{t[lang].dq_empty}</div>
                     ) : (
                         <div className="flex flex-col">
                             {currentDqs.map((dq: any, idx: number) => (
-                                <div key={dq.id} className={`flex text-xs sm:text-base md:text-xl py-3 md:py-5 px-3 md:px-6 border-b border-slate-100 items-start sm:items-center ${idx % 2 === 0 ? 'bg-white' : 'bg-slate-50'}`}>
-                                    <div className="w-12 sm:w-20 font-bold text-slate-800 text-center sm:text-left shrink-0 pt-0.5 sm:pt-0">{dq.eventNumber}</div>
-                                    <div className="w-10 sm:w-20 text-center text-slate-600 font-semibold shrink-0 pt-0.5 sm:pt-0">{dq.series}</div>
-                                    <div className="w-10 sm:w-20 text-center shrink-0 pt-0.5 sm:pt-0">
-                                        <span className="bg-slate-200 text-slate-700 px-1.5 md:px-4 py-1 md:py-1.5 rounded-lg font-mono font-bold">{dq.lane}</span>
+                                <div key={dq.id} className={`flex text-[10px] sm:text-sm md:text-base lg:text-lg py-2.5 sm:py-4 md:py-5 px-2 sm:px-4 md:px-6 border-b border-slate-100 items-start sm:items-center ${idx % 2 === 0 ? 'bg-white' : 'bg-slate-50'}`}>
+                                    <div className="w-10 sm:w-16 md:w-20 font-bold text-slate-800 text-center sm:text-left shrink-0 pt-0.5 sm:pt-0">{dq.eventNumber}</div>
+                                    <div className="w-8 sm:w-12 md:w-20 text-center text-slate-600 font-semibold shrink-0 pt-0.5 sm:pt-0">{dq.series}</div>
+                                    <div className="w-8 sm:w-12 md:w-20 text-center shrink-0 pt-0.5 sm:pt-0">
+                                        <span className="bg-slate-200 text-slate-700 px-1 sm:px-2 md:px-4 py-0.5 sm:py-1 md:py-1.5 rounded sm:rounded-lg font-mono font-bold">{dq.lane}</span>
                                     </div>
-                                    <div className="flex-1 pl-3 sm:pl-6 text-red-600 font-bold whitespace-normal break-words leading-snug">{dq.reason}</div>
+                                    <div className="flex-1 pl-2 sm:pl-4 md:pl-6 text-red-600 font-bold whitespace-normal break-words leading-snug">{dq.reason}</div>
                                 </div>
                             ))}
                         </div>
                     )}
 
-                    {/* Panel Paginasi / Tombol (Hanya Muncul Jika Lebih Dari 10 Data) */}
                     {totalPages > 1 && (
-                        <div className="bg-slate-100 border-t border-slate-200 p-3 md:p-4 px-4 md:px-6 flex justify-between items-center shrink-0">
+                        <div className="bg-slate-100 border-t border-slate-200 p-2.5 sm:p-3 md:p-4 px-3 sm:px-4 md:px-6 flex justify-between items-center shrink-0">
                             <button 
                                 onClick={() => setDqPage(p => Math.max(1, p - 1))} 
                                 disabled={dqPage === 1} 
-                                className="px-4 py-2 bg-white border border-slate-300 rounded-lg text-xs md:text-sm font-bold text-slate-600 disabled:opacity-50 hover:bg-slate-50 flex items-center gap-1 transition"
+                                className="px-2 sm:px-4 py-1.5 sm:py-2 bg-white border border-slate-300 rounded-md sm:rounded-lg text-[10px] sm:text-xs md:text-sm font-bold text-slate-600 disabled:opacity-50 hover:bg-slate-50 flex items-center gap-1 transition"
                             >
-                                <ChevronLeft size={16}/> <span className="hidden sm:inline">Sebelumnya</span>
+                                <ChevronLeft size={14} className="sm:w-4 sm:h-4"/> <span className="hidden sm:inline">{t[lang].prev}</span>
                             </button>
-                            <span className="text-xs md:text-sm font-bold text-slate-500 uppercase tracking-widest">Hal {dqPage} dari {totalPages}</span>
+                            <span className="text-[10px] sm:text-xs md:text-sm font-bold text-slate-500 uppercase tracking-widest">{t[lang].page} {dqPage} {t[lang].of} {totalPages}</span>
                             <button 
                                 onClick={() => setDqPage(p => Math.min(totalPages, p + 1))} 
                                 disabled={dqPage === totalPages} 
-                                className="px-4 py-2 bg-white border border-slate-300 rounded-lg text-xs md:text-sm font-bold text-slate-600 disabled:opacity-50 hover:bg-slate-50 flex items-center gap-1 transition"
+                                className="px-2 sm:px-4 py-1.5 sm:py-2 bg-white border border-slate-300 rounded-md sm:rounded-lg text-[10px] sm:text-xs md:text-sm font-bold text-slate-600 disabled:opacity-50 hover:bg-slate-50 flex items-center gap-1 transition"
                             >
-                                <span className="hidden sm:inline">Selanjutnya</span> <ChevronRight size={16}/>
+                                <span className="hidden sm:inline">{t[lang].next}</span> <ChevronRight size={14} className="sm:w-4 sm:h-4"/>
                             </button>
                         </div>
                     )}
@@ -1102,34 +1419,34 @@ function LiveScoreboard({ tournament, dqs, events, isOnline, onBack, onLoginRequ
             </div>
         </div>
 
-        <footer className="bg-slate-900 text-slate-500 text-center py-3 text-xs font-mono tracking-widest border-t border-slate-800 shrink-0 mt-auto">&copy; anak magang SSO 2026</footer>
+        <footer className="bg-slate-900 text-slate-500 text-center py-3 text-xs font-mono tracking-widest border-t border-slate-800 shrink-0 mt-auto">{t[lang].footer_text}</footer>
 
         {/* MODAL DAFTAR HASIL ACARA */}
         {showResultsList && (
           <div className="fixed inset-0 z-[80] bg-black/80 flex items-center justify-center p-4 animate-in fade-in">
              <div className="bg-white rounded-2xl w-full max-w-2xl max-h-[80vh] flex flex-col relative shadow-2xl">
-                <div className="p-5 md:p-6 border-b border-slate-100 flex justify-between items-center shrink-0">
-                   <h2 className="text-lg md:text-xl font-bold text-slate-800 flex items-center gap-2"><FileText className="text-blue-600"/> Daftar Hasil Per Acara</h2>
+                <div className="p-4 md:p-6 border-b border-slate-100 flex justify-between items-center shrink-0">
+                   <h2 className="text-base md:text-xl font-bold text-slate-800 flex items-center gap-2"><FileText className="text-blue-600"/> {t[lang].results_list_title}</h2>
                    <button onClick={() => setShowResultsList(false)} className="text-slate-400 hover:text-red-500 transition"><X size={24}/></button>
                 </div>
                 <div className="p-0 overflow-y-auto flex-1">
                    {events.length === 0 ? (
-                       <div className="p-8 text-center text-slate-500 italic">Belum ada data acara.</div>
+                       <div className="p-8 text-center text-slate-500 italic">{t[lang].no_events}</div>
                    ) : (
-                       <table className="w-full text-left text-sm md:text-base">
+                       <table className="w-full text-left text-xs sm:text-sm md:text-base">
                           <thead className="bg-slate-50 sticky top-0 border-b border-slate-200">
-                             <tr><th className="p-4 font-bold text-slate-600">No</th><th className="p-4 font-bold text-slate-600">Acara</th><th className="p-4 font-bold text-slate-600 text-right">Aksi</th></tr>
+                             <tr><th className="p-3 md:p-4 font-bold text-slate-600">{t[lang].no}</th><th className="p-3 md:p-4 font-bold text-slate-600">{t[lang].event}</th><th className="p-3 md:p-4 font-bold text-slate-600 text-right">{t[lang].action}</th></tr>
                           </thead>
                           <tbody>
                              {events.map((ev: any, idx: number) => (
                                  <tr key={ev.id} className={`border-b border-slate-100 ${idx % 2 === 0 ? 'bg-white' : 'bg-slate-50'}`}>
-                                    <td className="p-4 font-bold text-slate-800 w-12">{ev.number}</td>
-                                    <td className="p-4 font-semibold text-slate-700">{ev.name}</td>
-                                    <td className="p-4 text-right w-32">
+                                    <td className="p-3 md:p-4 font-bold text-slate-800 w-8 md:w-12">{ev.number}</td>
+                                    <td className="p-3 md:p-4 font-semibold text-slate-700">{ev.name}</td>
+                                    <td className="p-3 md:p-4 text-right w-24 md:w-32">
                                        {ev.resultUrl ? (
-                                           <button onClick={() => setShowPdfUrl(ev.resultUrl)} className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-bold text-xs shadow-sm transition whitespace-nowrap">Lihat Hasil</button>
+                                           <button onClick={() => setShowPdfUrl(ev.resultUrl)} className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 md:px-4 md:py-2 rounded-lg font-bold text-[10px] md:text-xs shadow-sm transition whitespace-nowrap">{t[lang].view_result}</button>
                                        ) : (
-                                           <span className="text-xs text-slate-400 italic whitespace-nowrap">Belum tersedia</span>
+                                           <span className="text-[10px] md:text-xs text-slate-400 italic whitespace-nowrap">{t[lang].not_available}</span>
                                        )}
                                     </td>
                                  </tr>
@@ -1147,14 +1464,14 @@ function LiveScoreboard({ tournament, dqs, events, isOnline, onBack, onLoginRequ
           <div className="fixed inset-0 z-[90] bg-black/90 flex flex-col p-4 animate-in fade-in">
               <div className="flex justify-between items-center mb-4 text-white">
                   <div className="flex flex-col">
-                    <h2 className="font-bold text-lg flex items-center gap-2"><FileText /> Detail Hasil Acara</h2>
+                    <h2 className="font-bold text-base md:text-lg flex items-center gap-2"><FileText size={18}/> {t[lang].results_detail_title}</h2>
                     {currentResultIndex !== -1 && (
-                      <span className="text-blue-300 text-sm font-semibold truncate max-w-[250px] md:max-w-md">
+                      <span className="text-blue-300 text-xs md:text-sm font-semibold truncate max-w-[200px] sm:max-w-[250px] md:max-w-md">
                         {eventsWithResults[currentResultIndex].number}. {eventsWithResults[currentResultIndex].name}
                       </span>
                     )}
                   </div>
-                  <button onClick={() => setShowPdfUrl(null)} className="p-2 bg-slate-800 rounded-full hover:bg-slate-700 shrink-0"><X /></button>
+                  <button onClick={() => setShowPdfUrl(null)} className="p-2 bg-slate-800 rounded-full hover:bg-slate-700 shrink-0"><X size={20} /></button>
               </div>
               
               <div className="flex-1 w-full relative flex items-center">
@@ -1162,21 +1479,21 @@ function LiveScoreboard({ tournament, dqs, events, isOnline, onBack, onLoginRequ
                   {currentResultIndex > 0 && (
                     <button 
                       onClick={handlePrevResult}
-                      className="absolute left-2 z-10 bg-slate-800/80 hover:bg-blue-600 text-white p-3 rounded-full shadow-lg transition-colors backdrop-blur-sm"
-                      title="Acara Sebelumnya"
+                      className="absolute left-2 z-10 bg-slate-800/80 hover:bg-blue-600 text-white p-2 md:p-3 rounded-full shadow-lg transition-colors backdrop-blur-sm"
+                      title={t[lang].prev}
                     >
                       <ChevronLeft size={24} />
                     </button>
                   )}
 
-                  <iframe src={showPdfUrl} className="w-full h-full rounded-lg bg-white" title="Hasil Acara"></iframe>
+                  <iframe src={showPdfUrl} className="w-full h-full rounded-lg bg-white" title="Results"></iframe>
 
                   {/* Tombol Next */}
                   {currentResultIndex !== -1 && currentResultIndex < eventsWithResults.length - 1 && (
                     <button 
                       onClick={handleNextResult}
-                      className="absolute right-2 z-10 bg-slate-800/80 hover:bg-blue-600 text-white p-3 rounded-full shadow-lg transition-colors backdrop-blur-sm"
-                      title="Acara Selanjutnya"
+                      className="absolute right-2 z-10 bg-slate-800/80 hover:bg-blue-600 text-white p-2 md:p-3 rounded-full shadow-lg transition-colors backdrop-blur-sm"
+                      title={t[lang].next}
                     >
                       <ChevronRight size={24} />
                     </button>
@@ -1188,20 +1505,20 @@ function LiveScoreboard({ tournament, dqs, events, isOnline, onBack, onLoginRequ
   );
 }
 
-function RoleSelectionPanel({ tournament, onBack, onLoginRequest }: any) {
+function RoleSelectionPanel({ tournament, onBack, onLoginRequest, lang, t }: any) {
     return (
       <div className="min-h-screen bg-slate-900 flex items-center justify-center p-4">
         <div className="max-w-4xl w-full">
-            <button onClick={onBack} className="mb-8 text-slate-400 hover:text-white flex gap-2 items-center"><ChevronLeft size={20}/> Kembali</button>
+            <button onClick={onBack} className="mb-8 text-slate-400 hover:text-white flex gap-2 items-center"><ChevronLeft size={20}/> {t[lang].btn_back}</button>
             <div className="text-center mb-8">
-                <h2 className="text-2xl font-bold text-white mb-2">Pilih Akses Petugas</h2>
-                <p className="text-slate-400">Untuk {tournament.title}</p>
+                <h2 className="text-2xl font-bold text-white mb-2">{t[lang].login_title}</h2>
+                <p className="text-slate-400">{t[lang].login_sub} {tournament.title}</p>
             </div>
             <div className="grid md:grid-cols-3 gap-4">
                 {['admin', 'announcer', 'callroom'].map(r => (
                     <button key={r} onClick={() => onLoginRequest(r)} className="p-8 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-2xl capitalize font-bold text-white transition hover:scale-105 group shadow-xl">
                         {r==='admin'?<Settings size={32} className="mb-4 text-blue-500 group-hover:scale-110 transition mx-auto"/>:r==='announcer'?<Mic size={32} className="mb-4 text-purple-500 group-hover:scale-110 transition mx-auto"/>:<Users size={32} className="mb-4 text-emerald-500 group-hover:scale-110 transition mx-auto"/>}
-                        <div className="text-xl text-center">{r === 'admin' ? 'Admin Lomba' : r}</div>
+                        <div className="text-xl text-center">{r === 'admin' ? t[lang].role_admin : r === 'announcer' ? t[lang].role_announcer : t[lang].role_callroom}</div>
                     </button>
                 ))}
             </div>
@@ -1210,25 +1527,25 @@ function RoleSelectionPanel({ tournament, onBack, onLoginRequest }: any) {
     );
 }
 
-function LoginModal({ targetRole, onClose, onLogin }: any) {
+function LoginModal({ targetRole, onClose, onLogin, lang, t }: any) {
   const [pin, setPin] = useState(''); const [error, setError] = useState(false);
   const handleSubmit = (e: React.FormEvent) => { e.preventDefault(); if (!onLogin(targetRole, pin)) { setError(true); setPin(''); } };
   return (
     <div className="fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-[60]">
       <div className="bg-white rounded-2xl w-full max-w-sm p-8 relative animate-in zoom-in-95 duration-200">
         <button onClick={onClose} className="absolute top-4 right-4 text-slate-400 hover:text-slate-800"><X size={20} /></button>
-        <h2 className="text-xl font-bold text-center mb-6 capitalize">Login {targetRole === 'admin' ? 'Admin Lomba' : targetRole}</h2>
+        <h2 className="text-xl font-bold text-center mb-6 capitalize">{t[lang].login_btn} {targetRole === 'admin' ? t[lang].role_admin : targetRole === 'announcer' ? t[lang].role_announcer : targetRole === 'master' ? t[lang].role_master : t[lang].role_callroom}</h2>
         <form onSubmit={handleSubmit}>
           <input autoFocus type="password" value={pin} onChange={e=>{setPin(e.target.value);setError(false)}} className="w-full text-center text-3xl font-bold p-4 border rounded-xl mb-4 outline-none focus:ring-2 focus:ring-blue-500" placeholder="PIN" />
-          {error && <p className="text-red-500 text-center mb-4 text-sm font-bold">PIN Salah</p>}
-          <button className="w-full bg-slate-900 text-white py-3 rounded-xl font-bold hover:bg-slate-800 transition">Masuk</button>
+          {error && <p className="text-red-500 text-center mb-4 text-sm font-bold">{t[lang].wrong_pin}</p>}
+          <button className="w-full bg-slate-900 text-white py-3 rounded-xl font-bold hover:bg-slate-800 transition">{t[lang].login_btn}</button>
         </form>
       </div>
     </div>
   );
 }
 
-function AdminPanel({ tournament, events, masterPinHash, onUpdateTournament, onAddEvent, onAddMultipleEvents, onEditEvent, onDeleteEvent, onResetTournament }: any) {
+function AdminPanel({ tournament, events, masterPinHash, onUpdateTournament, onAddEvent, onAddMultipleEvents, onEditEvent, onDeleteEvent, onResetTournament, lang, t }: any) {
   const [loading, setLoading] = useState(false);
   const [newEvent, setNewEvent] = useState({ number: '', name: '', totalSeries: '' });
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -1362,7 +1679,7 @@ function AdminPanel({ tournament, events, masterPinHash, onUpdateTournament, onA
         eventDate: new Date(infoForm.eventDate).toISOString(),
         endDate: new Date(infoForm.endDate).toISOString()
       });
-      setInfoMessage('Informasi berhasil disimpan!');
+      setInfoMessage(t[lang].info_saved);
       setTimeout(() => setInfoMessage(''), 4000);
     });
   };
@@ -1380,7 +1697,7 @@ function AdminPanel({ tournament, events, masterPinHash, onUpdateTournament, onA
       wrapAsync(async () => {
         await onUpdateTournament({ pins: updatedPins });
         setPinForm({ admin: '', announcer: '', callroom: '' });
-        setPinMessage('PIN akses berhasil diperbarui!');
+        setPinMessage(t[lang].pin_saved);
         setTimeout(() => setPinMessage(''), 4000);
       });
     }
@@ -1389,7 +1706,6 @@ function AdminPanel({ tournament, events, masterPinHash, onUpdateTournament, onA
   const handlePauseSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     wrapAsync(async () => {
-      // Menyiasati TypeScript untuk memungkinkan update properti bertingkat (dot notation)
       const payload: any = { status: 'paused' };
       if (pauseResumeTime) {
         payload['liveState.pauseUntil'] = new Date(pauseResumeTime).toISOString();
@@ -1409,81 +1725,81 @@ function AdminPanel({ tournament, events, masterPinHash, onUpdateTournament, onA
       
       <div className="md:col-span-1 space-y-6">
         <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
-          <h2 className="font-bold mb-4 flex gap-2"><Settings className="text-blue-600"/> Kontrol Lomba</h2>
+          <h2 className="font-bold mb-4 flex gap-2"><Settings className="text-blue-600"/> {t[lang].control_tour}</h2>
           
           <div className="mb-6 p-4 rounded-lg bg-slate-50 border border-slate-100">
-              <div className="text-xs text-slate-500 uppercase font-bold tracking-wider mb-1">Status Saat Ini</div>
+              <div className="text-xs text-slate-500 uppercase font-bold tracking-wider mb-1">{t[lang].current_status}</div>
               <div className={`text-lg font-black uppercase ${isLive ? 'text-red-500' : tournament.status === 'finished' ? 'text-blue-600' : tournament.status === 'paused' ? 'text-yellow-600' : 'text-slate-600'}`}>
-                  {isLive ? 'SEDANG BERLANGSUNG (LIVE)' : tournament.status === 'finished' ? 'SELESAI' : tournament.status === 'paused' ? 'SEDANG JEDA / ISTIRAHAT' : 'AKAN DATANG'}
+                  {isLive ? t[lang].status_live_caps : tournament.status === 'finished' ? t[lang].status_finished_caps : tournament.status === 'paused' ? t[lang].status_paused_caps : t[lang].status_upcoming_caps}
               </div>
           </div>
 
           <div className="space-y-3">
              {isUpcoming && (
                  <button onClick={() => { wrapAsync(async() => await onUpdateTournament({ status: 'live' })); }} className="w-full py-4 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl font-bold flex justify-center items-center gap-2 transition shadow-lg">
-                     <Play size={20}/> MULAI LOMBA
+                     <Play size={20}/> {t[lang].btn_start_tour}
                  </button>
              )}
              {isLive && (
                  <>
                    <button onClick={() => setShowPauseModal(true)} className="w-full py-3 bg-yellow-500 hover:bg-yellow-400 text-white rounded-xl font-bold flex justify-center items-center gap-2 transition shadow-md">
-                       <Timer size={18}/> JEDA LOMBA (ISTIRAHAT)
+                       <Timer size={18}/> {t[lang].btn_pause_tour}
                    </button>
                    <button onClick={() => setShowFinishConfirm(true)} className="w-full py-3 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-bold flex justify-center items-center gap-2 transition shadow-md">
-                       <CheckCircle size={18}/> SELESAIKAN PERTANDINGAN
+                       <CheckCircle size={18}/> {t[lang].btn_finish_tour}
                    </button>
                  </>
              )}
              {tournament.status === 'paused' && (
                  <>
                    <button onClick={() => { wrapAsync(async() => await onUpdateTournament({ status: 'live' })); }} className="w-full py-4 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl font-bold flex justify-center items-center gap-2 transition shadow-lg">
-                       <Play size={20}/> LANJUTKAN LOMBA
+                       <Play size={20}/> {t[lang].btn_resume_tour}
                    </button>
                    <button onClick={() => setShowFinishConfirm(true)} className="w-full py-3 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-bold flex justify-center items-center gap-2 transition shadow-md mt-2">
-                       <CheckCircle size={18}/> SELESAIKAN PERTANDINGAN
+                       <CheckCircle size={18}/> {t[lang].btn_finish_tour}
                    </button>
                  </>
              )}
              {tournament.status === 'finished' && (
                  <button onClick={() => { wrapAsync(async() => await onUpdateTournament({ status: 'live' })); }} className="w-full py-4 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl font-bold flex justify-center items-center gap-2 transition shadow-lg">
-                     <Play size={20}/> BUKA KEMBALI LOMBA (LIVE)
+                     <Play size={20}/> {t[lang].btn_reopen_tour}
                  </button>
              )}
              
              <div className="pt-4 border-t border-slate-100 mt-6">
-                <label className="text-xs text-slate-500 font-bold mb-1 block">Link Hasil Lengkap (PDF URL)</label>
+                <label className="text-xs text-slate-500 font-bold mb-1 block">{t[lang].link_pdf}</label>
                 <div className="flex gap-2">
                     <input type="text" value={tournament.resultUrl || ''} onChange={(e) => onUpdateTournament({ resultUrl: e.target.value })} className="flex-1 p-2 border rounded text-sm bg-slate-50" placeholder="https://drive.google.com/..." />
                 </div>
-                <p className="text-[10px] text-slate-400 mt-1">Gunakan link publik agar bisa dibuka oleh penonton saat lomba selesai.</p>
+                <p className="text-[10px] text-slate-400 mt-1">{t[lang].link_desc}</p>
              </div>
 
              <div className="pt-6 border-t border-slate-100 mt-6">
                 <button onClick={() => setShowResetModal(true)} className="w-full py-3 bg-red-50 hover:bg-red-100 text-red-600 rounded-xl font-bold flex justify-center items-center gap-2 transition border border-red-200">
-                    <AlertOctagon size={18}/> RESET ULANG LOMBA
+                    <AlertOctagon size={18}/> {t[lang].btn_reset_tour}
                 </button>
              </div>
           </div>
         </div>
 
         <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
-          <h2 className="font-bold mb-4 flex gap-2"><Edit2 className="text-blue-600"/> Edit Informasi Lomba</h2>
+          <h2 className="font-bold mb-4 flex gap-2"><Edit2 className="text-blue-600"/> {t[lang].edit_tour_info}</h2>
           <form onSubmit={handleUpdateInfo} className="space-y-3">
             <div>
-              <label className="text-xs text-slate-500 font-bold mb-1 block">Nama Kejuaraan</label>
+              <label className="text-xs text-slate-500 font-bold mb-1 block">{t[lang].tour_name}</label>
               <input required type="text" value={infoForm.title} onChange={(e) => setInfoForm({...infoForm, title: e.target.value})} className="w-full p-2 border rounded text-sm bg-slate-50 focus:bg-white transition-colors" />
             </div>
             <div>
-              <label className="text-xs text-slate-500 font-bold mb-1 block">Lokasi / Venue</label>
+              <label className="text-xs text-slate-500 font-bold mb-1 block">{t[lang].tour_venue}</label>
               <input required type="text" value={infoForm.venue} onChange={(e) => setInfoForm({...infoForm, venue: e.target.value})} className="w-full p-2 border rounded text-sm bg-slate-50 focus:bg-white transition-colors" />
             </div>
             <div className="grid grid-cols-2 gap-2">
               <div>
-                <label className="text-xs text-slate-500 font-bold mb-1 block">Tanggal Mulai</label>
+                <label className="text-xs text-slate-500 font-bold mb-1 block">{t[lang].tour_start}</label>
                 <input required type="date" value={infoForm.eventDate} onChange={(e) => setInfoForm({...infoForm, eventDate: e.target.value})} className="w-full p-2 border rounded text-sm bg-slate-50 focus:bg-white transition-colors" />
               </div>
               <div>
-                <label className="text-xs text-slate-500 font-bold mb-1 block">Tanggal Selesai</label>
+                <label className="text-xs text-slate-500 font-bold mb-1 block">{t[lang].tour_end}</label>
                 <input required type="date" value={infoForm.endDate} onChange={(e) => setInfoForm({...infoForm, endDate: e.target.value})} className="w-full p-2 border rounded text-sm bg-slate-50 focus:bg-white transition-colors" min={infoForm.eventDate} />
               </div>
             </div>
@@ -1492,33 +1808,33 @@ function AdminPanel({ tournament, events, masterPinHash, onUpdateTournament, onA
             
             <div className="pt-2">
               <button type="submit" className="w-full py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-bold text-sm transition shadow-sm">
-                SIMPAN INFORMASI
+                {t[lang].btn_save_info}
               </button>
             </div>
           </form>
         </div>
 
         <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
-          <h2 className="font-bold mb-4 flex gap-2"><Lock className="text-blue-600"/> Pengaturan PIN Akses</h2>
+          <h2 className="font-bold mb-4 flex gap-2"><Lock className="text-blue-600"/> {t[lang].access_settings}</h2>
           <form onSubmit={handleUpdatePins} className="space-y-3">
             <div>
-              <label className="text-xs text-slate-500 font-bold mb-1 block">Ubah PIN Admin Lomba</label>
-              <input type="text" value={pinForm.admin} onChange={(e) => setPinForm({...pinForm, admin: e.target.value})} className="w-full p-2 border rounded text-sm bg-slate-50 focus:bg-white transition-colors" placeholder="Kosongkan jika tidak diubah" />
+              <label className="text-xs text-slate-500 font-bold mb-1 block">{t[lang].pin_admin}</label>
+              <input type="text" value={pinForm.admin} onChange={(e) => setPinForm({...pinForm, admin: e.target.value})} className="w-full p-2 border rounded text-sm bg-slate-50 focus:bg-white transition-colors" placeholder={t[lang].edit_pin_desc} />
             </div>
             <div>
-              <label className="text-xs text-slate-500 font-bold mb-1 block">Ubah PIN Announcer</label>
-              <input type="text" value={pinForm.announcer} onChange={(e) => setPinForm({...pinForm, announcer: e.target.value})} className="w-full p-2 border rounded text-sm bg-slate-50 focus:bg-white transition-colors" placeholder="Kosongkan jika tidak diubah" />
+              <label className="text-xs text-slate-500 font-bold mb-1 block">{t[lang].pin_announcer}</label>
+              <input type="text" value={pinForm.announcer} onChange={(e) => setPinForm({...pinForm, announcer: e.target.value})} className="w-full p-2 border rounded text-sm bg-slate-50 focus:bg-white transition-colors" placeholder={t[lang].edit_pin_desc} />
             </div>
             <div>
-              <label className="text-xs text-slate-500 font-bold mb-1 block">Ubah PIN Call Room</label>
-              <input type="text" value={pinForm.callroom} onChange={(e) => setPinForm({...pinForm, callroom: e.target.value})} className="w-full p-2 border rounded text-sm bg-slate-50 focus:bg-white transition-colors" placeholder="Kosongkan jika tidak diubah" />
+              <label className="text-xs text-slate-500 font-bold mb-1 block">{t[lang].pin_callroom}</label>
+              <input type="text" value={pinForm.callroom} onChange={(e) => setPinForm({...pinForm, callroom: e.target.value})} className="w-full p-2 border rounded text-sm bg-slate-50 focus:bg-white transition-colors" placeholder={t[lang].edit_pin_desc} />
             </div>
             
             {pinMessage && <div className="text-xs font-bold text-emerald-700 bg-emerald-50 border border-emerald-100 p-2 rounded-lg text-center animate-in fade-in">{pinMessage}</div>}
             
             <div className="pt-2">
               <button type="submit" disabled={!pinForm.admin && !pinForm.announcer && !pinForm.callroom} className="w-full py-2.5 bg-slate-800 hover:bg-slate-700 disabled:bg-slate-300 disabled:cursor-not-allowed text-white rounded-lg font-bold text-sm transition shadow-sm">
-                SIMPAN PIN BARU
+                {t[lang].btn_save_pin}
               </button>
             </div>
           </form>
@@ -1529,28 +1845,28 @@ function AdminPanel({ tournament, events, masterPinHash, onUpdateTournament, onA
       <div className="md:col-span-2">
           <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
             <div className="flex justify-between items-center mb-4">
-              <h2 className="font-bold flex gap-2"><List className="text-blue-600"/> Daftar Acara (Events)</h2>
+              <h2 className="font-bold flex gap-2"><List className="text-blue-600"/> {t[lang].event_list}</h2>
               <label className="bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 rounded-lg text-xs font-bold cursor-pointer flex items-center gap-2 transition shadow-sm">
-                <Upload size={14} /> IMPOR EXCEL
+                <Upload size={14} /> {t[lang].import_excel}
                 <input type="file" accept=".xlsx, .xls, .csv" className="hidden" onChange={handleFileUpload} disabled={loading} />
               </label>
             </div>
 
             <form onSubmit={handleAddEvent} className="flex gap-2 mb-4 bg-slate-50 p-3 rounded-lg border border-slate-100">
-                <input type="number" placeholder="No" value={newEvent.number} onChange={e => setNewEvent({...newEvent, number: e.target.value})} className="w-16 p-2 border rounded text-sm" />
-                <input type="text" placeholder="Nama Acara (Contoh: 50m Gaya Bebas)" value={newEvent.name} onChange={e => setNewEvent({...newEvent, name: e.target.value})} className="flex-1 p-2 border rounded text-sm" />
-                <input type="number" placeholder="Seri" value={newEvent.totalSeries} onChange={e => setNewEvent({...newEvent, totalSeries: e.target.value})} className="w-16 p-2 border rounded text-sm" />
-                <button className="bg-blue-600 text-white px-4 rounded font-bold hover:bg-blue-700 transition">TAMBAH</button>
+                <input type="number" placeholder={t[lang].no} value={newEvent.number} onChange={e => setNewEvent({...newEvent, number: e.target.value})} className="w-16 p-2 border rounded text-sm" />
+                <input type="text" placeholder={t[lang].event_name_placeholder} value={newEvent.name} onChange={e => setNewEvent({...newEvent, name: e.target.value})} className="flex-1 p-2 border rounded text-sm" />
+                <input type="number" placeholder={t[lang].series} value={newEvent.totalSeries} onChange={e => setNewEvent({...newEvent, totalSeries: e.target.value})} className="w-16 p-2 border rounded text-sm" />
+                <button className="bg-blue-600 text-white px-4 rounded font-bold hover:bg-blue-700 transition">{t[lang].btn_add}</button>
             </form>
             <div className="max-h-[500px] overflow-y-auto border rounded-lg">
                 <table className="w-full text-sm text-left">
                 <thead className="bg-slate-100 sticky top-0 border-b">
                   <tr>
-                    <th className="p-3">No</th>
-                    <th className="p-3">Nama Acara</th>
-                    <th className="p-3 text-center">Seri</th>
-                    <th className="p-3 text-center">Hasil</th>
-                    <th className="p-3 text-right">Aksi</th>
+                    <th className="p-3">{t[lang].no}</th>
+                    <th className="p-3">{t[lang].event}</th>
+                    <th className="p-3 text-center">{t[lang].series}</th>
+                    <th className="p-3 text-center">{t[lang].col_result}</th>
+                    <th className="p-3 text-right">{t[lang].action}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -1564,10 +1880,10 @@ function AdminPanel({ tournament, events, masterPinHash, onUpdateTournament, onA
                                 <input type="number" value={editForm.totalSeries} onChange={e => setEditForm({...editForm, totalSeries: e.target.value})} className="w-16 border rounded p-1.5 text-sm text-center" />
                             </div>
                             <div className="flex gap-2 items-center">
-                                <input type="text" value={editForm.resultUrl} onChange={e => setEditForm({...editForm, resultUrl: e.target.value})} placeholder="Link Hasil Per Acara (Google Drive/PDF)" className="flex-1 border rounded p-1.5 text-xs bg-white" />
+                                <input type="text" value={editForm.resultUrl} onChange={e => setEditForm({...editForm, resultUrl: e.target.value})} placeholder={t[lang].link_pdf} className="flex-1 border rounded p-1.5 text-xs bg-white" />
                                 <div className="flex gap-2 justify-end shrink-0">
                                     <button onClick={() => wrapAsync(async() => { await onEditEvent(ev.id, { number: parseInt(editForm.number), name: editForm.name, totalSeries: parseInt(editForm.totalSeries), resultUrl: editForm.resultUrl }); setEditingId(null); })} className="bg-green-600 text-white px-3 py-1.5 rounded font-bold hover:bg-green-700 text-xs shadow-sm flex items-center gap-1"><Save size={14}/> SIMPAN</button>
-                                    <button onClick={() => setEditingId(null)} className="bg-slate-200 text-slate-600 px-3 py-1.5 rounded font-bold hover:bg-slate-300 text-xs shadow-sm flex items-center gap-1"><X size={14}/> BATAL</button>
+                                    <button onClick={() => setEditingId(null)} className="bg-slate-200 text-slate-600 px-3 py-1.5 rounded font-bold hover:bg-slate-300 text-xs shadow-sm flex items-center gap-1"><X size={14}/> {t[lang].btn_cancel}</button>
                                 </div>
                             </div>
                         </td>
@@ -1576,26 +1892,25 @@ function AdminPanel({ tournament, events, masterPinHash, onUpdateTournament, onA
                             <td className="p-3 font-bold w-12 text-slate-700">{ev.number}</td>
                             <td className="p-3 font-medium">
                                 {ev.name}
-                                {ev.resultUrl && <span className="ml-2 inline-block bg-blue-100 text-blue-700 text-[9px] px-2 py-0.5 rounded font-bold align-middle">HASIL TERSEDIA</span>}
                             </td>
                             <td className="p-3 text-center w-16"><span className="bg-blue-50 text-blue-700 px-2 py-1 rounded font-bold">{ev.totalSeries}</span></td>
                             <td className="p-3 text-center">
                               {ev.resultUrl ? (
-                                <span className="bg-emerald-100 text-emerald-700 px-2 py-1 rounded text-[10px] font-bold">ADA</span>
+                                <span className="bg-emerald-100 text-emerald-700 px-2 py-1 rounded text-[10px] font-bold">{t[lang].status_available}</span>
                               ) : (
-                                <span className="bg-slate-100 text-slate-400 px-2 py-1 rounded text-[10px] font-bold">KOSONG</span>
+                                <span className="bg-slate-100 text-slate-400 px-2 py-1 rounded text-[10px] font-bold">{t[lang].status_empty}</span>
                               )}
                             </td>
                             <td className="p-3 text-right whitespace-nowrap space-x-1">
-                              <button onClick={() => setLinkModal({ show: true, eventId: ev.id, url: ev.resultUrl || '', eventName: `${ev.number}. ${ev.name}` })} className="bg-blue-50 text-blue-600 hover:bg-blue-100 p-1.5 rounded transition" title="Input/Edit Link Hasil"><FileText size={16}/></button>
-                              <button onClick={() => { setEditingId(ev.id); setEditForm({ number: ev.number, name: ev.name, totalSeries: ev.totalSeries, resultUrl: ev.resultUrl || '' }); }} className="text-slate-400 hover:text-blue-500 p-1.5 transition" title="Edit Acara"><Edit2 size={16}/></button>
-                              <button onClick={() => { wrapAsync(async()=> await onDeleteEvent(ev.id)); }} className="text-slate-400 hover:text-red-500 p-1.5 transition" title="Hapus Acara"><Trash2 size={16}/></button>
+                              <button onClick={() => setLinkModal({ show: true, eventId: ev.id, url: ev.resultUrl || '', eventName: `${ev.number}. ${ev.name}` })} className="bg-blue-50 text-blue-600 hover:bg-blue-100 p-1.5 rounded transition" title={t[lang].input_link_result}><FileText size={16}/></button>
+                              <button onClick={() => { setEditingId(ev.id); setEditForm({ number: ev.number, name: ev.name, totalSeries: ev.totalSeries, resultUrl: ev.resultUrl || '' }); }} className="text-slate-400 hover:text-blue-500 p-1.5 transition" title="Edit"><Edit2 size={16}/></button>
+                              <button onClick={() => { wrapAsync(async()=> await onDeleteEvent(ev.id)); }} className="text-slate-400 hover:text-red-500 p-1.5 transition" title="Delete"><Trash2 size={16}/></button>
                             </td>
                         </>
                         )}
                     </tr>
                     ))}
-                    {events.length === 0 ? <tr><td colSpan={5} className="p-8 text-center text-slate-400 italic">Belum ada acara ditambahkan.</td></tr> : null}
+                    {events.length === 0 ? <tr><td colSpan={5} className="p-8 text-center text-slate-400 italic">{t[lang].no_events}</td></tr> : null}
                 </tbody>
                 </table>
             </div>
@@ -1607,7 +1922,7 @@ function AdminPanel({ tournament, events, masterPinHash, onUpdateTournament, onA
         <div className="fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-[80] animate-in fade-in">
           <div className="bg-white rounded-2xl w-full max-w-md p-6 relative shadow-2xl">
             <button onClick={() => setLinkModal({ show: false, eventId: '', url: '', eventName: '' })} className="absolute top-4 right-4 text-slate-400 hover:text-slate-800"><X size={20} /></button>
-            <h2 className="text-xl font-bold text-slate-800 mb-1 flex items-center gap-2"><FileText className="text-blue-600" /> Input Link Hasil</h2>
+            <h2 className="text-xl font-bold text-slate-800 mb-1 flex items-center gap-2"><FileText className="text-blue-600" /> {t[lang].input_link_result}</h2>
             <p className="text-sm text-slate-500 mb-4">{linkModal.eventName}</p>
             <div className="mb-4">
               <label className="text-xs font-bold text-slate-600 mb-1 block">Google Drive / PDF URL</label>
@@ -1621,13 +1936,13 @@ function AdminPanel({ tournament, events, masterPinHash, onUpdateTournament, onA
               />
             </div>
             <div className="flex gap-2 justify-end">
-              <button onClick={() => setLinkModal({ show: false, eventId: '', url: '', eventName: '' })} className="px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl transition">Batal</button>
+              <button onClick={() => setLinkModal({ show: false, eventId: '', url: '', eventName: '' })} className="px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl transition">{t[lang].btn_cancel}</button>
               <button onClick={() => { 
                 wrapAsync(async () => { 
                   await onEditEvent(linkModal.eventId, { resultUrl: linkModal.url }); 
                   setLinkModal({ show: false, eventId: '', url: '', eventName: '' }); 
                 }); 
-              }} className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-md transition">Simpan Link</button>
+              }} className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-md transition">{t[lang].btn_save_link}</button>
             </div>
           </div>
         </div>
@@ -1638,12 +1953,12 @@ function AdminPanel({ tournament, events, masterPinHash, onUpdateTournament, onA
         <div className="fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-[70] animate-in fade-in">
           <div className="bg-white rounded-2xl w-full max-w-sm p-8 relative shadow-2xl">
             <button onClick={() => setShowPauseModal(false)} className="absolute top-4 right-4 text-slate-400 hover:text-slate-800"><X size={20} /></button>
-            <h2 className="text-xl font-bold mb-2 flex items-center gap-2 text-yellow-600"><Timer /> Atur Waktu Jeda</h2>
-            <p className="text-sm text-slate-500 mb-6 leading-relaxed">Pilih waktu kapan perlombaan ini akan dilanjutkan. Ini akan memunculkan hitung mundur bagi penonton di beranda.</p>
+            <h2 className="text-xl font-bold mb-2 flex items-center gap-2 text-yellow-600"><Timer /> {t[lang].set_pause_time}</h2>
+            <p className="text-sm text-slate-500 mb-6 leading-relaxed">{t[lang].pause_desc}</p>
             <form onSubmit={handlePauseSubmit}>
-              <label className="text-xs font-bold text-slate-600 mb-1 block">Waktu Dilanjutkan</label>
+              <label className="text-xs font-bold text-slate-600 mb-1 block">{t[lang].resume_time}</label>
               <input type="datetime-local" value={pauseResumeTime} onChange={e => setPauseResumeTime(e.target.value)} className="w-full p-4 border rounded-xl mb-6 outline-none focus:ring-2 focus:ring-yellow-500 bg-slate-50" required />
-              <button type="submit" className="w-full bg-yellow-500 text-white py-3 rounded-xl font-bold hover:bg-yellow-600 transition shadow-lg">Jeda Lomba Sekarang</button>
+              <button type="submit" className="w-full bg-yellow-500 text-white py-3 rounded-xl font-bold hover:bg-yellow-600 transition shadow-lg">{t[lang].btn_do_pause}</button>
             </form>
           </div>
         </div>
@@ -1653,8 +1968,8 @@ function AdminPanel({ tournament, events, masterPinHash, onUpdateTournament, onA
         <div className="fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-[70] animate-in fade-in">
           <div className="bg-white rounded-2xl w-full max-w-sm p-8 relative zoom-in-95 duration-200 shadow-2xl">
             <button onClick={() => {setShowResetModal(false); setResetPin(''); setResetError(false);}} className="absolute top-4 right-4 text-slate-400 hover:text-slate-800"><X size={20} /></button>
-            <h2 className="text-xl font-bold text-center mb-3 text-red-600 flex justify-center items-center gap-2"><AlertOctagon /> Reset Lomba</h2>
-            <p className="text-center text-slate-500 text-sm mb-6 leading-relaxed">Tindakan ini akan mengembalikan status lomba ke <b>"Akan Datang"</b> dan <b>menghapus seluruh riwayat diskualifikasi</b>. Masukkan PIN Superuser untuk konfirmasi.</p>
+            <h2 className="text-xl font-bold text-center mb-3 text-red-600 flex justify-center items-center gap-2"><AlertOctagon /> {t[lang].reset_tour_title}</h2>
+            <p className="text-center text-slate-500 text-sm mb-6 leading-relaxed">{t[lang].reset_tour_desc}</p>
             <form onSubmit={(e) => {
               e.preventDefault();
               if (simpleHash(resetPin) === masterPinHash) {
@@ -1669,9 +1984,9 @@ function AdminPanel({ tournament, events, masterPinHash, onUpdateTournament, onA
                 setResetPin('');
               }
             }}>
-              <input autoFocus type="password" value={resetPin} onChange={e=>{setResetPin(e.target.value);setResetError(false)}} className="w-full text-center text-3xl font-bold p-4 border rounded-xl mb-4 outline-none focus:ring-2 focus:ring-red-500 bg-slate-50" placeholder="PIN MASTER" />
-              {resetError && <p className="text-red-500 text-center mb-4 text-sm font-bold">PIN Superuser Salah!</p>}
-              <button type="submit" className="w-full bg-red-600 text-white py-3 rounded-xl font-bold hover:bg-red-700 transition shadow-lg">Konfirmasi Reset Lomba</button>
+              <input autoFocus type="password" value={resetPin} onChange={e=>{setResetPin(e.target.value);setResetError(false)}} className="w-full text-center text-3xl font-bold p-4 border rounded-xl mb-4 outline-none focus:ring-2 focus:ring-red-500 bg-slate-50" placeholder={t[lang].pin_master_placeholder} />
+              {resetError && <p className="text-red-500 text-center mb-4 text-sm font-bold">{t[lang].wrong_master_pin}</p>}
+              <button type="submit" className="w-full bg-red-600 text-white py-3 rounded-xl font-bold hover:bg-red-700 transition shadow-lg">{t[lang].btn_confirm_reset}</button>
             </form>
           </div>
         </div>
@@ -1681,16 +1996,16 @@ function AdminPanel({ tournament, events, masterPinHash, onUpdateTournament, onA
       {showFinishConfirm && (
         <div className="fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-[70] animate-in fade-in">
           <div className="bg-white rounded-2xl w-full max-w-sm p-8 relative shadow-2xl text-center">
-            <h2 className="text-xl font-bold mb-2 flex items-center justify-center gap-2 text-blue-600"><CheckCircle /> Selesaikan Lomba?</h2>
-            <p className="text-sm text-slate-500 mb-6 leading-relaxed">Penonton di beranda akan melihat halaman hasil lomba secara penuh. Jika ini tidak disengaja, Anda dapat membuka kembali (Live) lomba ini nanti lewat menu kontrol.</p>
+            <h2 className="text-xl font-bold mb-2 flex items-center justify-center gap-2 text-blue-600"><CheckCircle /> {t[lang].finish_tour_title}</h2>
+            <p className="text-sm text-slate-500 mb-6 leading-relaxed">{t[lang].finish_tour_desc}</p>
             <div className="flex gap-3">
-              <button onClick={() => setShowFinishConfirm(false)} className="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 py-3 rounded-xl font-bold transition">Batal</button>
+              <button onClick={() => setShowFinishConfirm(false)} className="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 py-3 rounded-xl font-bold transition">{t[lang].btn_cancel}</button>
               <button onClick={() => {
                 wrapAsync(async () => {
                   await onUpdateTournament({ status: 'finished' });
                   setShowFinishConfirm(false);
                 });
-              }} className="flex-1 bg-blue-600 text-white py-3 rounded-xl font-bold hover:bg-blue-700 transition shadow-lg">Selesaikan</button>
+              }} className="flex-1 bg-blue-600 text-white py-3 rounded-xl font-bold hover:bg-blue-700 transition shadow-lg">{t[lang].btn_finish_confirm}</button>
             </div>
           </div>
         </div>
@@ -1699,7 +2014,8 @@ function AdminPanel({ tournament, events, masterPinHash, onUpdateTournament, onA
   );
 }
 
-function AnnouncerPanel({ tournament, events, dqs, updateLiveState, onAddDQ, onDeleteDQ }: any) {
+// 6. ANNOUNCER PANEL (Live Display + DQ Input)
+function AnnouncerPanel({ tournament, events, dqs, updateLiveState, onAddDQ, onDeleteDQ, lang, t }: any) {
   const [loading, setLoading] = useState(false);
   const [newDQ, setNewDQ] = useState({ eventNumber: '', series: '', lane: '', reason: '' });
   
@@ -1746,31 +2062,31 @@ function AnnouncerPanel({ tournament, events, dqs, updateLiveState, onAddDQ, onD
       
       <div className="md:col-span-2 space-y-6">
         <div className="bg-slate-900 text-white rounded-2xl shadow-2xl overflow-hidden border-4 border-slate-800">
-            <div className="bg-black p-2 text-center text-yellow-400 font-mono text-sm tracking-widest uppercase border-b border-slate-800">Live Timing Display Control</div>
+            <div className="bg-black p-2 text-center text-yellow-400 font-mono text-sm tracking-widest uppercase border-b border-slate-800">{t[lang].announcer_display_control}</div>
             <div className="p-12 text-center min-h-[300px] flex flex-col justify-center items-center">
                 {needsStart ? (
                     <div className="animate-in fade-in zoom-in">
-                        <p className="text-slate-400 mb-4">Papan skor belum menampilkan data.</p>
+                        <p className="text-slate-400 mb-4">{t[lang].board_no_data}</p>
                         <button onClick={() => wrapAsync(async () => {
                              const first = events[0]; 
                              await updateLiveState({ currentEventId: first.id, currentEventName: first.name, currentEventNumber: first.number, currentEventTotalSeries: first.totalSeries, currentSeries: 1, lastUpdate: getWIBTime() });
-                        })} className="bg-purple-600 hover:bg-purple-500 text-white px-8 py-4 rounded-xl font-bold text-xl shadow-lg flex items-center gap-3"><Play size={24} fill="currentColor" /> MULAI ACARA PERTAMA</button>
+                        })} className="bg-purple-600 hover:bg-purple-500 text-white px-8 py-4 rounded-xl font-bold text-xl shadow-lg flex items-center gap-3"><Play size={24} fill="currentColor" /> {t[lang].start_first_event}</button>
                     </div>
                 ) : activeEvent ? (
                 <>
-                    <div className="text-blue-400 text-2xl font-bold uppercase tracking-widest mb-2">Acara {activeEvent.number}</div>
+                    <div className="text-blue-400 text-2xl font-bold uppercase tracking-widest mb-2">{t[lang].event} {activeEvent.number}</div>
                     <h1 className="text-5xl font-extrabold text-white mb-8 leading-tight">{activeEvent.name}</h1>
                     <div className="inline-flex items-center justify-center bg-slate-800 rounded-xl p-6 border border-slate-700">
-                    <div className="text-center px-8 border-r border-slate-600"><span className="block text-slate-400 text-sm uppercase mb-1">Seri</span><span className="block text-6xl font-black text-purple-400">{ls.currentSeries}</span></div>
-                    <div className="text-center px-8"><span className="block text-slate-400 text-sm uppercase mb-1">Total</span><span className="block text-6xl font-black text-slate-500">{activeEvent.totalSeries}</span></div>
+                    <div className="text-center px-8 border-r border-slate-600"><span className="block text-slate-400 text-sm uppercase mb-1">{t[lang].series}</span><span className="block text-6xl font-black text-purple-400">{ls.currentSeries}</span></div>
+                    <div className="text-center px-8"><span className="block text-slate-400 text-sm uppercase mb-1">{t[lang].total}</span><span className="block text-6xl font-black text-slate-500">{activeEvent.totalSeries}</span></div>
                     </div>
                 </>
-                ) : <div className="text-slate-500 italic">Tidak ada data acara.</div>}
+                ) : <div className="text-slate-500 italic">{t[lang].no_events}</div>}
             </div>
             {!needsStart && activeEvent ? (
                 <div className="bg-slate-800 p-4 border-t border-slate-700 flex justify-between items-center">
                     <button onClick={() => handleNav('prev')} className="flex items-center gap-2 px-6 py-3 bg-slate-700 hover:bg-slate-600 rounded-lg font-bold text-slate-300"><ChevronLeft /> PREV</button>
-                    <div className="flex items-center gap-2 text-slate-400 text-sm"><Megaphone size={16} /> Announcer Control</div>
+                    <div className="flex items-center gap-2 text-slate-400 text-sm"><Megaphone size={16} /> {t[lang].announcer_control}</div>
                     <div>{canGoNext ? <button onClick={() => handleNav('next')} className="flex items-center gap-2 px-8 py-3 bg-purple-600 hover:bg-purple-500 text-white rounded-lg font-bold shadow-lg transition">NEXT <ChevronRight /></button> : <button disabled className="flex items-center gap-2 px-6 py-3 bg-slate-700 text-slate-500 rounded-lg font-bold cursor-not-allowed border border-slate-600"><Lock size={16} /> {blockReason}</button>}</div>
                 </div>
             ) : null}
@@ -1779,26 +2095,26 @@ function AnnouncerPanel({ tournament, events, dqs, updateLiveState, onAddDQ, onD
 
       <div className="md:col-span-1 space-y-6">
         <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
-            <h2 className="font-bold mb-4 text-red-600 flex items-center gap-2"><AlertOctagon /> Input Diskualifikasi</h2>
+            <h2 className="font-bold mb-4 text-red-600 flex items-center gap-2"><AlertOctagon /> {t[lang].input_dq}</h2>
             <form onSubmit={(e) => { e.preventDefault(); wrapAsync(async()=> { await onAddDQ({ eventNumber: parseInt(newDQ.eventNumber), series: parseInt(newDQ.series), lane: parseInt(newDQ.lane), reason: newDQ.reason, timestamp: getWIBTime() }); setNewDQ({ eventNumber: '', series: '', lane: '', reason: '' }); }) }} className="bg-red-50 p-4 rounded-lg mb-4 border border-red-100">
                 <div className="grid grid-cols-3 gap-2 mb-3">
-                    <div><label className="text-[10px] font-bold text-red-800 uppercase block mb-1">Acara</label><input required type="number" value={newDQ.eventNumber} onChange={e => setNewDQ({...newDQ, eventNumber: e.target.value})} className="w-full p-2 border rounded bg-white text-center font-bold" /></div>
-                    <div><label className="text-[10px] font-bold text-red-800 uppercase block mb-1">Seri</label><input required type="number" value={newDQ.series} onChange={e => setNewDQ({...newDQ, series: e.target.value})} className="w-full p-2 border rounded bg-white text-center font-bold" /></div>
-                    <div><label className="text-[10px] font-bold text-red-800 uppercase block mb-1">Lintasan</label><input required type="number" value={newDQ.lane} onChange={e => setNewDQ({...newDQ, lane: e.target.value})} className="w-full p-2 border rounded bg-white text-center font-bold" /></div>
+                    <div><label className="text-[10px] font-bold text-red-800 uppercase block mb-1">{t[lang].event}</label><input required type="number" value={newDQ.eventNumber} onChange={e => setNewDQ({...newDQ, eventNumber: e.target.value})} className="w-full p-2 border rounded bg-white text-center font-bold" /></div>
+                    <div><label className="text-[10px] font-bold text-red-800 uppercase block mb-1">{t[lang].series}</label><input required type="number" value={newDQ.series} onChange={e => setNewDQ({...newDQ, series: e.target.value})} className="w-full p-2 border rounded bg-white text-center font-bold" /></div>
+                    <div><label className="text-[10px] font-bold text-red-800 uppercase block mb-1">{t[lang].lane}</label><input required type="number" value={newDQ.lane} onChange={e => setNewDQ({...newDQ, lane: e.target.value})} className="w-full p-2 border rounded bg-white text-center font-bold" /></div>
                 </div>
                 <div className="mb-4">
-                    <label className="text-[10px] font-bold text-red-800 uppercase block mb-1">Alasan / Keterangan Pelanggaran</label>
+                    <label className="text-[10px] font-bold text-red-800 uppercase block mb-1">{t[lang].dq_reason_desc}</label>
                     <input required type="text" value={newDQ.reason} onChange={e => setNewDQ({...newDQ, reason: e.target.value})} className="w-full p-2 border rounded bg-white text-sm" placeholder="Contoh: False Start" />
                 </div>
-                <button className="w-full bg-red-600 hover:bg-red-700 transition text-white font-bold py-3 rounded-lg shadow">UMUMKAN DQ</button>
+                <button className="w-full bg-red-600 hover:bg-red-700 transition text-white font-bold py-3 rounded-lg shadow">{t[lang].btn_announce_dq}</button>
             </form>
             <div className="max-h-60 overflow-y-auto space-y-2">
-                <div className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Riwayat DQ</div>
-                {dqs.length === 0 ? <div className="text-slate-400 text-sm italic text-center py-4 border border-dashed rounded">Nihil.</div> : null}
+                <div className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">{t[lang].dq_history}</div>
+                {dqs.length === 0 ? <div className="text-slate-400 text-sm italic text-center py-4 border border-dashed rounded">{t[lang].dq_none}</div> : null}
                 {dqs.map((dq: any) => (
                 <div key={dq.id} className="p-3 border rounded-lg flex justify-between items-center text-sm bg-white hover:border-red-200 transition group">
                     <div>
-                        <div className="font-bold text-slate-800">Acara {dq.eventNumber} | Seri {dq.series} | Lin <span className="bg-red-100 text-red-800 px-1.5 rounded">{dq.lane}</span></div>
+                        <div className="font-bold text-slate-800">{t[lang].event} {dq.eventNumber} | {t[lang].series} {dq.series} | {t[lang].lane} <span className="bg-red-100 text-red-800 px-1.5 rounded">{dq.lane}</span></div>
                         <div className="text-red-600 font-medium text-xs mt-0.5">{dq.reason}</div>
                     </div>
                     <button onClick={() => { wrapAsync(async() => await onDeleteDQ(dq.id)) }} className="text-slate-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition p-2"><Trash2 size={16}/></button>
@@ -1811,7 +2127,7 @@ function AnnouncerPanel({ tournament, events, dqs, updateLiveState, onAddDQ, onD
   );
 }
 
-function CallRoomPanel({ tournament, events, updateLiveState }: any) {
+function CallRoomPanel({ tournament, events, updateLiveState, lang, t }: any) {
   const [loading, setLoading] = useState(false);
   const ls = tournament.liveState || DEFAULT_LIVE_STATE;
   const currentCallEvent = events.find((e: any) => e.id === ls.callRoomEventId);
@@ -1848,30 +2164,30 @@ function CallRoomPanel({ tournament, events, updateLiveState }: any) {
         {loading && <div className="absolute inset-0 bg-white/50 z-50 flex items-center justify-center rounded-xl"><Loader2 className="animate-spin text-emerald-600" size={40}/></div>}
         <div className="md:col-span-2 space-y-6">
           <div className="bg-white rounded-xl shadow-lg border border-emerald-100 overflow-hidden">
-            <div className="bg-emerald-600 text-white p-4 flex justify-between items-center"><h2 className="font-bold text-lg flex items-center gap-2"><ClipboardList /> STATUS PEMANGGILAN</h2><span className="bg-emerald-800 text-xs px-2 py-1 rounded">LIVE CONTROL</span></div>
+            <div className="bg-emerald-600 text-white p-4 flex justify-between items-center"><h2 className="font-bold text-lg flex items-center gap-2"><ClipboardList /> {t[lang].call_room_status}</h2><span className="bg-emerald-800 text-xs px-2 py-1 rounded">{t[lang].live_control}</span></div>
             <div className="p-12 text-center min-h-[300px] flex flex-col justify-center items-center bg-emerald-50">
               {needsStart ? (
                  <div className="animate-in fade-in zoom-in">
-                    <p className="text-emerald-700 mb-4 font-medium">Siap Memanggil Peserta.</p>
+                    <p className="text-emerald-700 mb-4 font-medium">{t[lang].ready_call}</p>
                     <button onClick={() => wrapAsync(async () => {
                              const first = events[0]; 
                              await updateLiveState({ callRoomEventId: first.id, callRoomEventName: first.name, callRoomEventNumber: first.number, callRoomEventTotalSeries: first.totalSeries, callRoomSeries: 1, callRoomLastUpdate: getWIBTime() });
-                    })} className="bg-emerald-600 hover:bg-emerald-700 text-white px-8 py-4 rounded-xl font-bold text-xl shadow-lg flex items-center gap-3"><Play size={24} fill="currentColor" /> INISIALISASI CALL ROOM</button>
+                    })} className="bg-emerald-600 hover:bg-emerald-700 text-white px-8 py-4 rounded-xl font-bold text-xl shadow-lg flex items-center gap-3"><Play size={24} fill="currentColor" /> {t[lang].init_call_room}</button>
                 </div>
               ) : currentCallEvent ? (
                 <>
-                  <div className="text-emerald-700 font-bold tracking-widest uppercase mb-1">Sedang Memanggil</div>
+                  <div className="text-emerald-700 font-bold tracking-widest uppercase mb-1">{t[lang].calling_now}</div>
                   <h1 className="text-3xl font-extrabold text-slate-800 mb-4">{currentCallEvent.number}. {currentCallEvent.name}</h1>
-                  <div className="inline-block bg-white shadow-sm border border-emerald-200 rounded-lg p-6 mb-8"><span className="text-6xl font-black text-emerald-600">{ls.callRoomSeries}</span><span className="text-sm text-slate-400 block uppercase mt-2">Dari {currentCallEvent.totalSeries} Seri</span></div>
-                  <div className="flex gap-4 justify-center"><button onClick={() => handleNav('prev')} className="px-6 py-3 rounded-lg border-2 border-slate-200 text-slate-500 hover:bg-slate-50 font-bold transition">Prev</button><button onClick={() => handleNav('next')} className="px-10 py-3 rounded-lg bg-emerald-600 text-white hover:bg-emerald-700 font-bold shadow-lg transition transform active:scale-95 flex items-center gap-2">PANGGIL NEXT <ChevronRight size={20} /></button></div>
+                  <div className="inline-block bg-white shadow-sm border border-emerald-200 rounded-lg p-6 mb-8"><span className="text-6xl font-black text-emerald-600">{ls.callRoomSeries}</span><span className="text-sm text-slate-400 block uppercase mt-2">{t[lang].of_series} {currentCallEvent.totalSeries} {t[lang].series}</span></div>
+                  <div className="flex gap-4 justify-center"><button onClick={() => handleNav('prev')} className="px-6 py-3 rounded-lg border-2 border-slate-200 text-slate-500 hover:bg-slate-50 font-bold transition">Prev</button><button onClick={() => handleNav('next')} className="px-10 py-3 rounded-lg bg-emerald-600 text-white hover:bg-emerald-700 font-bold shadow-lg transition transform active:scale-95 flex items-center gap-2">{t[lang].call_next} <ChevronRight size={20} /></button></div>
                 </>
-              ) : <div className="text-slate-400 italic">Menunggu Data...</div>}
+              ) : <div className="text-slate-400 italic">{t[lang].waiting}</div>}
             </div>
           </div>
         </div>
         <div className="md:col-span-1 space-y-4">
-           <div className="bg-slate-800 text-white p-5 rounded-xl shadow-md"><h3 className="text-slate-400 text-xs uppercase font-bold mb-2">Sedang Berlangsung di Kolam</h3><div className="text-2xl font-bold text-yellow-400">Event {ls.currentEventNumber || '-'}</div><div className="text-lg">Seri {ls.currentSeries}</div></div>
-           <div className="bg-white p-5 rounded-xl shadow-sm border border-slate-200"><h3 className="text-slate-400 text-xs uppercase font-bold mb-3">Event Selanjutnya (Persiapan)</h3>{nextEvent ? <div><div className="font-bold text-slate-800">{nextEvent.number}. {nextEvent.name}</div><div className="text-sm text-slate-500 mt-1">{nextEvent.totalSeries} Seri</div></div> : <div className="text-slate-400 text-sm italic">Tidak ada event selanjutnya.</div>}</div>
+           <div className="bg-slate-800 text-white p-5 rounded-xl shadow-md"><h3 className="text-slate-400 text-xs uppercase font-bold mb-2">{t[lang].pool_now}</h3><div className="text-2xl font-bold text-yellow-400">{t[lang].event} {ls.currentEventNumber || '-'}</div><div className="text-lg">{t[lang].series} {ls.currentSeries}</div></div>
+           <div className="bg-white p-5 rounded-xl shadow-sm border border-slate-200"><h3 className="text-slate-400 text-xs uppercase font-bold mb-3">{t[lang].next_event_prep}</h3>{nextEvent ? <div><div className="font-bold text-slate-800">{nextEvent.number}. {nextEvent.name}</div><div className="text-sm text-slate-500 mt-1">{nextEvent.totalSeries} {t[lang].series}</div></div> : <div className="text-slate-400 text-sm italic">{t[lang].no_next_event}</div>}</div>
         </div>
     </div>
   );
