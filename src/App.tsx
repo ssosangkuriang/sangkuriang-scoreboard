@@ -979,55 +979,69 @@ function LiveScoreboard({ tournament, dqs, events, isOnline, onBack, onLoginRequ
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col relative">
-        <header className="bg-slate-900 text-white h-16 shrink-0 flex items-center justify-between px-6 border-b border-slate-800 shadow-xl z-50">
-            <div className="flex items-center gap-4">
-                <img src="/sangkuriang%201.png" alt="Logo" className="h-10 w-auto object-contain" onError={(e:any) => e.target.style.display='none'} />
-                <div className="flex flex-col justify-center">
-                    <h1 className="font-extrabold text-lg leading-none tracking-wide uppercase truncate max-w-[150px] md:max-w-xs">{tournament.title}</h1>
+        <header className="bg-slate-900 text-white h-16 shrink-0 flex items-center justify-between px-3 md:px-6 border-b border-slate-800 shadow-xl z-50">
+            <div className="flex items-center gap-2 md:gap-4 flex-1 overflow-hidden mr-2">
+                <img src="/sangkuriang%201.png" alt="Logo" className="hidden sm:block h-10 w-auto object-contain" onError={(e:any) => e.target.style.display='none'} />
+                <div className="flex flex-col justify-center min-w-0">
+                    <h1 className="font-extrabold text-sm sm:text-lg leading-none tracking-wide uppercase truncate w-full">{tournament.title}</h1>
                     <p className="text-[10px] text-blue-400 font-bold tracking-[0.2em] uppercase hidden sm:block">Swim Organizer</p>
                 </div>
             </div>
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-1.5 md:gap-3 shrink-0">
                 <span className={`text-[10px] flex items-center gap-1 ${isOnline ? 'text-emerald-400' : 'text-red-500'}`}>{isOnline ? <Wifi size={10} /> : <WifiOff size={10} />}</span>
-                <button onClick={() => setShowResultsList(true)} className="text-xs bg-blue-600 hover:bg-blue-500 text-white px-3 py-1.5 rounded-lg transition shadow-md flex items-center gap-2 font-bold whitespace-nowrap"><FileText size={14} /> Hasil Acara</button>
-                <button onClick={onBack} className="text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 px-3 py-1.5 rounded-lg transition border border-slate-700 flex items-center gap-2"><ChevronLeft size={14} /> <span className="hidden sm:inline">Beranda</span></button>
-                <button onClick={onLoginRequest} className="text-slate-500 hover:text-white transition p-2"><Settings size={20} /></button>
+                <button onClick={() => setShowResultsList(true)} className="text-[10px] sm:text-xs bg-blue-600 hover:bg-blue-500 text-white px-2 sm:px-3 py-1.5 rounded-lg transition shadow-md flex items-center gap-1.5 font-bold whitespace-nowrap"><FileText size={14} /> <span className="hidden sm:inline">Hasil</span></button>
+                <button onClick={onBack} className="text-[10px] sm:text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 px-2 sm:px-3 py-1.5 rounded-lg transition border border-slate-700 flex items-center gap-1.5"><ChevronLeft size={14} /> <span className="hidden md:inline">Beranda</span></button>
+                <button onClick={onLoginRequest} className="text-slate-500 hover:text-white transition p-1.5"><Settings size={18} /></button>
             </div>
         </header>
 
         <div className="flex flex-col md:flex-row border-b border-slate-200 shadow-sm shrink-0">
-            <div className="w-full md:w-1/2 bg-slate-900 relative p-6 md:p-12 min-h-[300px] md:min-h-[45vh] flex flex-col justify-center">
+            {/* BAGIAN PEMANGGILAN (CALL ROOM) */}
+            <div className="w-full md:w-1/2 bg-slate-900 relative p-4 sm:p-6 md:p-12 min-h-[220px] md:min-h-[45vh] flex flex-col justify-center">
                 <div className="absolute inset-0 bg-gradient-to-br from-blue-900/40 via-slate-900 to-slate-900 z-0"></div>
                 <div className="relative z-10 w-full max-w-lg mx-auto">
-                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4 sm:gap-0">
+                    <div className="flex flex-row justify-between items-center mb-4 sm:mb-6 gap-2">
                         <div>
-                            <h2 className="text-white text-2xl md:text-3xl font-bold flex items-center gap-2"><Users className="text-blue-400" /> Pemanggilan</h2>
-                            <span className="text-blue-200/60 text-sm block mt-1">Call Room</span>
+                            <h2 className="text-white text-lg sm:text-2xl md:text-3xl font-bold flex items-center gap-1.5 sm:gap-2"><Users size={20} className="text-blue-400 sm:w-6 sm:h-6" /> Pemanggilan</h2>
+                            <span className="text-blue-200/60 text-[10px] sm:text-sm block mt-0.5 sm:mt-1">Call Room</span>
                         </div>
-                        <div className="text-left sm:text-right">
-                            <span className="text-blue-200/40 text-[10px] uppercase block">Terakhir Update</span>
-                            <span className="text-white text-lg font-mono font-bold flex items-center gap-2"><Clock size={16} className="text-blue-400" /> {ls.callRoomLastUpdate || '-'}</span>
+                        <div className="text-right">
+                            <span className="text-blue-200/40 text-[8px] sm:text-[10px] uppercase block">Terakhir Update</span>
+                            <span className="text-white text-sm sm:text-lg font-mono font-bold flex items-center justify-end gap-1 sm:gap-2"><Clock size={12} className="text-blue-400 sm:w-4 sm:h-4" /> {ls.callRoomLastUpdate || '-'}</span>
                         </div>
                     </div>
-                    <div className="flex gap-4">
-                        <div className="flex-1 bg-white/5 border border-white/10 rounded-2xl p-4 text-center"><div className="text-blue-200 text-sm uppercase mb-1">Acara</div><div className="text-white text-6xl md:text-8xl font-bold tracking-tighter">{ls.callRoomEventNumber || '-'}</div></div>
-                        <div className="flex-1 bg-white/5 border border-white/10 rounded-2xl p-4 text-center"><div className="text-blue-200 text-sm uppercase mb-1">Seri</div><div className="text-white text-6xl md:text-8xl font-bold tracking-tighter">{ls.callRoomSeries}</div></div>
+                    <div className="flex gap-2 sm:gap-4">
+                        <div className="flex-1 bg-white/5 border border-white/10 rounded-xl sm:rounded-2xl p-2 sm:p-4 text-center flex flex-col justify-center">
+                            <div className="text-blue-200 text-[10px] sm:text-sm uppercase mb-0.5 sm:mb-1">Acara</div>
+                            <div className="text-white text-5xl sm:text-6xl md:text-8xl font-bold tracking-tighter shrink-0">{ls.callRoomEventNumber || '-'}</div>
+                        </div>
+                        <div className="flex-1 bg-white/5 border border-white/10 rounded-xl sm:rounded-2xl p-2 sm:p-4 text-center flex flex-col justify-center">
+                            <div className="text-blue-200 text-[10px] sm:text-sm uppercase mb-0.5 sm:mb-1">Seri</div>
+                            <div className="text-white text-5xl sm:text-6xl md:text-8xl font-bold tracking-tighter shrink-0">{ls.callRoomSeries}</div>
+                        </div>
                     </div>
-                    <p className="text-center text-blue-200/50 mt-4 text-lg md:text-xl font-medium truncate">{ls.callRoomEventName || 'Menunggu...'}</p>
+                    <p className="text-center text-blue-200/50 mt-3 sm:mt-4 text-xs sm:text-lg md:text-xl font-medium truncate px-2">{ls.callRoomEventName || 'Menunggu...'}</p>
                 </div>
             </div>
             
-            <div className="w-full md:w-1/2 bg-white relative p-6 md:p-12 min-h-[300px] md:min-h-[45vh] flex flex-col justify-center">
+            {/* BAGIAN SEDANG BERLOMBA (LIVE) */}
+            <div className="w-full md:w-1/2 bg-white relative p-4 sm:p-6 md:p-12 min-h-[220px] md:min-h-[45vh] flex flex-col justify-center">
                 <div className="relative z-10 w-full max-w-lg mx-auto">
-                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4 sm:gap-0">
-                        <h2 className="text-slate-800 text-2xl md:text-3xl font-bold flex items-center gap-2"><MonitorPlay className="text-red-500" /> Sedang Berlomba</h2>
-                        <span className="bg-red-500 text-white text-xs px-3 py-1 rounded-full font-bold animate-pulse">LIVE</span>
+                    <div className="flex flex-row justify-between items-center mb-4 sm:mb-6 gap-2">
+                        <h2 className="text-slate-800 text-lg sm:text-2xl md:text-3xl font-bold flex items-center gap-1.5 sm:gap-2"><MonitorPlay size={20} className="text-red-500 sm:w-6 sm:h-6" /> Sedang Berlomba</h2>
+                        <span className="bg-red-500 text-white text-[10px] sm:text-xs px-2 sm:px-3 py-1 rounded-full font-bold animate-pulse whitespace-nowrap">LIVE</span>
                     </div>
-                    <div className="flex gap-4">
-                        <div className="flex-1 bg-slate-50 border border-slate-200 rounded-2xl p-4 text-center shadow-inner"><div className="text-slate-400 text-sm uppercase mb-1">Acara</div><div className="text-slate-800 text-6xl md:text-8xl font-bold tracking-tighter">{ls.currentEventNumber || '-'}</div></div>
-                        <div className="flex-1 bg-slate-50 border border-slate-200 rounded-2xl p-4 text-center shadow-inner"><div className="text-slate-400 text-sm uppercase mb-1">Seri</div><div className="text-slate-800 text-6xl md:text-8xl font-bold tracking-tighter">{ls.currentSeries}</div></div>
+                    <div className="flex gap-2 sm:gap-4">
+                        <div className="flex-1 bg-slate-50 border border-slate-200 rounded-xl sm:rounded-2xl p-2 sm:p-4 text-center shadow-inner flex flex-col justify-center">
+                            <div className="text-slate-400 text-[10px] sm:text-sm uppercase mb-0.5 sm:mb-1">Acara</div>
+                            <div className="text-slate-800 text-5xl sm:text-6xl md:text-8xl font-bold tracking-tighter shrink-0">{ls.currentEventNumber || '-'}</div>
+                        </div>
+                        <div className="flex-1 bg-slate-50 border border-slate-200 rounded-xl sm:rounded-2xl p-2 sm:p-4 text-center shadow-inner flex flex-col justify-center">
+                            <div className="text-slate-400 text-[10px] sm:text-sm uppercase mb-0.5 sm:mb-1">Seri</div>
+                            <div className="text-slate-800 text-5xl sm:text-6xl md:text-8xl font-bold tracking-tighter shrink-0">{ls.currentSeries}</div>
+                        </div>
                     </div>
-                    <p className="text-center text-slate-500 mt-4 text-lg md:text-xl font-medium truncate">{ls.currentEventName || 'Menunggu...'}</p>
+                    <p className="text-center text-slate-500 mt-3 sm:mt-4 text-xs sm:text-lg md:text-xl font-medium truncate px-2">{ls.currentEventName || 'Menunggu...'}</p>
                 </div>
             </div>
         </div>
@@ -1037,6 +1051,7 @@ function LiveScoreboard({ tournament, dqs, events, isOnline, onBack, onLoginRequ
                 <AlertOctagon size={24} className="text-red-500" /> INFORMASI DISKUALIFIKASI TERKINI
             </h3>
             <div className="bg-white rounded-xl shadow-md border border-slate-200 overflow-hidden flex flex-col">
+                {/* Header Tabel */}
                 <div className="flex bg-slate-800 text-white text-[10px] sm:text-sm font-bold uppercase py-3 md:py-4 px-3 md:px-6 items-center shrink-0">
                     <div className="w-12 sm:w-20 text-center sm:text-left shrink-0">Acara</div>
                     <div className="w-10 sm:w-20 text-center shrink-0">Seri</div>
@@ -1044,6 +1059,7 @@ function LiveScoreboard({ tournament, dqs, events, isOnline, onBack, onLoginRequ
                     <div className="flex-1 pl-3 sm:pl-6 text-left">Keterangan / Alasan</div>
                 </div>
                 
+                {/* Body Tabel Tanpa Internal Scroll */}
                 <div className="flex flex-col">
                     {currentDqs.length === 0 ? (
                         <div className="flex items-center justify-center text-slate-400 italic text-sm md:text-base py-12">Tidak ada informasi diskualifikasi saat ini.</div>
@@ -1062,6 +1078,7 @@ function LiveScoreboard({ tournament, dqs, events, isOnline, onBack, onLoginRequ
                         </div>
                     )}
 
+                    {/* Panel Paginasi / Tombol (Hanya Muncul Jika Lebih Dari 10 Data) */}
                     {totalPages > 1 && (
                         <div className="bg-slate-100 border-t border-slate-200 p-3 md:p-4 px-4 md:px-6 flex justify-between items-center shrink-0">
                             <button 
@@ -1682,7 +1699,6 @@ function AdminPanel({ tournament, events, masterPinHash, onUpdateTournament, onA
   );
 }
 
-// 6. ANNOUNCER PANEL (Live Display + DQ Input)
 function AnnouncerPanel({ tournament, events, dqs, updateLiveState, onAddDQ, onDeleteDQ }: any) {
   const [loading, setLoading] = useState(false);
   const [newDQ, setNewDQ] = useState({ eventNumber: '', series: '', lane: '', reason: '' });
