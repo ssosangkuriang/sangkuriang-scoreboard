@@ -186,6 +186,75 @@ const t = {
     tournament_paused: "LOMBA SEDANG JEDA",
     tournament_upcoming: "AKAN DATANG",
     waiting_results: "Menunggu admin mengunggah hasil perlombaan...",
+    
+    // --- KAMUS BARU UNTUK ADMIN PANEL & CALLROOM ---
+    admin_control: "Kontrol Lomba",
+    current_status: "Status Saat Ini",
+    status_live_caps: "SEDANG BERLANGSUNG (LIVE)",
+    status_finished_caps: "SELESAI",
+    status_paused_caps: "SEDANG JEDA / ISTIRAHAT",
+    status_upcoming_caps: "AKAN DATANG",
+    btn_start_race: "MULAI LOMBA",
+    btn_pause_race: "JEDA LOMBA (ISTIRAHAT)",
+    btn_finish_race: "SELESAIKAN PERTANDINGAN",
+    btn_resume_race: "LANJUTKAN LOMBA",
+    btn_reopen_race: "BUKA KEMBALI LOMBA (LIVE)",
+    link_results_pdf: "Link Hasil Lengkap (PDF URL)",
+    link_results_desc: "Gunakan link publik agar bisa dibuka oleh penonton saat lomba selesai.",
+    btn_reset_race: "RESET ULANG LOMBA",
+    edit_info: "Edit Informasi Lomba",
+    tournament_name: "Nama Kejuaraan",
+    venue: "Lokasi / Venue",
+    start_date: "Tanggal Mulai",
+    end_date: "Tanggal Selesai",
+    btn_save_info: "SIMPAN INFORMASI",
+    pin_settings: "Pengaturan PIN Akses",
+    change_admin_pin: "Ubah PIN Admin Lomba",
+    change_announcer_pin: "Ubah PIN Announcer",
+    change_callroom_pin: "Ubah PIN Call Room",
+    empty_pin_hint: "Kosongkan jika tidak diubah",
+    btn_save_pins: "SIMPAN PIN BARU",
+    events_list: "Daftar Acara (Events)",
+    import_excel: "IMPOR EXCEL",
+    event_name_placeholder: "Nama Acara (Contoh: 50m Gaya Bebas)",
+    btn_add: "TAMBAH",
+    col_no: "No",
+    col_event_name: "Nama Acara",
+    col_series: "Seri",
+    col_results: "Hasil",
+    col_action: "Aksi",
+    results_available: "HASIL TERSEDIA",
+    status_yes: "ADA",
+    status_empty: "KOSONG",
+    btn_save: "SIMPAN",
+    btn_cancel: "BATAL",
+    no_events_added: "Belum ada acara ditambahkan.",
+    input_results_link: "Input Link Hasil",
+    google_drive_url: "Google Drive / PDF URL",
+    btn_save_link: "Simpan Link",
+    set_pause_time: "Atur Waktu Jeda",
+    pause_time_desc: "Pilih waktu kapan perlombaan ini akan dilanjutkan. Ini akan memunculkan hitung mundur bagi penonton di beranda.",
+    resume_time: "Waktu Dilanjutkan",
+    btn_pause_now: "Jeda Lomba Sekarang",
+    reset_race_title: "Reset Lomba",
+    reset_race_desc: "Tindakan ini akan mengembalikan status lomba ke \"Akan Datang\" dan menghapus seluruh riwayat diskualifikasi. Masukkan PIN Superuser untuk konfirmasi.",
+    btn_confirm_reset: "Konfirmasi Reset Lomba",
+    finish_race_title: "Selesaikan Lomba?",
+    finish_race_desc: "Penonton di beranda akan melihat halaman hasil lomba secara penuh. Jika ini tidak disengaja, Anda dapat membuka kembali (Live) lomba ini nanti lewat menu kontrol.",
+    btn_finish: "Selesaikan",
+    
+    // --- KAMUS BARU UNTUK CALLROOM ---
+    callroom_status: "STATUS PEMANGGILAN",
+    live_control: "LIVE CONTROL",
+    ready_to_call: "Siap Memanggil Peserta.",
+    btn_init_callroom: "INISIALISASI CALL ROOM",
+    calling_now: "Sedang Memanggil",
+    from_series: "Dari",
+    btn_call_next: "PANGGIL NEXT",
+    waiting_data: "Menunggu Data...",
+    live_in_pool: "Sedang Berlangsung di Kolam",
+    next_event_prep: "Event Selanjutnya (Persiapan)",
+    no_next_event: "Tidak ada event selanjutnya."
   },
   en: {
     connecting: "Connecting to Server...",
@@ -240,6 +309,75 @@ const t = {
     tournament_paused: "CHAMPIONSHIP IS PAUSED",
     tournament_upcoming: "UPCOMING",
     waiting_results: "Waiting for admin to upload the results...",
+    
+    // --- KAMUS BARU UNTUK ADMIN PANEL & CALLROOM ---
+    admin_control: "Event Control",
+    current_status: "Current Status",
+    status_live_caps: "IN PROGRESS (LIVE)",
+    status_finished_caps: "FINISHED",
+    status_paused_caps: "PAUSED / BREAK",
+    status_upcoming_caps: "UPCOMING",
+    btn_start_race: "START EVENT",
+    btn_pause_race: "PAUSE EVENT (BREAK)",
+    btn_finish_race: "FINISH EVENT",
+    btn_resume_race: "RESUME EVENT",
+    btn_reopen_race: "REOPEN EVENT (LIVE)",
+    link_results_pdf: "Full Results Link (PDF URL)",
+    link_results_desc: "Use a public link so spectators can open it when the event is finished.",
+    btn_reset_race: "RESET TOURNAMENT",
+    edit_info: "Edit Tournament Info",
+    tournament_name: "Championship Name",
+    venue: "Location / Venue",
+    start_date: "Start Date",
+    end_date: "End Date",
+    btn_save_info: "SAVE INFORMATION",
+    pin_settings: "Access PIN Settings",
+    change_admin_pin: "Change Admin PIN",
+    change_announcer_pin: "Change Announcer PIN",
+    change_callroom_pin: "Change Call Room PIN",
+    empty_pin_hint: "Leave blank if unchanged",
+    btn_save_pins: "SAVE NEW PINS",
+    events_list: "Events List",
+    import_excel: "IMPORT EXCEL",
+    event_name_placeholder: "Event Name (e.g., 50m Freestyle)",
+    btn_add: "ADD",
+    col_no: "No",
+    col_event_name: "Event Name",
+    col_series: "Heat",
+    col_results: "Results",
+    col_action: "Action",
+    results_available: "RESULTS AVAILABLE",
+    status_yes: "YES",
+    status_empty: "EMPTY",
+    btn_save: "SAVE",
+    btn_cancel: "CANCEL",
+    no_events_added: "No events added yet.",
+    input_results_link: "Input Results Link",
+    google_drive_url: "Google Drive / PDF URL",
+    btn_save_link: "Save Link",
+    set_pause_time: "Set Pause Time",
+    pause_time_desc: "Select the time when this event will resume. This will show a countdown for spectators on the homepage.",
+    resume_time: "Resume Time",
+    btn_pause_now: "Pause Event Now",
+    reset_race_title: "Reset Event",
+    reset_race_desc: "This action will revert the event status to \"Upcoming\" and delete all disqualification history. Enter Superuser PIN to confirm.",
+    btn_confirm_reset: "Confirm Reset Event",
+    finish_race_title: "Finish Event?",
+    finish_race_desc: "Spectators on the homepage will see the full event results page. If this is accidental, you can reopen (Live) this event later via the control menu.",
+    btn_finish: "Finish",
+    
+    // --- KAMUS BARU UNTUK CALLROOM ---
+    callroom_status: "CALLING STATUS",
+    live_control: "LIVE CONTROL",
+    ready_to_call: "Ready to Call Swimmers.",
+    btn_init_callroom: "INITIALIZE CALL ROOM",
+    calling_now: "Calling Now",
+    from_series: "From",
+    btn_call_next: "CALL NEXT",
+    waiting_data: "Waiting for Data...",
+    live_in_pool: "Live in the Pool",
+    next_event_prep: "Next Event (Preparation)",
+    no_next_event: "No next event."
   }
 };
 
@@ -642,7 +780,7 @@ const LogoBar = ({ onMasterLogin, lang, setLang, t }: any) => (
 
         {onMasterLogin && (
           <button onClick={onMasterLogin} className="text-[10px] sm:text-xs text-slate-400 hover:text-white flex gap-1 items-center transition bg-slate-800 px-3 py-1.5 sm:py-1.5 rounded-xl sm:rounded-full border border-slate-700 h-8 sm:h-auto">
-            <ShieldAlert size={14}/> <span className="hidden sm:inline">Master</span>
+            <ShieldAlert size={14}/> <span className="hidden sm:inline">{t[lang].role_master}</span>
           </button>
         )}
       </div>
@@ -1553,7 +1691,7 @@ function AdminPanel({ tournament, events, masterPinHash, onUpdateTournament, onA
       wrapAsync(async () => {
         await onUpdateTournament({ pins: updatedPins });
         setPinForm({ admin: '', announcer: '', callroom: '' });
-        setPinMessage('PIN akses berhasil diperbarui!');
+        setPinMessage(lang === 'id' ? 'PIN akses berhasil diperbarui!' : 'Access PINs updated successfully!');
         setTimeout(() => setPinMessage(''), 4000);
       });
     }
@@ -1581,81 +1719,81 @@ function AdminPanel({ tournament, events, masterPinHash, onUpdateTournament, onA
       
       <div className="md:col-span-1 space-y-6">
         <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
-          <h2 className="font-bold mb-4 flex gap-2"><Settings className="text-blue-600"/> Kontrol Lomba</h2>
+          <h2 className="font-bold mb-4 flex gap-2"><Settings className="text-blue-600"/> {t[lang].admin_control}</h2>
           
           <div className="mb-6 p-4 rounded-lg bg-slate-50 border border-slate-100">
-              <div className="text-xs text-slate-500 uppercase font-bold tracking-wider mb-1">Status Saat Ini</div>
+              <div className="text-xs text-slate-500 uppercase font-bold tracking-wider mb-1">{t[lang].current_status}</div>
               <div className={`text-lg font-black uppercase ${isLive ? 'text-red-500' : tournament.status === 'finished' ? 'text-blue-600' : tournament.status === 'paused' ? 'text-yellow-600' : 'text-slate-600'}`}>
-                  {isLive ? 'SEDANG BERLANGSUNG (LIVE)' : tournament.status === 'finished' ? 'SELESAI' : tournament.status === 'paused' ? 'SEDANG JEDA / ISTIRAHAT' : 'AKAN DATANG'}
+                  {isLive ? t[lang].status_live_caps : tournament.status === 'finished' ? t[lang].status_finished_caps : tournament.status === 'paused' ? t[lang].status_paused_caps : t[lang].status_upcoming_caps}
               </div>
           </div>
 
           <div className="space-y-3">
              {isUpcoming && (
                  <button onClick={() => { wrapAsync(async() => await onUpdateTournament({ status: 'live' })); }} className="w-full py-4 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl font-bold flex justify-center items-center gap-2 transition shadow-lg">
-                     <Play size={20}/> MULAI LOMBA
+                     <Play size={20}/> {t[lang].btn_start_race}
                  </button>
              )}
              {isLive && (
                  <>
                    <button onClick={() => setShowPauseModal(true)} className="w-full py-3 bg-yellow-500 hover:bg-yellow-400 text-white rounded-xl font-bold flex justify-center items-center gap-2 transition shadow-md">
-                       <Timer size={18}/> JEDA LOMBA (ISTIRAHAT)
+                       <Timer size={18}/> {t[lang].btn_pause_race}
                    </button>
                    <button onClick={() => setShowFinishConfirm(true)} className="w-full py-3 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-bold flex justify-center items-center gap-2 transition shadow-md">
-                       <CheckCircle size={18}/> SELESAIKAN PERTANDINGAN
+                       <CheckCircle size={18}/> {t[lang].btn_finish_race}
                    </button>
                  </>
              )}
              {tournament.status === 'paused' && (
                  <>
                    <button onClick={() => { wrapAsync(async() => await onUpdateTournament({ status: 'live' })); }} className="w-full py-4 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl font-bold flex justify-center items-center gap-2 transition shadow-lg">
-                       <Play size={20}/> LANJUTKAN LOMBA
+                       <Play size={20}/> {t[lang].btn_resume_race}
                    </button>
                    <button onClick={() => setShowFinishConfirm(true)} className="w-full py-3 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-bold flex justify-center items-center gap-2 transition shadow-md mt-2">
-                       <CheckCircle size={18}/> SELESAIKAN PERTANDINGAN
+                       <CheckCircle size={18}/> {t[lang].btn_finish_race}
                    </button>
                  </>
              )}
              {tournament.status === 'finished' && (
                  <button onClick={() => { wrapAsync(async() => await onUpdateTournament({ status: 'live' })); }} className="w-full py-4 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl font-bold flex justify-center items-center gap-2 transition shadow-lg">
-                     <Play size={20}/> BUKA KEMBALI LOMBA (LIVE)
+                     <Play size={20}/> {t[lang].btn_reopen_race}
                  </button>
              )}
              
              <div className="pt-4 border-t border-slate-100 mt-6">
-                <label className="text-xs text-slate-500 font-bold mb-1 block">Link Hasil Lengkap (PDF URL)</label>
+                <label className="text-xs text-slate-500 font-bold mb-1 block">{t[lang].link_results_pdf}</label>
                 <div className="flex gap-2">
                     <input type="text" value={tournament.resultUrl || ''} onChange={(e) => onUpdateTournament({ resultUrl: e.target.value })} className="flex-1 p-2 border rounded text-sm bg-slate-50" placeholder="https://drive.google.com/..." />
                 </div>
-                <p className="text-[10px] text-slate-400 mt-1">Gunakan link publik agar bisa dibuka oleh penonton saat lomba selesai.</p>
+                <p className="text-[10px] text-slate-400 mt-1">{t[lang].link_results_desc}</p>
              </div>
 
              <div className="pt-6 border-t border-slate-100 mt-6">
                 <button onClick={() => setShowResetModal(true)} className="w-full py-3 bg-red-50 hover:bg-red-100 text-red-600 rounded-xl font-bold flex justify-center items-center gap-2 transition border border-red-200">
-                    <AlertOctagon size={18}/> RESET ULANG LOMBA
+                    <AlertOctagon size={18}/> {t[lang].btn_reset_race}
                 </button>
              </div>
           </div>
         </div>
 
         <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
-          <h2 className="font-bold mb-4 flex gap-2"><Edit2 className="text-blue-600"/> Edit Informasi Lomba</h2>
+          <h2 className="font-bold mb-4 flex gap-2"><Edit2 className="text-blue-600"/> {t[lang].edit_info}</h2>
           <form onSubmit={handleUpdateInfo} className="space-y-3">
             <div>
-              <label className="text-xs text-slate-500 font-bold mb-1 block">Nama Kejuaraan</label>
+              <label className="text-xs text-slate-500 font-bold mb-1 block">{t[lang].tournament_name}</label>
               <input required type="text" value={infoForm.title} onChange={(e) => setInfoForm({...infoForm, title: e.target.value})} className="w-full p-2 border rounded text-sm bg-slate-50 focus:bg-white transition-colors" />
             </div>
             <div>
-              <label className="text-xs text-slate-500 font-bold mb-1 block">Lokasi / Venue</label>
+              <label className="text-xs text-slate-500 font-bold mb-1 block">{t[lang].venue}</label>
               <input required type="text" value={infoForm.venue} onChange={(e) => setInfoForm({...infoForm, venue: e.target.value})} className="w-full p-2 border rounded text-sm bg-slate-50 focus:bg-white transition-colors" />
             </div>
             <div className="grid grid-cols-2 gap-2">
               <div>
-                <label className="text-xs text-slate-500 font-bold mb-1 block">Tanggal Mulai</label>
+                <label className="text-xs text-slate-500 font-bold mb-1 block">{t[lang].start_date}</label>
                 <input required type="date" value={infoForm.eventDate} onChange={(e) => setInfoForm({...infoForm, eventDate: e.target.value})} className="w-full p-2 border rounded text-sm bg-slate-50 focus:bg-white transition-colors" />
               </div>
               <div>
-                <label className="text-xs text-slate-500 font-bold mb-1 block">Tanggal Selesai</label>
+                <label className="text-xs text-slate-500 font-bold mb-1 block">{t[lang].end_date}</label>
                 <input required type="date" value={infoForm.endDate} onChange={(e) => setInfoForm({...infoForm, endDate: e.target.value})} className="w-full p-2 border rounded text-sm bg-slate-50 focus:bg-white transition-colors" min={infoForm.eventDate} />
               </div>
             </div>
@@ -1664,33 +1802,33 @@ function AdminPanel({ tournament, events, masterPinHash, onUpdateTournament, onA
             
             <div className="pt-2">
               <button type="submit" className="w-full py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-bold text-sm transition shadow-sm">
-                SIMPAN INFORMASI
+                {t[lang].btn_save_info}
               </button>
             </div>
           </form>
         </div>
 
         <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
-          <h2 className="font-bold mb-4 flex gap-2"><Lock className="text-blue-600"/> Pengaturan PIN Akses</h2>
+          <h2 className="font-bold mb-4 flex gap-2"><Lock className="text-blue-600"/> {t[lang].pin_settings}</h2>
           <form onSubmit={handleUpdatePins} className="space-y-3">
             <div>
-              <label className="text-xs text-slate-500 font-bold mb-1 block">Ubah PIN Admin Lomba</label>
-              <input type="text" value={pinForm.admin} onChange={(e) => setPinForm({...pinForm, admin: e.target.value})} className="w-full p-2 border rounded text-sm bg-slate-50 focus:bg-white transition-colors" placeholder="Kosongkan jika tidak diubah" />
+              <label className="text-xs text-slate-500 font-bold mb-1 block">{t[lang].change_admin_pin}</label>
+              <input type="text" value={pinForm.admin} onChange={(e) => setPinForm({...pinForm, admin: e.target.value})} className="w-full p-2 border rounded text-sm bg-slate-50 focus:bg-white transition-colors" placeholder={t[lang].empty_pin_hint} />
             </div>
             <div>
-              <label className="text-xs text-slate-500 font-bold mb-1 block">Ubah PIN Announcer</label>
-              <input type="text" value={pinForm.announcer} onChange={(e) => setPinForm({...pinForm, announcer: e.target.value})} className="w-full p-2 border rounded text-sm bg-slate-50 focus:bg-white transition-colors" placeholder="Kosongkan jika tidak diubah" />
+              <label className="text-xs text-slate-500 font-bold mb-1 block">{t[lang].change_announcer_pin}</label>
+              <input type="text" value={pinForm.announcer} onChange={(e) => setPinForm({...pinForm, announcer: e.target.value})} className="w-full p-2 border rounded text-sm bg-slate-50 focus:bg-white transition-colors" placeholder={t[lang].empty_pin_hint} />
             </div>
             <div>
-              <label className="text-xs text-slate-500 font-bold mb-1 block">Ubah PIN Call Room</label>
-              <input type="text" value={pinForm.callroom} onChange={(e) => setPinForm({...pinForm, callroom: e.target.value})} className="w-full p-2 border rounded text-sm bg-slate-50 focus:bg-white transition-colors" placeholder="Kosongkan jika tidak diubah" />
+              <label className="text-xs text-slate-500 font-bold mb-1 block">{t[lang].change_callroom_pin}</label>
+              <input type="text" value={pinForm.callroom} onChange={(e) => setPinForm({...pinForm, callroom: e.target.value})} className="w-full p-2 border rounded text-sm bg-slate-50 focus:bg-white transition-colors" placeholder={t[lang].empty_pin_hint} />
             </div>
             
             {pinMessage && <div className="text-xs font-bold text-emerald-700 bg-emerald-50 border border-emerald-100 p-2 rounded-lg text-center animate-in fade-in">{pinMessage}</div>}
             
             <div className="pt-2">
               <button type="submit" disabled={!pinForm.admin && !pinForm.announcer && !pinForm.callroom} className="w-full py-2.5 bg-slate-800 hover:bg-slate-700 disabled:bg-slate-300 disabled:cursor-not-allowed text-white rounded-lg font-bold text-sm transition shadow-sm">
-                SIMPAN PIN BARU
+                {t[lang].btn_save_pins}
               </button>
             </div>
           </form>
@@ -1701,28 +1839,28 @@ function AdminPanel({ tournament, events, masterPinHash, onUpdateTournament, onA
       <div className="md:col-span-2">
           <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
             <div className="flex justify-between items-center mb-4">
-              <h2 className="font-bold flex gap-2"><List className="text-blue-600"/> Daftar Acara (Events)</h2>
+              <h2 className="font-bold flex gap-2"><List className="text-blue-600"/> {t[lang].events_list}</h2>
               <label className="bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 rounded-lg text-xs font-bold cursor-pointer flex items-center gap-2 transition shadow-sm">
-                <Upload size={14} /> IMPOR EXCEL
+                <Upload size={14} /> {t[lang].import_excel}
                 <input type="file" accept=".xlsx, .xls, .csv" className="hidden" onChange={handleFileUpload} disabled={loading} />
               </label>
             </div>
 
             <form onSubmit={handleAddEvent} className="flex gap-2 mb-4 bg-slate-50 p-3 rounded-lg border border-slate-100">
-                <input type="number" placeholder="No" value={newEvent.number} onChange={e => setNewEvent({...newEvent, number: e.target.value})} className="w-16 p-2 border rounded text-sm" />
-                <input type="text" placeholder="Nama Acara (Contoh: 50m Gaya Bebas)" value={newEvent.name} onChange={e => setNewEvent({...newEvent, name: e.target.value})} className="flex-1 p-2 border rounded text-sm" />
-                <input type="number" placeholder="Seri" value={newEvent.totalSeries} onChange={e => setNewEvent({...newEvent, totalSeries: e.target.value})} className="w-16 p-2 border rounded text-sm" />
-                <button className="bg-blue-600 text-white px-4 rounded font-bold hover:bg-blue-700 transition">TAMBAH</button>
+                <input type="number" placeholder={t[lang].col_no} value={newEvent.number} onChange={e => setNewEvent({...newEvent, number: e.target.value})} className="w-16 p-2 border rounded text-sm" />
+                <input type="text" placeholder={t[lang].event_name_placeholder} value={newEvent.name} onChange={e => setNewEvent({...newEvent, name: e.target.value})} className="flex-1 p-2 border rounded text-sm" />
+                <input type="number" placeholder={t[lang].col_series} value={newEvent.totalSeries} onChange={e => setNewEvent({...newEvent, totalSeries: e.target.value})} className="w-16 p-2 border rounded text-sm" />
+                <button className="bg-blue-600 text-white px-4 rounded font-bold hover:bg-blue-700 transition">{t[lang].btn_add}</button>
             </form>
             <div className="max-h-[500px] overflow-y-auto border rounded-lg">
                 <table className="w-full text-sm text-left">
                 <thead className="bg-slate-100 sticky top-0 border-b">
                   <tr>
-                    <th className="p-3">No</th>
-                    <th className="p-3">Nama Acara</th>
-                    <th className="p-3 text-center">Seri</th>
-                    <th className="p-3 text-center">Hasil</th>
-                    <th className="p-3 text-right">Aksi</th>
+                    <th className="p-3">{t[lang].col_no}</th>
+                    <th className="p-3">{t[lang].col_event_name}</th>
+                    <th className="p-3 text-center">{t[lang].col_series}</th>
+                    <th className="p-3 text-center">{t[lang].col_results}</th>
+                    <th className="p-3 text-right">{t[lang].col_action}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -1736,10 +1874,10 @@ function AdminPanel({ tournament, events, masterPinHash, onUpdateTournament, onA
                                 <input type="number" value={editForm.totalSeries} onChange={e => setEditForm({...editForm, totalSeries: e.target.value})} className="w-16 border rounded p-1.5 text-sm text-center" />
                             </div>
                             <div className="flex gap-2 items-center">
-                                <input type="text" value={editForm.resultUrl} onChange={e => setEditForm({...editForm, resultUrl: e.target.value})} placeholder="Link Hasil Per Acara (Google Drive/PDF)" className="flex-1 border rounded p-1.5 text-xs bg-white" />
+                                <input type="text" value={editForm.resultUrl} onChange={e => setEditForm({...editForm, resultUrl: e.target.value})} placeholder={t[lang].google_drive_url} className="flex-1 border rounded p-1.5 text-xs bg-white" />
                                 <div className="flex gap-2 justify-end shrink-0">
-                                    <button onClick={() => wrapAsync(async() => { await onEditEvent(ev.id, { number: parseInt(editForm.number), name: editForm.name, totalSeries: parseInt(editForm.totalSeries), resultUrl: editForm.resultUrl }); setEditingId(null); })} className="bg-green-600 text-white px-3 py-1.5 rounded font-bold hover:bg-green-700 text-xs shadow-sm flex items-center gap-1"><Save size={14}/> SIMPAN</button>
-                                    <button onClick={() => setEditingId(null)} className="bg-slate-200 text-slate-600 px-3 py-1.5 rounded font-bold hover:bg-slate-300 text-xs shadow-sm flex items-center gap-1"><X size={14}/> BATAL</button>
+                                    <button onClick={() => wrapAsync(async() => { await onEditEvent(ev.id, { number: parseInt(editForm.number), name: editForm.name, totalSeries: parseInt(editForm.totalSeries), resultUrl: editForm.resultUrl }); setEditingId(null); })} className="bg-green-600 text-white px-3 py-1.5 rounded font-bold hover:bg-green-700 text-xs shadow-sm flex items-center gap-1"><Save size={14}/> {t[lang].btn_save}</button>
+                                    <button onClick={() => setEditingId(null)} className="bg-slate-200 text-slate-600 px-3 py-1.5 rounded font-bold hover:bg-slate-300 text-xs shadow-sm flex items-center gap-1"><X size={14}/> {t[lang].btn_cancel}</button>
                                 </div>
                             </div>
                         </td>
@@ -1748,26 +1886,26 @@ function AdminPanel({ tournament, events, masterPinHash, onUpdateTournament, onA
                             <td className="p-3 font-bold w-12 text-slate-700">{ev.number}</td>
                             <td className="p-3 font-medium">
                                 {ev.name}
-                                {ev.resultUrl && <span className="ml-2 inline-block bg-blue-100 text-blue-700 text-[9px] px-2 py-0.5 rounded font-bold align-middle">HASIL TERSEDIA</span>}
+                                {ev.resultUrl && <span className="ml-2 inline-block bg-blue-100 text-blue-700 text-[9px] px-2 py-0.5 rounded font-bold align-middle">{t[lang].results_available}</span>}
                             </td>
                             <td className="p-3 text-center w-16"><span className="bg-blue-50 text-blue-700 px-2 py-1 rounded font-bold">{ev.totalSeries}</span></td>
                             <td className="p-3 text-center">
                               {ev.resultUrl ? (
-                                <span className="bg-emerald-100 text-emerald-700 px-2 py-1 rounded text-[10px] font-bold">ADA</span>
+                                <span className="bg-emerald-100 text-emerald-700 px-2 py-1 rounded text-[10px] font-bold">{t[lang].status_yes}</span>
                               ) : (
-                                <span className="bg-slate-100 text-slate-400 px-2 py-1 rounded text-[10px] font-bold">KOSONG</span>
+                                <span className="bg-slate-100 text-slate-400 px-2 py-1 rounded text-[10px] font-bold">{t[lang].status_empty}</span>
                               )}
                             </td>
                             <td className="p-3 text-right whitespace-nowrap space-x-1">
-                              <button onClick={() => setLinkModal({ show: true, eventId: ev.id, url: ev.resultUrl || '', eventName: `${ev.number}. ${ev.name}` })} className="bg-blue-50 text-blue-600 hover:bg-blue-100 p-1.5 rounded transition" title="Input/Edit Link Hasil"><FileText size={16}/></button>
-                              <button onClick={() => { setEditingId(ev.id); setEditForm({ number: ev.number, name: ev.name, totalSeries: ev.totalSeries, resultUrl: ev.resultUrl || '' }); }} className="text-slate-400 hover:text-blue-500 p-1.5 transition" title="Edit Acara"><Edit2 size={16}/></button>
-                              <button onClick={() => { wrapAsync(async()=> await onDeleteEvent(ev.id)); }} className="text-slate-400 hover:text-red-500 p-1.5 transition" title="Hapus Acara"><Trash2 size={16}/></button>
+                              <button onClick={() => setLinkModal({ show: true, eventId: ev.id, url: ev.resultUrl || '', eventName: `${ev.number}. ${ev.name}` })} className="bg-blue-50 text-blue-600 hover:bg-blue-100 p-1.5 rounded transition" title={t[lang].input_results_link}><FileText size={16}/></button>
+                              <button onClick={() => { setEditingId(ev.id); setEditForm({ number: ev.number, name: ev.name, totalSeries: ev.totalSeries, resultUrl: ev.resultUrl || '' }); }} className="text-slate-400 hover:text-blue-500 p-1.5 transition" title={t[lang].edit_info}><Edit2 size={16}/></button>
+                              <button onClick={() => { wrapAsync(async()=> await onDeleteEvent(ev.id)); }} className="text-slate-400 hover:text-red-500 p-1.5 transition" title="Hapus"><Trash2 size={16}/></button>
                             </td>
                         </>
                         )}
                     </tr>
                     ))}
-                    {events.length === 0 ? <tr><td colSpan={5} className="p-8 text-center text-slate-400 italic">Belum ada acara ditambahkan.</td></tr> : null}
+                    {events.length === 0 ? <tr><td colSpan={5} className="p-8 text-center text-slate-400 italic">{t[lang].no_events_added}</td></tr> : null}
                 </tbody>
                 </table>
             </div>
@@ -1779,10 +1917,10 @@ function AdminPanel({ tournament, events, masterPinHash, onUpdateTournament, onA
         <div className="fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-[80] animate-in fade-in">
           <div className="bg-white rounded-2xl w-full max-w-md p-6 relative shadow-2xl">
             <button onClick={() => setLinkModal({ show: false, eventId: '', url: '', eventName: '' })} className="absolute top-4 right-4 text-slate-400 hover:text-slate-800"><X size={20} /></button>
-            <h2 className="text-xl font-bold text-slate-800 mb-1 flex items-center gap-2"><FileText className="text-blue-600" /> Input Link Hasil</h2>
+            <h2 className="text-xl font-bold text-slate-800 mb-1 flex items-center gap-2"><FileText className="text-blue-600" /> {t[lang].input_results_link}</h2>
             <p className="text-sm text-slate-500 mb-4">{linkModal.eventName}</p>
             <div className="mb-4">
-              <label className="text-xs font-bold text-slate-600 mb-1 block">Google Drive / PDF URL</label>
+              <label className="text-xs font-bold text-slate-600 mb-1 block">{t[lang].google_drive_url}</label>
               <input 
                 autoFocus 
                 type="url" 
@@ -1793,13 +1931,13 @@ function AdminPanel({ tournament, events, masterPinHash, onUpdateTournament, onA
               />
             </div>
             <div className="flex gap-2 justify-end">
-              <button onClick={() => setLinkModal({ show: false, eventId: '', url: '', eventName: '' })} className="px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl transition">Batal</button>
+              <button onClick={() => setLinkModal({ show: false, eventId: '', url: '', eventName: '' })} className="px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl transition">{t[lang].btn_cancel}</button>
               <button onClick={() => { 
                 wrapAsync(async () => { 
                   await onEditEvent(linkModal.eventId, { resultUrl: linkModal.url }); 
                   setLinkModal({ show: false, eventId: '', url: '', eventName: '' }); 
                 }); 
-              }} className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-md transition">Simpan Link</button>
+              }} className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-md transition">{t[lang].btn_save_link}</button>
             </div>
           </div>
         </div>
@@ -1810,24 +1948,23 @@ function AdminPanel({ tournament, events, masterPinHash, onUpdateTournament, onA
         <div className="fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-[70] animate-in fade-in">
           <div className="bg-white rounded-2xl w-full max-w-sm p-8 relative shadow-2xl">
             <button onClick={() => setShowPauseModal(false)} className="absolute top-4 right-4 text-slate-400 hover:text-slate-800"><X size={20} /></button>
-            <h2 className="text-xl font-bold mb-2 flex items-center gap-2 text-yellow-600"><Timer /> Atur Waktu Jeda</h2>
-            <p className="text-sm text-slate-500 mb-6 leading-relaxed">Pilih waktu kapan perlombaan ini akan dilanjutkan. Ini akan memunculkan hitung mundur bagi penonton di beranda.</p>
+            <h2 className="text-xl font-bold mb-2 flex items-center gap-2 text-yellow-600"><Timer /> {t[lang].set_pause_time}</h2>
+            <p className="text-sm text-slate-500 mb-6 leading-relaxed">{t[lang].pause_time_desc}</p>
             <form onSubmit={handlePauseSubmit}>
-              <label className="text-xs font-bold text-slate-600 mb-1 block">Waktu Dilanjutkan</label>
+              <label className="text-xs font-bold text-slate-600 mb-1 block">{t[lang].resume_time}</label>
               <input type="datetime-local" value={pauseResumeTime} onChange={e => setPauseResumeTime(e.target.value)} className="w-full p-4 border rounded-xl mb-6 outline-none focus:ring-2 focus:ring-yellow-500 bg-slate-50" required />
-              <button type="submit" className="w-full bg-yellow-500 text-white py-3 rounded-xl font-bold hover:bg-yellow-600 transition shadow-lg">Jeda Lomba Sekarang</button>
+              <button type="submit" className="w-full bg-yellow-500 text-white py-3 rounded-xl font-bold hover:bg-yellow-600 transition shadow-lg">{t[lang].btn_pause_now}</button>
             </form>
           </div>
         </div>
       )}
 
-      {/* MODAL KONFIRMASI RESET LOMBA */}
       {showResetModal && (
         <div className="fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-[70] animate-in fade-in">
           <div className="bg-white rounded-2xl w-full max-w-sm p-8 relative zoom-in-95 duration-200 shadow-2xl">
             <button onClick={() => {setShowResetModal(false); setResetPin(''); setResetError(false);}} className="absolute top-4 right-4 text-slate-400 hover:text-slate-800"><X size={20} /></button>
-            <h2 className="text-xl font-bold text-center mb-3 text-red-600 flex justify-center items-center gap-2"><AlertOctagon /> Reset Lomba</h2>
-            <p className="text-center text-slate-500 text-sm mb-6 leading-relaxed">Tindakan ini akan mengembalikan status lomba ke <b>"Akan Datang"</b> dan <b>menghapus seluruh riwayat diskualifikasi</b>. Masukkan PIN Superuser untuk konfirmasi.</p>
+            <h2 className="text-xl font-bold text-center mb-3 text-red-600 flex justify-center items-center gap-2"><AlertOctagon /> {t[lang].reset_race_title}</h2>
+            <p className="text-center text-slate-500 text-sm mb-6 leading-relaxed">{t[lang].reset_race_desc}</p>
             <form onSubmit={(e) => {
               e.preventDefault();
               if (simpleHash(resetPin) === masterPinHash) {
@@ -1843,8 +1980,8 @@ function AdminPanel({ tournament, events, masterPinHash, onUpdateTournament, onA
               }
             }}>
               <input autoFocus type="password" value={resetPin} onChange={e=>{setResetPin(e.target.value);setResetError(false)}} className="w-full text-center text-3xl font-bold p-4 border rounded-xl mb-4 outline-none focus:ring-2 focus:ring-red-500 bg-slate-50" placeholder="PIN MASTER" />
-              {resetError && <p className="text-red-500 text-center mb-4 text-sm font-bold">PIN Superuser Salah!</p>}
-              <button type="submit" className="w-full bg-red-600 text-white py-3 rounded-xl font-bold hover:bg-red-700 transition shadow-lg">Konfirmasi Reset Lomba</button>
+              {resetError && <p className="text-red-500 text-center mb-4 text-sm font-bold">{t[lang].wrong_pin}</p>}
+              <button type="submit" className="w-full bg-red-600 text-white py-3 rounded-xl font-bold hover:bg-red-700 transition shadow-lg">{t[lang].btn_confirm_reset}</button>
             </form>
           </div>
         </div>
@@ -1854,16 +1991,16 @@ function AdminPanel({ tournament, events, masterPinHash, onUpdateTournament, onA
       {showFinishConfirm && (
         <div className="fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-[70] animate-in fade-in">
           <div className="bg-white rounded-2xl w-full max-w-sm p-8 relative shadow-2xl text-center">
-            <h2 className="text-xl font-bold mb-2 flex items-center justify-center gap-2 text-blue-600"><CheckCircle /> Selesaikan Lomba?</h2>
-            <p className="text-sm text-slate-500 mb-6 leading-relaxed">Penonton di beranda akan melihat halaman hasil lomba secara penuh. Jika ini tidak disengaja, Anda dapat membuka kembali (Live) lomba ini nanti lewat menu kontrol.</p>
+            <h2 className="text-xl font-bold mb-2 flex items-center justify-center gap-2 text-blue-600"><CheckCircle /> {t[lang].finish_race_title}</h2>
+            <p className="text-sm text-slate-500 mb-6 leading-relaxed">{t[lang].finish_race_desc}</p>
             <div className="flex gap-3">
-              <button onClick={() => setShowFinishConfirm(false)} className="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 py-3 rounded-xl font-bold transition">Batal</button>
+              <button onClick={() => setShowFinishConfirm(false)} className="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 py-3 rounded-xl font-bold transition">{t[lang].btn_cancel}</button>
               <button onClick={() => {
                 wrapAsync(async () => {
                   await onUpdateTournament({ status: 'finished' });
                   setShowFinishConfirm(false);
                 });
-              }} className="flex-1 bg-blue-600 text-white py-3 rounded-xl font-bold hover:bg-blue-700 transition shadow-lg">Selesaikan</button>
+              }} className="flex-1 bg-blue-600 text-white py-3 rounded-xl font-bold hover:bg-blue-700 transition shadow-lg">{t[lang].btn_finish}</button>
             </div>
           </div>
         </div>
@@ -2029,19 +2166,19 @@ function CallRoomPanel({ tournament, events, updateLiveState, lang, t }: any) {
         {loading && <div className="absolute inset-0 bg-white/50 z-50 flex items-center justify-center rounded-xl"><Loader2 className="animate-spin text-emerald-600" size={40}/></div>}
         <div className="md:col-span-2 space-y-6">
           <div className="bg-white rounded-xl shadow-lg border border-emerald-100 overflow-hidden">
-            <div className="bg-emerald-600 text-white p-4 flex justify-between items-center"><h2 className="font-bold text-lg flex items-center gap-2"><ClipboardList /> STATUS PEMANGGILAN</h2><span className="bg-emerald-800 text-xs px-2 py-1 rounded">LIVE CONTROL</span></div>
+            <div className="bg-emerald-600 text-white p-4 flex justify-between items-center"><h2 className="font-bold text-lg flex items-center gap-2"><ClipboardList /> {t[lang].callroom_status}</h2><span className="bg-emerald-800 text-xs px-2 py-1 rounded">{t[lang].live_control}</span></div>
             <div className="p-8 sm:p-12 text-center min-h-[300px] flex flex-col justify-center items-center bg-emerald-50">
               {needsStart ? (
                  <div className="animate-in fade-in zoom-in">
-                    <p className="text-emerald-700 mb-4 font-medium">Siap Memanggil Peserta.</p>
+                    <p className="text-emerald-700 mb-4 font-medium">{t[lang].ready_to_call}</p>
                     <button onClick={() => wrapAsync(async () => {
                              const first = events[0]; 
                              await updateLiveState({ callRoomEventId: first.id, callRoomEventName: first.name, callRoomEventNumber: first.number, callRoomEventTotalSeries: first.totalSeries, callRoomSeries: 1, callRoomLastUpdate: getWIBTime() });
-                    })} className="bg-emerald-600 hover:bg-emerald-700 text-white px-8 py-4 rounded-xl font-bold text-xl shadow-lg flex items-center gap-3"><Play size={24} fill="currentColor" /> INISIALISASI CALL ROOM</button>
+                    })} className="bg-emerald-600 hover:bg-emerald-700 text-white px-8 py-4 rounded-xl font-bold text-xl shadow-lg flex items-center gap-3"><Play size={24} fill="currentColor" /> {t[lang].btn_init_callroom}</button>
                 </div>
               ) : currentCallEvent ? (
                 <>
-                  <div className="text-emerald-700 font-bold tracking-widest uppercase mb-1">Sedang Memanggil</div>
+                  <div className="text-emerald-700 font-bold tracking-widest uppercase mb-1">{t[lang].calling_now}</div>
                   
                   {/* Perbaikan Judul Acara (Responsive) */}
                   <div className="w-full flex items-center justify-center h-20 sm:h-24 mb-4 sm:mb-6">
@@ -2052,23 +2189,23 @@ function CallRoomPanel({ tournament, events, updateLiveState, lang, t }: any) {
 
                   <div className="inline-block bg-white shadow-sm border border-emerald-200 rounded-lg p-6 mb-8">
                      <span className="text-6xl font-black text-emerald-600">{ls.callRoomSeries}</span>
-                     <span className="text-xs sm:text-sm text-slate-400 block uppercase mt-2">Dari {currentCallEvent.totalSeries} Seri</span>
+                     <span className="text-xs sm:text-sm text-slate-400 block uppercase mt-2">{t[lang].from_series} {currentCallEvent.totalSeries} {t[lang].series}</span>
                   </div>
                   
                   <div className="flex gap-2 sm:gap-4 justify-center w-full px-4 sm:px-0">
                      <button onClick={() => handleNav('prev')} className="flex-1 sm:flex-none px-4 sm:px-6 py-3 rounded-lg border-2 border-slate-200 text-slate-500 hover:bg-slate-50 font-bold transition text-sm sm:text-base">Prev</button>
                      <button onClick={() => handleNav('next')} className="flex-[2] sm:flex-none px-6 sm:px-10 py-3 rounded-lg bg-emerald-600 text-white hover:bg-emerald-700 font-bold shadow-lg transition transform active:scale-95 flex items-center justify-center gap-2 text-sm sm:text-base">
-                        PANGGIL NEXT <ChevronRight size={20} />
+                        {t[lang].btn_call_next} <ChevronRight size={20} />
                      </button>
                   </div>
                 </>
-              ) : <div className="text-slate-400 italic">Menunggu Data...</div>}
+              ) : <div className="text-slate-400 italic">{t[lang].waiting_data}</div>}
             </div>
           </div>
         </div>
         <div className="md:col-span-1 space-y-4">
-           <div className="bg-slate-800 text-white p-5 rounded-xl shadow-md"><h3 className="text-slate-400 text-xs uppercase font-bold mb-2">Sedang Berlangsung di Kolam</h3><div className="text-2xl font-bold text-yellow-400">Event {ls.currentEventNumber || '-'}</div><div className="text-lg">Seri {ls.currentSeries}</div></div>
-           <div className="bg-white p-5 rounded-xl shadow-sm border border-slate-200"><h3 className="text-slate-400 text-xs uppercase font-bold mb-3">Event Selanjutnya (Persiapan)</h3>{nextEvent ? <div><div className="font-bold text-slate-800">{nextEvent.number}. {nextEvent.name}</div><div className="text-sm text-slate-500 mt-1">{nextEvent.totalSeries} Seri</div></div> : <div className="text-slate-400 text-sm italic">Tidak ada event selanjutnya.</div>}</div>
+           <div className="bg-slate-800 text-white p-5 rounded-xl shadow-md"><h3 className="text-slate-400 text-xs uppercase font-bold mb-2">{t[lang].live_in_pool}</h3><div className="text-2xl font-bold text-yellow-400">{t[lang].event} {ls.currentEventNumber || '-'}</div><div className="text-lg">{t[lang].series} {ls.currentSeries}</div></div>
+           <div className="bg-white p-5 rounded-xl shadow-sm border border-slate-200"><h3 className="text-slate-400 text-xs uppercase font-bold mb-3">{t[lang].next_event_prep}</h3>{nextEvent ? <div><div className="font-bold text-slate-800">{nextEvent.number}. {nextEvent.name}</div><div className="text-sm text-slate-500 mt-1">{nextEvent.totalSeries} {t[lang].series}</div></div> : <div className="text-slate-400 text-sm italic">{t[lang].no_next_event}</div>}</div>
         </div>
     </div>
   );
