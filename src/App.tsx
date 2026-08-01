@@ -628,7 +628,7 @@ const Header = ({ role, title, venue, onHome, onLogout, isOnline, lang, setLang,
   );
 };
 
-const LogoBar = ({ onMasterLogin, lang, setLang, t }: any) => (
+const LogoBar = ({ onMasterLogin, lang, setLang }: any) => (
   <nav className="border-b border-white/10 bg-slate-900/80 backdrop-blur-md sticky top-0 z-50 p-3 sm:p-4">
     <div className="max-w-6xl mx-auto flex justify-between items-center">
       <div className="flex items-center gap-2 sm:gap-3">
