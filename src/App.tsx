@@ -34,7 +34,6 @@ import {
   Globe
 } from 'lucide-react';
 
-// --- FIREBASE IMPORTS ---
 import { initializeApp } from 'firebase/app';
 import { 
   getAuth, 
@@ -129,7 +128,7 @@ const simpleHash = (str: string) => {
   return hash.toString();
 };
 
-const MASTER_PIN_HASH = simpleHash("123456");
+const MASTER_PIN_HASH = "1450575459"; // Hasil hash dari "123456" (teks asli tidak terekspos di kode)
 
 // --- DICTIONARY BILINGUAL ---
 const t = {
@@ -187,7 +186,7 @@ const t = {
     tournament_upcoming: "AKAN DATANG",
     waiting_results: "Menunggu admin mengunggah hasil perlombaan...",
     
-    // --- KAMUS BARU UNTUK ADMIN PANEL & CALLROOM ---
+    // Admin Panel & Callroom ID
     admin_control: "Kontrol Lomba",
     current_status: "Status Saat Ini",
     status_live_caps: "SEDANG BERLANGSUNG (LIVE)",
@@ -243,7 +242,7 @@ const t = {
     finish_race_desc: "Penonton di beranda akan melihat halaman hasil lomba secara penuh. Jika ini tidak disengaja, Anda dapat membuka kembali (Live) lomba ini nanti lewat menu kontrol.",
     btn_finish: "Selesaikan",
     
-    // --- KAMUS BARU UNTUK CALLROOM ---
+    // Callroom ID
     callroom_status: "STATUS PEMANGGILAN",
     live_control: "LIVE CONTROL",
     ready_to_call: "Siap Memanggil Peserta.",
@@ -279,13 +278,13 @@ const t = {
     btn_results_full: "View Full Results",
     btn_back: "Back",
     call_room: "Call Room",
-    call_room_sub: "", // Dikosongkan agar tidak ganda
+    call_room_sub: "", 
     last_update: "Last Update",
     event: "Event",
     series: "Heat",
     lane: "Lane",
     waiting: "Waiting...",
-    racing_now: "LIVE", // Diubah menjadi LIVE
+    racing_now: "LIVE", 
     dq_info: "LATEST DISQUALIFICATION INFO",
     dq_reason: "Reason / Infraction",
     dq_empty: "No disqualification information at this time.",
@@ -310,7 +309,7 @@ const t = {
     tournament_upcoming: "UPCOMING",
     waiting_results: "Waiting for admin to upload the results...",
     
-    // --- KAMUS BARU UNTUK ADMIN PANEL & CALLROOM ---
+    // Admin Panel & Callroom EN
     admin_control: "Event Control",
     current_status: "Current Status",
     status_live_caps: "IN PROGRESS (LIVE)",
@@ -366,7 +365,7 @@ const t = {
     finish_race_desc: "Spectators on the homepage will see the full event results page. If this is accidental, you can reopen (Live) this event later via the control menu.",
     btn_finish: "Finish",
     
-    // --- KAMUS BARU UNTUK CALLROOM ---
+    // Callroom EN
     callroom_status: "CALLING STATUS",
     live_control: "LIVE CONTROL",
     ready_to_call: "Ready to Call Swimmers.",
@@ -434,52 +433,60 @@ type Tournament = {
 type EventItem = { id: string; tournamentId: string; number: number; name: string; totalSeries: number; resultUrl?: string; };
 type DQRecord = { id: string; tournamentId: string; eventNumber: number; series: number; lane: number; reason: string; timestamp: string; createdAt: number; };
 
+type Athlete = { id: string; name: string; gender: 'L' | 'P'; birthDate: string; club: string; school: string; sport: string; createdAt: number; };
+
 // --- DEFAULT STATES ---
 const DEFAULT_LIVE_STATE: LiveState = {
   currentEventId: null, currentSeries: 1, callRoomEventId: null, callRoomSeries: 1, lastUpdate: '-', callRoomLastUpdate: '-'
 };
 
-// --- MAIN COMPONENT ---
+type Tournament = {
+  id: string;
+  title: string;
+  venue: string;
+  eventDate: string; 
+  endDate?: string;
+  status: 'upcoming' | 'live' | 'paused' | 'finished';
+  resultUrl: string; 
+  sportType: 'Renang' | 'Selam'; // Added sportType
+  pins: { admin: string, announcer: string, callroom: string };
+  liveState: LiveState;
+  createdAt: number;
+};
+
+// --- MAIN APP COMPONENT ---
 export default function App() {
   const [user, setUser] = useState<User | null>(null);
-  const [isOnline, setIsOnline] = useState(navigator.onLine);
-  
-  const [viewMode, setViewMode] = useState<'global' | 'tournament' | 'master_dashboard'>('global');
-  const [activeTournamentId, setActiveTournamentId] = useState<string | null>(null);
-  const [role, setRole] = useState<'master' | 'admin' | 'announcer' | 'callroom' | 'public' | null>(null);
-  const [lang, setLang] = useState<LangType>('id');
-  
-  const [showLoginModal, setShowLoginModal] = useState<boolean>(false);
-  const [targetLoginRole, setTargetLoginRole] = useState<'master' | 'admin' | 'announcer' | 'callroom' | null>(null);
-
   const [tournaments, setTournaments] = useState<Tournament[]>([]);
   const [allEvents, setAllEvents] = useState<EventItem[]>([]);
   const [allDqs, setAllDqs] = useState<DQRecord[]>([]);
-  
-  const [masterPinHash, setMasterPinHash] = useState(MASTER_PIN_HASH);
+  const [athletes, setAthletes] = useState<Athlete[]>([]);
 
+  const [masterPinHash, setMasterPinHash] = useState<string>(MASTER_PIN_HASH);
+  const [viewMode, setViewMode] = useState<'global' | 'master_dashboard' | 'tournament'>('global');
+  const [activeTournamentId, setActiveTournamentId] = useState<string | null>(null);
+  
+  const [role, setRole] = useState<'public' | 'admin' | 'announcer' | 'callroom' | 'master' | null>(null);
+  const [showLoginModal, setShowLoginModal] = useState(false);
+  const [targetLoginRole, setTargetLoginRole] = useState<'admin' | 'announcer' | 'callroom' | 'master'>('admin');
+  
+  const [lang, setLang] = useState<LangType>('id');
+  const [hasSelectedLang, setHasSelectedLang] = useState(false);
+
+  const [isOnline, setIsOnline] = useState(navigator.onLine);
+  
   const activeTournament = tournaments.find(t => t.id === activeTournamentId);
-  const activeEvents = allEvents.filter(e => e.tournamentId === activeTournamentId).sort((a, b) => a.number - b.number);
-  const activeDqs = allDqs.filter(d => d.tournamentId === activeTournamentId).sort((a, b) => b.createdAt - a.createdAt);
+  const activeEvents = allEvents.filter(e => e.tournamentId === activeTournamentId).sort((a,b) => a.number - b.number);
+  const activeDqs = allDqs.filter(d => d.tournamentId === activeTournamentId).sort((a,b) => b.createdAt - a.createdAt);
 
   useEffect(() => {
     let wakeLock: any = null;
-    const requestWakeLock = async () => { try { if ('wakeLock' in navigator) wakeLock = await (navigator as any).wakeLock.request('screen'); } catch (err) { } };
-    if (viewMode === 'tournament' || viewMode === 'master_dashboard') requestWakeLock();
-    
-    const handleVis = () => { if (document.visibilityState === 'visible' && (viewMode === 'tournament' || viewMode === 'master_dashboard')) requestWakeLock(); };
-    document.addEventListener('visibilitychange', handleVis);
-    
-    const handleOnline = () => setIsOnline(true);
-    const handleOffline = () => setIsOnline(false);
-    window.addEventListener('online', handleOnline);
-    window.addEventListener('offline', handleOffline);
-    
-    return () => {
-      if (wakeLock) wakeLock.release();
-      document.removeEventListener('visibilitychange', handleVis);
-      window.removeEventListener('online', handleOnline);
-      window.removeEventListener('offline', handleOffline);
+    const requestWakeLock = async () => {
+      try {
+        if ('wakeLock' in navigator) {
+          wakeLock = await (navigator as any).wakeLock.request('screen');
+        }
+      } catch (err: any) {}
     };
   }, [viewMode]);
 
@@ -533,6 +540,14 @@ export default function App() {
       (error) => console.warn("Sinkronisasi DQs ditunda", error.message)
     );
 
+    const unsubAthletes = onSnapshot(
+      collection(db, 'artifacts', appId, 'public', 'data', 'athletes'), 
+      (snapshot) => {
+        setAthletes(snapshot.docs.map(d => ({ id: d.id, ...d.data() } as Athlete)).sort((a,b) => b.createdAt - a.createdAt));
+      }, 
+      (error) => console.warn("Sinkronisasi Athletes ditunda", error.message)
+    );
+
     const unsubSettings = onSnapshot(
       doc(db, 'artifacts', appId, 'public', 'data', 'settings', 'master'),
       (docSnap) => {
@@ -543,7 +558,7 @@ export default function App() {
       (error) => console.warn("Sinkronisasi Settings ditunda", error.message)
     );
 
-    return () => { unsubTournaments(); unsubEvents(); unsubDqs(); unsubSettings(); };
+    return () => { unsubTournaments(); unsubEvents(); unsubDqs(); unsubAthletes(); unsubSettings(); };
   }, [user]);
 
   // --- ACTIONS ---
@@ -576,6 +591,29 @@ export default function App() {
     }
   };
 
+  const handleAddAthlete = async (data: Omit<Athlete, 'id' | 'createdAt'>) => {
+    if (!user) return;
+    await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'athletes'), {
+      ...data, createdAt: Date.now()
+    });
+  };
+
+  const handleUpdateAthlete = async (id: string, data: Partial<Athlete>) => {
+    if (!user) return;
+    await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'athletes', id), data);
+  };
+
+  const handleDeleteAthlete = async (id: string) => {
+    if (!user) return;
+    await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'athletes', id));
+  };
+  
+  const handleAddMultipleAthletes = async (athletesData: any[]) => {
+    if (!user) return;
+    const promises = athletesData.map(data => addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'athletes'), { ...data, createdAt: Date.now() }));
+    await Promise.all(promises);
+  };
+
   const updateLiveState = async (newState: Partial<LiveState>) => {
     if (!user || !activeTournamentId) return;
     
@@ -602,7 +640,11 @@ export default function App() {
     return false;
   };
 
-  if (!user) return <div className="h-screen flex items-center justify-center text-slate-500 font-sans gap-2"><Loader2 className="animate-spin"/> {t[lang].connecting}</div>;
+  if (!user) return <div className="h-screen flex items-center justify-center text-slate-500 font-sans gap-2 bg-slate-950"><Loader2 className="animate-spin"/> {t[lang].connecting}</div>;
+
+  if (!hasSelectedLang) {
+    return <LanguageSplash setLang={setLang} onSelect={() => setHasSelectedLang(true)} />;
+  }
 
   return (
     <>
@@ -628,6 +670,7 @@ export default function App() {
       {viewMode === 'master_dashboard' && role === 'master' && (
         <MasterDashboard 
           tournaments={tournaments}
+          athletes={athletes}
           onCreate={handleCreateTournament}
           onEdit={(id: string) => { setActiveTournamentId(id); setRole('admin'); setViewMode('tournament'); }}
           onDelete={handleDeleteTournament}
@@ -638,6 +681,10 @@ export default function App() {
               alert('PIN Superuser berhasil diperbarui!');
             }
           }}
+          onAddAthlete={handleAddAthlete}
+          onUpdateAthlete={handleUpdateAthlete}
+          onDeleteAthlete={handleDeleteAthlete}
+          onAddMultipleAthletes={handleAddMultipleAthletes}
           lang={lang} t={t}
         />
       )}
@@ -704,55 +751,51 @@ export default function App() {
 
 const Header = ({ role, title, venue, onHome, onLogout, isOnline, lang, setLang, t }: any) => {
   const currentTime = useLiveClock();
-  
+
   return (
-    <header className="bg-slate-900 text-white shadow-lg sticky top-0 z-50 py-3 sm:py-0 sm:h-16 flex items-center px-4 sm:px-6 border-b border-slate-800">
-      <div className="flex justify-between items-center w-full">
-        {/* Kiri: Judul Role dan Indikator Online (Sangat Ringkas di HP) */}
-        <div className="flex items-center gap-3 w-auto">
-            <div className="flex items-center gap-2 sm:gap-3">
-              {role === 'admin' && <Settings className="text-blue-400 w-5 h-5 sm:w-6 sm:h-6 shrink-0" />}
-              {role === 'announcer' && <Mic className="text-purple-400 w-5 h-5 sm:w-6 sm:h-6 shrink-0" />}
-              {role === 'callroom' && <Users className="text-emerald-400 w-5 h-5 sm:w-6 sm:h-6 shrink-0" />}
-              <div className="flex flex-col justify-center min-w-0">
-                  <h1 className="font-extrabold text-sm sm:text-lg uppercase leading-tight truncate">
-                    {role === 'admin' ? t[lang].role_admin : role === 'announcer' ? t[lang].role_announcer : t[lang].role_callroom}
-                  </h1>
-                  <span className={`text-[9px] sm:text-[10px] flex items-center gap-1 ${isOnline ? 'text-emerald-400' : 'text-red-500'} mt-0.5`}>
-                    {isOnline ? <Wifi size={10} /> : <WifiOff size={10} />} {isOnline ? 'ONLINE' : 'OFFLINE'}
-                  </span>
-              </div>
-            </div>
+    <header className="bg-slate-900 text-white p-3 sm:p-4 shadow-lg sticky top-0 z-50">
+      <div className="max-w-7xl mx-auto flex justify-between items-center relative">
+        <div className="flex items-center gap-2 sm:gap-3">
+          {role === 'admin' && <Settings className="text-blue-400 w-5 h-5 sm:w-6 sm:h-6" />}
+          {role === 'announcer' && <Mic className="text-purple-400 w-5 h-5 sm:w-6 sm:h-6" />}
+          {role === 'callroom' && <Users className="text-emerald-400 w-5 h-5 sm:w-6 sm:h-6" />}
+          <div>
+            <span className="font-bold text-sm sm:text-lg uppercase leading-none block">{role === 'admin' ? t[lang].role_admin : role === 'announcer' ? t[lang].role_announcer : t[lang].role_callroom}</span>
+            <span className={`text-[9px] sm:text-[10px] flex items-center gap-1 ${isOnline ? 'text-emerald-400' : 'text-red-500'}`}>
+              {isOnline ? <Wifi size={10} /> : <WifiOff size={10} />} {isOnline ? 'ONLINE' : 'OFFLINE'}
+            </span>
+          </div>
         </div>
 
-        {/* Tengah: Jam Real-time (Desktop Version) */}
+        {/* Jam Real-time di Desktop ada di tengah */}
         <div className="absolute left-1/2 transform -translate-x-1/2 bg-slate-800/80 px-4 py-1.5 rounded-full border border-slate-700/50 flex-col items-center hidden md:flex">
-             <span className="text-[8px] text-slate-400 uppercase font-bold tracking-[0.2em] -mb-1">Time</span>
-             <ClockDisplay time={currentTime} />
+           <span className="text-[8px] text-slate-400 uppercase font-bold tracking-[0.2em] -mb-1">Time</span>
+           <ClockDisplay time={currentTime} />
         </div>
 
-        {/* Kanan: Navigasi, Judul Lomba (Desktop), dan Tombol Icon (HP) */}
         <div className="flex items-center gap-2 sm:gap-3 shrink-0 ml-auto">
-            <div className="hidden md:block text-right mr-2 max-w-[200px] xl:max-w-xs">
-                <div className="text-xs font-bold text-slate-300 truncate">{title}</div>
-                <div className="text-[10px] text-slate-500 truncate">{venue}</div>
-            </div>
+           {/* Jam Real-time di Mobile ditaruh di dekat kanan agar ringkas */}
+           <div className="md:hidden mr-1 text-right">
+              <span className="text-[8px] text-slate-400 uppercase font-bold block mb-0.5">Time</span>
+              <div className="text-xs font-mono font-bold">{currentTime.toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' })}</div>
+           </div>
 
-            <button 
-              onClick={() => setLang(lang === 'id' ? 'en' : 'id')} 
-              className="flex items-center justify-center bg-slate-800 hover:bg-slate-700 text-white w-9 h-9 sm:w-auto sm:h-auto sm:px-3 sm:py-1.5 rounded-xl border border-slate-700 transition"
-              title="Switch Language"
-            >
-              <Globe size={18} className="text-blue-400 sm:w-4 sm:h-4" />
-              <span className="font-bold text-xs hidden sm:inline sm:ml-1.5">{lang === 'id' ? 'ID' : 'EN'}</span>
-            </button>
-
-            <button onClick={onHome} className="w-9 h-9 sm:w-auto sm:h-auto sm:px-3 sm:py-1.5 flex items-center justify-center bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl transition border border-slate-700" title={t[lang].btn_home}>
-                <Home size={18} className="sm:w-4 sm:h-4" /> <span className="text-xs hidden sm:inline sm:ml-1.5">{t[lang].btn_home}</span>
-            </button>
-            <button onClick={onLogout} className="w-9 h-9 sm:w-auto sm:h-auto sm:px-3 sm:py-1.5 flex items-center justify-center bg-red-600 hover:bg-red-700 rounded-xl transition" title={t[lang].btn_logout}>
-                <LogOut size={18} className="sm:w-4 sm:h-4" /> <span className="text-xs font-bold hidden sm:inline sm:ml-1.5">{t[lang].btn_logout}</span>
-            </button>
+           <button 
+             onClick={() => setLang(lang === 'id' ? 'en' : 'id')} 
+             className="flex items-center justify-center bg-slate-800 hover:bg-slate-700 text-white w-8 h-8 sm:w-auto sm:h-auto sm:px-3 sm:py-1.5 rounded-xl border border-slate-700 transition"
+             title="Switch Language"
+           >
+             <Globe size={16} className="text-blue-400 sm:w-4 sm:h-4" />
+             <span className="font-bold text-xs hidden sm:inline sm:ml-1.5">{lang === 'id' ? 'ID' : 'EN'}</span>
+           </button>
+           <button onClick={onHome} className="flex items-center justify-center bg-slate-800 hover:bg-slate-700 w-8 h-8 sm:w-auto sm:h-auto sm:px-3 sm:py-1.5 rounded-xl transition border border-slate-700" title="Home">
+             <Home size={16} className="text-slate-300 sm:w-4 sm:h-4" />
+             <span className="text-xs text-slate-300 hidden sm:inline sm:ml-1.5">{t[lang].btn_home}</span>
+           </button>
+           <button onClick={onLogout} className="flex items-center justify-center bg-red-600 hover:bg-red-700 w-8 h-8 sm:w-auto sm:h-auto sm:px-3 sm:py-1.5 rounded-xl transition shadow-md" title="Logout">
+             <LogOut size={16} className="text-white sm:w-4 sm:h-4" />
+             <span className="text-xs font-bold text-white hidden sm:inline sm:ml-1.5">{t[lang].btn_logout}</span>
+           </button>
         </div>
       </div>
     </header>
@@ -763,71 +806,91 @@ const LogoBar = ({ onMasterLogin, lang, setLang, t }: any) => {
   const currentTime = useLiveClock();
 
   return (
-  <nav className="border-b border-white/10 bg-slate-900/80 backdrop-blur-md sticky top-0 z-50 p-3 sm:p-4">
-    <div className="max-w-6xl mx-auto flex justify-between items-center">
-      <div className="flex items-center gap-2 sm:gap-3">
-          <img src="/sangkuriang%201.png" alt="Logo" className="h-8 sm:h-10 w-auto object-contain" onError={(e:any) => e.target.style.display='none'} />
-          <div className="font-bold leading-tight text-white flex flex-col justify-center min-w-0">
-            <div className="text-sm sm:text-xl truncate uppercase tracking-wide">SANGKURIANG</div>
-            <div className="flex items-center gap-1.5 sm:gap-2 mt-0.5">
-               <span className="text-blue-400 text-[8px] sm:text-sm tracking-widest truncate">SWIM ORGANIZER</span>
-               <div className="flex sm:hidden items-center gap-1 text-[8px] font-mono text-slate-400 bg-slate-800/50 px-1.5 py-0.5 rounded border border-slate-700/50">
-                   <Clock size={8} className="text-blue-400"/>
-                   <span>{currentTime.toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' })}</span>
-               </div>
+    <nav className="border-b border-white/10 bg-slate-900/80 backdrop-blur-md sticky top-0 z-50 p-3 sm:p-4">
+      <div className="max-w-6xl mx-auto flex justify-between items-center relative">
+        <div className="flex items-center gap-3">
+            <img src="/sangkuriang%201.png" alt="Logo" className="h-8 sm:h-10 w-auto object-contain" onError={(e:any) => e.target.style.display='none'} />
+            <div className="font-bold leading-tight text-white flex flex-col justify-center">
+              <div className="text-base sm:text-xl">SANGKURIANG</div>
+              <div className="text-blue-400 text-[8px] sm:text-[10px] tracking-widest sm:tracking-[0.2em]">SWIM ORGANIZER</div>
             </div>
-          </div>
-      </div>
-      <div className="flex items-center gap-2 sm:gap-3">
-        <button 
-          onClick={() => setLang(lang === 'id' ? 'en' : 'id')} 
-          className="flex items-center justify-center bg-slate-800 hover:bg-slate-700 text-white w-8 h-8 sm:w-auto sm:h-auto sm:px-3 sm:py-1.5 rounded-xl sm:rounded-lg border border-slate-700 transition"
-        >
-          <Globe size={16} className="text-blue-400 sm:w-3.5 sm:h-3.5" />
-          <span className="font-bold text-xs hidden sm:inline sm:ml-1.5">{lang === 'id' ? 'ID' : 'EN'}</span>
-        </button>
+        </div>
 
-        {onMasterLogin && (
-          <button onClick={onMasterLogin} className="text-[10px] sm:text-xs text-slate-400 hover:text-white flex gap-1 items-center transition bg-slate-800 w-8 h-8 sm:w-auto sm:h-auto justify-center sm:px-3 sm:py-1.5 rounded-xl sm:rounded-full border border-slate-700">
-            <ShieldAlert size={14}/> <span className="hidden sm:inline">{t[lang].role_master}</span>
-          </button>
-        )}
+        {/* Menghapus fitur jam di LogoBar (Versi Desktop/Mobile) karena kita tidak jadi pakai ini di halaman login depan */}
+
+        <div className="flex items-center gap-2 sm:gap-3 shrink-0 ml-auto">
+          <button 
+             onClick={() => setLang(lang === 'id' ? 'en' : 'id')} 
+             className="flex items-center justify-center bg-slate-800 hover:bg-slate-700 text-white px-2 sm:px-3 py-1.5 rounded-full border border-slate-700 transition"
+             title="Switch Language"
+           >
+             <Globe size={14} className="text-blue-400" />
+             <span className="font-bold text-[10px] sm:text-xs ml-1.5">{lang === 'id' ? 'ID' : 'EN'}</span>
+           </button>
+
+          {onMasterLogin && (
+            <button onClick={onMasterLogin} className="text-[10px] sm:text-xs text-slate-500 hover:text-white flex gap-1 items-center transition bg-slate-800 px-2 sm:px-3 py-1.5 rounded-full border border-slate-700">
+              <ShieldAlert size={14} className="sm:w-4 sm:h-4" /> <span className="hidden sm:inline">Master</span>
+            </button>
+          )}
+        </div>
       </div>
-    </div>
-  </nav>
+    </nav>
   );
 };
 
-const TourCard = ({ tour, badge, badgeColor, onSelectTournament }: any) => (
+const TourCard = ({ tour, badge, badgeColor, onSelectTournament, lang, t }: any) => (
   <div onClick={() => onSelectTournament(tour.id)} className="bg-slate-800/80 backdrop-blur border border-slate-700 p-6 rounded-2xl shadow-xl hover:border-blue-500 transition-colors cursor-pointer group text-left">
       <div className="flex justify-between items-start mb-4">
-        <span className={`${badgeColor} text-xs px-2 py-1 rounded font-bold uppercase`}>{badge}</span>
+        <span className={`${badgeColor} text-[10px] sm:text-xs px-2 py-1 rounded font-bold uppercase`}>{badge}</span>
         <Trophy size={20} className="text-slate-500 group-hover:text-blue-400 transition"/>
       </div>
-      <h3 className="text-xl font-bold mb-2 text-white group-hover:text-blue-400 transition">{tour.title}</h3>
-      <div className="text-sm text-slate-400 mb-2 flex items-center gap-2"><MapPin size={14}/> {tour.venue}</div>
-      <div className="text-sm text-slate-400 flex items-center gap-2"><Calendar size={14}/> {formatDateRange(tour.eventDate, tour.endDate)}</div>
+      <h3 className="text-lg sm:text-xl font-bold mb-2 text-white group-hover:text-blue-400 transition">{tour.title}</h3>
+      <div className="text-xs sm:text-sm text-slate-400 mb-2 flex items-center gap-2"><MapPin size={14} className="shrink-0"/> <span className="truncate">{tour.venue}</span></div>
+      <div className="text-xs sm:text-sm text-slate-400 flex items-center gap-2"><Calendar size={14} className="shrink-0"/> {formatDateRange(tour.eventDate, tour.endDate)}</div>
   </div>
 );
 
 function GlobalLandingPage({ tournaments, onSelectTournament, onMasterLogin, lang, setLang, t }: any) {
-  const activeTournaments = tournaments.filter((t: any) => t.status === 'live' || t.status === 'paused');
-  const upcoming = tournaments.filter((t: any) => t.status === 'upcoming');
-  const finished = tournaments.filter((t: any) => t.status === 'finished');
+  const [activeTab, setActiveTab] = useState<'Renang' | 'Selam'>('Renang');
+
+  const filteredTournaments = tournaments.filter((t: any) => t.sportType === activeTab || (!t.sportType && activeTab === 'Renang'));
+
+  const activeTournaments = filteredTournaments.filter((t: any) => t.status === 'live' || t.status === 'paused');
+  const upcoming = filteredTournaments.filter((t: any) => t.status === 'upcoming');
+  const finished = filteredTournaments.filter((t: any) => t.status === 'finished');
 
   return (
     <div className="min-h-screen bg-slate-950 text-white font-sans flex flex-col relative overflow-y-auto">
       <LogoBar onMasterLogin={onMasterLogin} lang={lang} setLang={setLang} t={t} />
       <div className="flex-1 max-w-6xl mx-auto w-full p-4 sm:p-6 py-8 sm:py-12">
         <div className="text-center mb-8 sm:mb-12">
-          <h1 className="text-3xl sm:text-4xl md:text-5xl font-extrabold mb-3 sm:mb-4 bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-emerald-400 leading-tight">{t[lang].title_swimming_portal}</h1>
+          <h1 className="text-3xl sm:text-4xl md:text-5xl font-extrabold mb-3 sm:mb-4 bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-emerald-400">{t[lang].title_swimming_portal}</h1>
           <p className="text-slate-400 text-sm sm:text-lg px-4">{t[lang].subtitle_swimming_portal}</p>
+        </div>
+
+        {}
+        <div className="flex justify-center mb-8">
+            <div className="bg-slate-900 p-1 rounded-xl flex gap-1 border border-slate-800">
+                <button 
+                    onClick={() => setActiveTab('Renang')} 
+                    className={`px-6 py-2.5 rounded-lg font-bold text-sm sm:text-base transition-all ${activeTab === 'Renang' ? 'bg-blue-600 text-white shadow-md' : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800'}`}
+                >
+                    Renang
+                </button>
+                <button 
+                    onClick={() => setActiveTab('Selam')} 
+                    className={`px-6 py-2.5 rounded-lg font-bold text-sm sm:text-base transition-all ${activeTab === 'Selam' ? 'bg-emerald-600 text-white shadow-md' : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800'}`}
+                >
+                    Selam
+                </button>
+            </div>
         </div>
 
         {activeTournaments.length > 0 ? (
           <div className="mb-10 sm:mb-12">
             <h2 className="text-xl sm:text-2xl font-bold mb-4 sm:mb-6 flex items-center gap-2 border-b border-slate-800 pb-2"><MonitorPlay className="text-red-500 w-5 h-5 sm:w-6 sm:h-6"/> {t[lang].status_live}</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
               {activeTournaments.map((tour:any) => <TourCard key={tour.id} tour={tour} badge={tour.status === 'paused' ? t[lang].badge_paused : t[lang].badge_live} badgeColor={tour.status === 'paused' ? 'bg-yellow-500/20 text-yellow-500 border border-yellow-500/30' : 'bg-red-500/20 text-red-400 animate-pulse border border-red-500/30'} onSelectTournament={onSelectTournament} />)}
             </div>
           </div>
@@ -836,7 +899,7 @@ function GlobalLandingPage({ tournaments, onSelectTournament, onMasterLogin, lan
         {upcoming.length > 0 ? (
           <div className="mb-10 sm:mb-12">
             <h2 className="text-xl sm:text-2xl font-bold mb-4 sm:mb-6 flex items-center gap-2 border-b border-slate-800 pb-2"><Timer className="text-yellow-500 w-5 h-5 sm:w-6 sm:h-6"/> {t[lang].status_upcoming}</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
               {upcoming.map((tour:any) => <TourCard key={tour.id} tour={tour} badge={t[lang].badge_upcoming} badgeColor="bg-yellow-500/20 text-yellow-400 border border-yellow-500/30" onSelectTournament={onSelectTournament} />)}
             </div>
           </div>
@@ -845,24 +908,25 @@ function GlobalLandingPage({ tournaments, onSelectTournament, onMasterLogin, lan
         {finished.length > 0 ? (
           <div className="mb-10 sm:mb-12 opacity-80">
             <h2 className="text-xl sm:text-2xl font-bold mb-4 sm:mb-6 flex items-center gap-2 border-b border-slate-800 pb-2"><CheckCircle className="text-blue-500 w-5 h-5 sm:w-6 sm:h-6"/> {t[lang].status_finished}</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
               {finished.map((tour:any) => <TourCard key={tour.id} tour={tour} badge={t[lang].badge_finished} badgeColor="bg-[#1e3a8a] text-blue-300 border border-[#1e40af]" onSelectTournament={onSelectTournament} />)}
             </div>
           </div>
         ) : null}
         
-        {tournaments.length === 0 ? (
-            <div className="text-center text-slate-500 py-16 sm:py-20 italic px-4 text-sm sm:text-base">{t[lang].no_tournament}</div>
+        {filteredTournaments.length === 0 ? (
+            <div className="text-center text-slate-500 py-16 sm:py-20 italic text-sm sm:text-base">Belum ada data kejuaraan {activeTab} di dalam sistem.</div>
         ) : null}
       </div>
-      <footer className="bg-slate-950 text-slate-600 py-4 text-center text-[10px] sm:text-xs border-t border-slate-900 shrink-0">{t[lang].footer_text}</footer>
+      <footer className="bg-slate-950 text-slate-600 py-3 sm:py-4 text-center text-[10px] sm:text-xs border-t border-slate-900 shrink-0">{t[lang].footer_text}</footer>
     </div>
   );
 }
 
-function MasterDashboard({ tournaments, onCreate, onEdit, onDelete, onLogout, onChangeMasterPin, lang, t }: any) {
+function MasterDashboard({ tournaments, athletes, onCreate, onEdit, onDelete, onLogout, onChangeMasterPin, onAddAthlete, onUpdateAthlete, onDeleteAthlete, onAddMultipleAthletes, lang, t }: any) {
+  const [activeTab, setActiveTab] = useState<'tournaments' | 'athletes'>('tournaments');
   const [showCreate, setShowCreate] = useState(false);
-  const [form, setForm] = useState({ title: '', venue: '', eventDate: '', endDate: '', adminPin: '1234', announcerPin: '1234', callroomPin: '1234' });
+  const [form, setForm] = useState({ title: '', venue: '', eventDate: '', endDate: '', adminPin: '1234', announcerPin: '1234', callroomPin: '1234', sportType: 'Renang' });
 
   const [showPinModal, setShowPinModal] = useState(false);
   const [newMasterPin, setNewMasterPin] = useState('');
@@ -872,6 +936,7 @@ function MasterDashboard({ tournaments, onCreate, onEdit, onDelete, onLogout, on
     e.preventDefault();
     onCreate({
       title: form.title, venue: form.venue, eventDate: new Date(form.eventDate).toISOString(), endDate: form.endDate ? new Date(form.endDate).toISOString() : new Date(form.eventDate).toISOString(), resultUrl: '',
+      sportType: form.sportType as 'Renang' | 'Selam',
       pins: { admin: simpleHash(form.adminPin), announcer: simpleHash(form.announcerPin), callroom: simpleHash(form.callroomPin) }
     });
     setShowCreate(false);
@@ -899,59 +964,97 @@ function MasterDashboard({ tournaments, onCreate, onEdit, onDelete, onLogout, on
       </header>
       
       <main className="max-w-6xl mx-auto p-6">
-        <div className="flex flex-col md:flex-row justify-between items-center mb-8 gap-4">
-          <h2 className="text-2xl font-bold text-slate-800">Daftar Semua Lomba</h2>
-          <div className="flex gap-2">
-             <button onClick={() => setShowCreate(!showCreate)} className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2.5 rounded-lg font-bold flex items-center gap-2 shadow-sm transition"><Plus size={18}/> Buat Lomba Baru</button>
-          </div>
+        <div className="flex gap-4 border-b border-slate-200 mb-6">
+           <button onClick={() => setActiveTab('tournaments')} className={`pb-3 px-4 font-bold transition-all ${activeTab === 'tournaments' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-slate-500 hover:text-slate-800'}`}>Manajemen Lomba</button>
+           <button onClick={() => setActiveTab('athletes')} className={`pb-3 px-4 font-bold transition-all ${activeTab === 'athletes' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-slate-500 hover:text-slate-800'}`}>Database Atlet</button>
         </div>
 
-        {showCreate && (
-          <form onSubmit={handleCreate} className="bg-white p-6 rounded-2xl shadow-sm border border-blue-100 mb-8 grid md:grid-cols-2 gap-6 animate-in fade-in">
-             <div className="space-y-4">
-                <h3 className="font-bold text-blue-900 border-b pb-2">Informasi Umum</h3>
-                <div><label className="block text-xs font-bold text-slate-500 mb-1">Nama Kejuaraan</label><input required type="text" value={form.title} onChange={e=>setForm({...form, title: e.target.value})} className="w-full p-2 border rounded bg-slate-50" /></div>
-                <div><label className="block text-xs font-bold text-slate-500 mb-1">Lokasi / Venue</label><input required type="text" value={form.venue} onChange={e=>setForm({...form, venue: e.target.value})} className="w-full p-2 border rounded bg-slate-50" /></div>
-                <div className="grid grid-cols-2 gap-2">
-                  <div><label className="block text-xs font-bold text-slate-500 mb-1">Tanggal Mulai</label><input required type="date" value={form.eventDate} onChange={e=>setForm({...form, eventDate: e.target.value})} className="w-full p-2 border rounded bg-slate-50" /></div>
-                  <div><label className="block text-xs font-bold text-slate-500 mb-1">Tanggal Selesai</label><input required type="date" value={form.endDate} onChange={e=>setForm({...form, endDate: e.target.value})} className="w-full p-2 border rounded bg-slate-50" min={form.eventDate} /></div>
-                </div>
-             </div>
-             <div className="space-y-4">
-                <h3 className="font-bold text-blue-900 border-b pb-2">Pengaturan Akses (PIN)</h3>
-                <div><label className="block text-xs font-bold text-slate-500 mb-1">PIN Admin Lomba</label><input required type="text" value={form.adminPin} onChange={e=>setForm({...form, adminPin: e.target.value})} className="w-full p-2 border rounded bg-slate-50" /></div>
-                <div><label className="block text-xs font-bold text-slate-500 mb-1">PIN Announcer</label><input required type="text" value={form.announcerPin} onChange={e=>setForm({...form, announcerPin: e.target.value})} className="w-full p-2 border rounded bg-slate-50" /></div>
-                <div><label className="block text-xs font-bold text-slate-500 mb-1">PIN Call Room</label><input required type="text" value={form.callroomPin} onChange={e=>setForm({...form, callroomPin: e.target.value})} className="w-full p-2 border rounded bg-slate-50" /></div>
-             </div>
-             <div className="md:col-span-2 flex justify-end gap-2 border-t pt-4">
-               <button type="button" onClick={()=>setShowCreate(false)} className="px-6 py-2 rounded text-slate-500 hover:bg-slate-100 font-bold">Batal</button>
-               <button type="submit" className="px-8 py-2 rounded bg-blue-600 text-white font-bold shadow-lg">SIMPAN & BUAT LOMBA</button>
-             </div>
-          </form>
+        {activeTab === 'tournaments' && (
+          <>
+            <div className="flex flex-col md:flex-row justify-between items-center mb-8 gap-4">
+              <h2 className="text-2xl font-bold text-slate-800">Daftar Semua Lomba</h2>
+              <div className="flex gap-2">
+                 <button onClick={() => setShowCreate(!showCreate)} className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2.5 rounded-lg font-bold flex items-center gap-2 shadow-sm transition"><Plus size={18}/> Buat Lomba Baru</button>
+              </div>
+            </div>
+
+            {showCreate && (
+              <form onSubmit={handleCreate} className="bg-white p-6 rounded-2xl shadow-sm border border-blue-100 mb-8 grid md:grid-cols-2 gap-6 animate-in fade-in">
+                 <div className="space-y-4">
+                    <h3 className="font-bold text-blue-900 border-b pb-2">Informasi Umum</h3>
+                    {}
+                    <div className="grid grid-cols-2 gap-2">
+                        <div className="col-span-2 sm:col-span-1">
+                            <label className="block text-xs font-bold text-slate-500 mb-1">Nama Kejuaraan</label>
+                            <input required type="text" value={form.title} onChange={e=>setForm({...form, title: e.target.value})} className="w-full p-2 border rounded bg-slate-50" />
+                        </div>
+                        <div className="col-span-2 sm:col-span-1">
+                            <label className="block text-xs font-bold text-slate-500 mb-1">Cabang Olahraga</label>
+                            <select value={form.sportType} onChange={e=>setForm({...form, sportType: e.target.value})} className="w-full p-2 border rounded bg-slate-50">
+                                <option value="Renang">Renang</option>
+                                <option value="Selam">Selam</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div><label className="block text-xs font-bold text-slate-500 mb-1">Lokasi / Venue</label><input required type="text" value={form.venue} onChange={e=>setForm({...form, venue: e.target.value})} className="w-full p-2 border rounded bg-slate-50" /></div>
+                    <div className="grid grid-cols-2 gap-2">
+                      <div><label className="block text-xs font-bold text-slate-500 mb-1">Tanggal Mulai</label><input required type="date" value={form.eventDate} onChange={e=>setForm({...form, eventDate: e.target.value})} className="w-full p-2 border rounded bg-slate-50" /></div>
+                      <div><label className="block text-xs font-bold text-slate-500 mb-1">Tanggal Selesai</label><input required type="date" value={form.endDate} onChange={e=>setForm({...form, endDate: e.target.value})} className="w-full p-2 border rounded bg-slate-50" min={form.eventDate} /></div>
+                    </div>
+                 </div>
+                 <div className="space-y-4">
+                    <h3 className="font-bold text-blue-900 border-b pb-2">Pengaturan Akses (PIN)</h3>
+                    <div><label className="block text-xs font-bold text-slate-500 mb-1">PIN Admin Lomba</label><input required type="text" value={form.adminPin} onChange={e=>setForm({...form, adminPin: e.target.value})} className="w-full p-2 border rounded bg-slate-50" /></div>
+                    <div><label className="block text-xs font-bold text-slate-500 mb-1">PIN Announcer</label><input required type="text" value={form.announcerPin} onChange={e=>setForm({...form, announcerPin: e.target.value})} className="w-full p-2 border rounded bg-slate-50" /></div>
+                    <div><label className="block text-xs font-bold text-slate-500 mb-1">PIN Call Room</label><input required type="text" value={form.callroomPin} onChange={e=>setForm({...form, callroomPin: e.target.value})} className="w-full p-2 border rounded bg-slate-50" /></div>
+                 </div>
+                 <div className="md:col-span-2 flex justify-end gap-2 border-t pt-4">
+                   <button type="button" onClick={()=>setShowCreate(false)} className="px-6 py-2 rounded text-slate-500 hover:bg-slate-100 font-bold">Batal</button>
+                   <button type="submit" className="px-8 py-2 rounded bg-blue-600 text-white font-bold shadow-lg">SIMPAN & BUAT LOMBA</button>
+                 </div>
+              </form>
+            )}
+
+            <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+              <table className="w-full text-left">
+                {}
+                <thead className="bg-slate-50 border-b"><tr><th className="p-4 font-bold text-slate-600">Lomba</th><th className="p-4 font-bold text-slate-600">Cabang</th><th className="p-4 font-bold text-slate-600">Status</th><th className="p-4 font-bold text-slate-600 text-right">Aksi</th></tr></thead>
+                <tbody>
+                  {tournaments.map((tItem:any) => (
+                    <tr key={tItem.id} className="border-b last:border-0 hover:bg-slate-50">
+                      <td className="p-4">
+                        <div className="font-bold text-blue-900 text-lg">{tItem.title}</div>
+                        <div className="text-sm text-slate-500">{formatDateRange(tItem.eventDate, tItem.endDate)} | {tItem.venue}</div>
+                      </td>
+                      <td className="p-4">
+                         <span className={`text-[10px] font-bold px-2 py-1 rounded-full whitespace-nowrap ${tItem.sportType === 'Selam' ? 'bg-emerald-100 text-emerald-700' : 'bg-blue-100 text-blue-700'}`}>
+                           {tItem.sportType || 'Renang'}
+                         </span>
+                      </td>
+                      <td className="p-4">
+                        <span className={`text-xs font-bold px-2 py-1 rounded-full uppercase ${tItem.status === 'live' ? 'bg-red-100 text-red-600' : tItem.status === 'finished' ? 'bg-blue-100 text-blue-600' : tItem.status === 'paused' ? 'bg-yellow-100 text-yellow-600' : 'bg-slate-100 text-slate-600'}`}>{tItem.status}</span>
+                      </td>
+                      <td className="p-4 text-right space-x-2">
+                        <button onClick={() => onEdit(tItem.id)} className="bg-slate-800 text-white px-4 py-2 rounded font-bold text-sm hover:bg-slate-700 transition shadow">Kelola Event (Admin)</button>
+                        <button onClick={() => setDeleteId(tItem.id)} className="bg-red-50 text-red-500 hover:bg-red-100 px-3 py-2 rounded transition"><Trash2 size={16}/></button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </>
         )}
 
-        <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-          <table className="w-full text-left">
-            <thead className="bg-slate-50 border-b"><tr><th className="p-4 font-bold text-slate-600">Lomba</th><th className="p-4 font-bold text-slate-600">Status</th><th className="p-4 font-bold text-slate-600 text-right">Aksi</th></tr></thead>
-            <tbody>
-              {tournaments.map((t:any) => (
-                <tr key={t.id} className="border-b last:border-0 hover:bg-slate-50">
-                  <td className="p-4">
-                    <div className="font-bold text-blue-900 text-lg">{t.title}</div>
-                    <div className="text-sm text-slate-500">{formatDateRange(t.eventDate, t.endDate)} | {t.venue}</div>
-                  </td>
-                  <td className="p-4">
-                    <span className={`text-xs font-bold px-2 py-1 rounded-full uppercase ${t.status === 'live' ? 'bg-red-100 text-red-600' : t.status === 'finished' ? 'bg-blue-100 text-blue-600' : t.status === 'paused' ? 'bg-yellow-100 text-yellow-600' : 'bg-slate-100 text-slate-600'}`}>{t.status}</span>
-                  </td>
-                  <td className="p-4 text-right space-x-2">
-                    <button onClick={() => onEdit(t.id)} className="bg-slate-800 text-white px-4 py-2 rounded font-bold text-sm hover:bg-slate-700 transition shadow">Kelola Event (Admin)</button>
-                    <button onClick={() => setDeleteId(t.id)} className="bg-red-50 text-red-500 hover:bg-red-100 px-3 py-2 rounded transition"><Trash2 size={16}/></button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        {activeTab === 'athletes' && (
+           <AthleteManager 
+              athletes={athletes} 
+              onAdd={onAddAthlete} 
+              onUpdate={onUpdateAthlete} 
+              onDelete={onDeleteAthlete} 
+              onImport={onAddMultipleAthletes} 
+           />
+        )}
       </main>
 
       {showPinModal && (
@@ -959,7 +1062,7 @@ function MasterDashboard({ tournaments, onCreate, onEdit, onDelete, onLogout, on
           <div className="bg-white rounded-2xl w-full max-w-sm p-8 relative zoom-in-95 duration-200 shadow-2xl">
             <button type="button" onClick={() => {setShowPinModal(false); setNewMasterPin('');}} className="absolute top-4 right-4 text-slate-400 hover:text-slate-800"><X size={20} /></button>
             <h2 className="text-xl font-bold text-center mb-3 text-slate-800 flex justify-center items-center gap-2"><Lock /> Ubah PIN Master</h2>
-            <p className="text-center text-slate-500 text-sm mb-6">Masukkan PIN baru untuk akses Superuser Master (Bawaan: 123456).</p>
+            <p className="text-center text-slate-500 text-sm mb-6">Masukkan PIN baru untuk akses Superuser Master.</p>
             <form onSubmit={handleUpdatePin}>
               <input autoFocus type="password" value={newMasterPin} onChange={e=>setNewMasterPin(e.target.value)} className="w-full text-center text-3xl font-bold p-4 border rounded-xl mb-4 outline-none focus:ring-2 focus:ring-blue-500 bg-slate-50" placeholder="PIN BARU" required />
               <button type="submit" className="w-full bg-blue-600 text-white py-3 rounded-xl font-bold hover:bg-blue-700 transition shadow-lg">Simpan PIN Baru</button>
@@ -993,6 +1096,8 @@ function TournamentPublicView({ tournament, dqs, events, isOnline, onBack, onLog
   const [showPdf, setShowPdf] = useState(false);
   const [showResultsList, setShowResultsList] = useState(false);
   const [showPdfUrl, setShowPdfUrl] = useState<string | null>(null);
+  
+  const currentTime = useLiveClock();
 
   // State untuk navigasi antar hasil acara
   const eventsWithResults = events.filter((ev: any) => ev.resultUrl);
@@ -1016,6 +1121,8 @@ function TournamentPublicView({ tournament, dqs, events, isOnline, onBack, onLog
     const timer = setInterval(() => {
       const now = new Date().getTime();
       
+      // Jika status Jeda dan Admin menyetel waktu pauseUntil, gunakan waktu itu. 
+      // Jika Upcoming, gunakan eventDate.
       let targetDateStr = tournament.status === 'paused' ? tournament.liveState?.pauseUntil : tournament.eventDate;
       
       if (!targetDateStr) {
@@ -1041,8 +1148,6 @@ function TournamentPublicView({ tournament, dqs, events, isOnline, onBack, onLog
     return () => clearInterval(timer);
   }, [tournament.eventDate, tournament.status, tournament.liveState?.pauseUntil]);
 
-  const currentTime = useLiveClock();
-
   if (tournament.status === 'live') {
     return <LiveScoreboard tournament={tournament} dqs={dqs} events={events} isOnline={isOnline} onBack={onBack} onLoginRequest={onLoginRequest} lang={lang} setLang={setLang} t={t} />;
   }
@@ -1051,7 +1156,7 @@ function TournamentPublicView({ tournament, dqs, events, isOnline, onBack, onLog
 
   return (
     <div className="min-h-screen bg-slate-900 text-white font-sans flex flex-col relative overflow-hidden">
-      {/* POP-UP HASIL PDF KESELURUHAN */}
+      {/* POP-UP HASIL PDF KESELURUHAN (Hanya Untuk Status Selesai) */}
       {showPdf && tournament.resultUrl ? (
           <div className="fixed inset-0 z-[100] bg-black/90 flex flex-col p-4 animate-in fade-in">
               <div className="flex justify-between items-center mb-4 text-white">
@@ -1064,72 +1169,71 @@ function TournamentPublicView({ tournament, dqs, events, isOnline, onBack, onLog
 
       <div className="absolute inset-0 opacity-20 bg-[url('https://images.unsplash.com/photo-1530549387789-4c1017266635?ixlib=rb-1.2.1&auto=format&fit=crop&w=1920&q=80')] bg-cover bg-center" />
       
-      <header className="bg-slate-900/80 backdrop-blur-md text-white h-16 shrink-0 flex items-center justify-between px-3 sm:px-6 border-b border-slate-800 z-50">
-          <div className="flex items-center gap-2 sm:gap-4 truncate">
+      <header className="bg-slate-900/80 backdrop-blur-md text-white h-auto sm:h-16 shrink-0 flex flex-wrap sm:flex-nowrap items-center justify-between px-3 sm:px-6 py-2 sm:py-0 border-b border-slate-800 z-50">
+          <div className="flex items-center gap-2 sm:gap-4 w-full sm:w-auto mb-2 sm:mb-0">
               <img src="/sangkuriang%201.png" alt="Logo" className="h-8 sm:h-10 w-auto object-contain" onError={(e:any) => e.target.style.display='none'} />
-              <div className="flex flex-col justify-center min-w-0">
-                  <h1 className="font-extrabold text-sm sm:text-lg leading-tight sm:leading-none tracking-wide uppercase truncate">Sangkuriang</h1>
-                  <div className="flex items-center gap-1.5 sm:gap-2 mt-0.5">
-                       <span className="text-[8px] sm:text-[10px] text-blue-400 font-bold tracking-[0.2em] uppercase truncate">Swim Organizer</span>
-                       <div className="flex sm:hidden items-center gap-1 text-[8px] font-mono text-slate-400 bg-slate-800/50 px-1.5 py-0.5 rounded border border-slate-700/50">
-                           <Clock size={8} className="text-blue-400"/>
-                           <span>{currentTime.toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' })}</span>
-                       </div>
-                  </div>
+              <div className="flex flex-col justify-center">
+                  <h1 className="font-extrabold text-sm sm:text-lg leading-none tracking-wide uppercase">Sangkuriang</h1>
+                  <p className="text-[8px] sm:text-xs text-blue-400 font-bold tracking-[0.2em] uppercase">Swim Organizer</p>
               </div>
           </div>
-
-          {/* Jam Tengah Desktop */}
-          <div className="absolute left-1/2 transform -translate-x-1/2 bg-slate-800/80 px-4 py-1.5 rounded-full border border-slate-700/50 flex-col items-center hidden md:flex">
-             <span className="text-[8px] text-slate-400 uppercase font-bold tracking-[0.2em] -mb-1">Time</span>
-             <ClockDisplay time={currentTime} />
-          </div>
-
-          <div className="flex items-center gap-1.5 sm:gap-3 shrink-0 ml-auto">
-              <span className={`text-[10px] items-center gap-1 hidden sm:flex ${isOnline ? 'text-emerald-400' : 'text-red-500'}`}>{isOnline ? <Wifi size={10} /> : <WifiOff size={10} />}</span>
+          
+          <div className="flex items-center gap-1.5 sm:gap-3 w-full sm:w-auto justify-end">
+              <span className={`text-[10px] hidden sm:flex items-center gap-1 ${isOnline ? 'text-emerald-400' : 'text-red-500'}`}>{isOnline ? <Wifi size={10} /> : <WifiOff size={10} />}</span>
               
               <button 
-                onClick={() => setLang(lang === 'id' ? 'en' : 'id')} 
-                className="flex items-center justify-center bg-slate-800 hover:bg-slate-700 text-white w-8 h-8 sm:w-auto sm:h-auto sm:px-3 sm:py-1.5 rounded-xl border border-slate-700 transition"
-                title="Switch Language"
-              >
-                <Globe size={16} className="text-blue-400 sm:w-3.5 sm:h-3.5" />
-                <span className="font-bold text-xs hidden sm:inline sm:ml-1.5">{lang === 'id' ? 'ID' : 'EN'}</span>
-              </button>
+                 onClick={() => setLang(lang === 'id' ? 'en' : 'id')} 
+                 className="flex items-center justify-center bg-slate-800 hover:bg-slate-700 text-white w-9 h-9 sm:w-auto sm:h-auto sm:px-3 sm:py-1.5 rounded-xl border border-slate-700 transition"
+                 title="Switch Language"
+               >
+                 <Globe size={18} className="text-blue-400 sm:w-4 sm:h-4" />
+                 <span className="font-bold text-xs hidden sm:inline sm:ml-1.5">{lang === 'id' ? 'ID' : 'EN'}</span>
+               </button>
 
+              {/* TOMBOL HASIL ACARA (Muncul di Header saat Jeda atau Selesai) */}
               {(tournament.status === 'paused' || isFinished) && (
-                <button onClick={() => setShowResultsList(true)} className="w-8 h-8 sm:w-auto sm:h-auto sm:px-3 sm:py-1.5 flex items-center justify-center bg-blue-600 hover:bg-blue-500 text-white rounded-xl transition shadow-md" title={t[lang].btn_results}>
-                  <FileText size={16} className="sm:w-3.5 sm:h-3.5" /> <span className="text-xs font-bold hidden sm:inline sm:ml-1.5">{t[lang].btn_results}</span>
+                <button onClick={() => setShowResultsList(true)} className="w-9 h-9 sm:w-auto sm:h-auto sm:px-3 sm:py-1.5 flex items-center justify-center bg-blue-600 hover:bg-blue-500 text-white rounded-xl transition shadow-md" title={t[lang].btn_results}>
+                  <FileText size={18} className="sm:w-4 sm:h-4" /> <span className="hidden sm:inline sm:ml-1.5 text-xs font-bold">{t[lang].btn_results}</span>
                 </button>
               )}
 
-              <button onClick={onBack} className="w-8 h-8 sm:w-auto sm:h-auto sm:px-3 sm:py-1.5 flex items-center justify-center bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl transition border border-slate-700" title={t[lang].btn_home}><ChevronLeft size={16} className="sm:w-3.5 sm:h-3.5" /> <span className="text-xs hidden sm:inline sm:ml-1.5">{t[lang].btn_home}</span></button>
-              <button onClick={onLoginRequest} className="w-8 h-8 sm:w-auto sm:h-auto flex items-center justify-center text-slate-400 hover:text-white transition" title="Login"><Settings size={18}/></button>
+              <button onClick={onBack} className="w-9 h-9 sm:w-auto sm:h-auto sm:px-3 sm:py-1.5 flex items-center justify-center bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl transition border border-slate-700" title={t[lang].btn_home}>
+                  <ChevronLeft size={18} className="sm:w-4 sm:h-4" /> <span className="hidden sm:inline sm:ml-1.5 text-xs">{t[lang].btn_home}</span>
+              </button>
+              <button onClick={onLoginRequest} className="w-9 h-9 sm:w-auto sm:h-auto flex items-center justify-center text-slate-400 hover:text-white transition" title="Login Settings"><Settings size={20} className="sm:w-5 sm:h-5"/></button>
           </div>
       </header>
       
-      <div className="flex-1 flex flex-col justify-center items-center text-center p-4 sm:p-6 z-10">
-        <div className="bg-slate-800/80 backdrop-blur border border-slate-700 p-6 sm:p-8 rounded-2xl shadow-2xl max-w-xl w-full">
-            <div className="flex justify-center mb-6">
+      <div className="flex-1 flex flex-col justify-center items-center text-center p-4 sm:p-6 z-10 relative">
+        {/* JAM REAL-TIME UNTUK MOBILE */}
+        <div className="absolute top-4 w-full flex justify-center sm:hidden">
+            <div className="bg-slate-900/60 backdrop-blur border border-slate-800/50 px-4 py-1.5 rounded-full flex items-center gap-2 shadow-lg">
+                <Clock size={12} className="text-blue-400"/>
+                <span className="text-sm font-mono font-bold">{currentTime.toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' })}</span>
+            </div>
+        </div>
+
+        <div className="bg-slate-800/80 backdrop-blur border border-slate-700 p-6 sm:p-8 rounded-2xl shadow-2xl max-w-xl w-full mt-10 sm:mt-0">
+            <div className="flex justify-center mb-4 sm:mb-6">
                 {isFinished ? (
-                     <span className="bg-blue-500/20 text-blue-400 text-xs sm:text-sm px-3 py-1 rounded-full font-bold flex items-center gap-2 border border-blue-500/30"><CheckCircle size={14} /> {t[lang].tournament_finished}</span>
+                     <span className="bg-blue-500/20 text-blue-400 text-[10px] sm:text-sm px-3 py-1 rounded-full font-bold flex items-center gap-2 border border-blue-500/30"><CheckCircle size={14} /> {t[lang].tournament_finished}</span>
                 ) : tournament.status === 'paused' ? (
-                     <span className="bg-yellow-500/20 text-yellow-400 text-xs sm:text-sm px-3 py-1 rounded-full font-bold flex items-center gap-2 border border-yellow-500/30"><Timer size={14}/> {t[lang].tournament_paused}</span>
+                     <span className="bg-yellow-500/20 text-yellow-400 text-[10px] sm:text-sm px-3 py-1 rounded-full font-bold flex items-center gap-2 border border-yellow-500/30"><Timer size={14}/> {t[lang].tournament_paused}</span>
                 ) : (
-                     <span className="bg-slate-500/20 text-slate-300 text-xs sm:text-sm px-3 py-1 rounded-full font-bold flex items-center gap-2 border border-slate-500/30"><Timer size={14}/> {t[lang].tournament_upcoming}</span>
+                     <span className="bg-slate-500/20 text-slate-300 text-[10px] sm:text-sm px-3 py-1 rounded-full font-bold flex items-center gap-2 border border-slate-500/30"><Timer size={14}/> {t[lang].tournament_upcoming}</span>
                 )}
             </div>
 
-            <h3 className="text-2xl sm:text-3xl md:text-4xl font-extrabold mb-4 leading-tight bg-clip-text text-transparent bg-gradient-to-r from-white to-slate-400">{tournament.title}</h3>
-            <div className="text-sm sm:text-base text-slate-400 mb-8 flex items-center justify-center gap-2">
+            <h3 className="text-2xl sm:text-3xl md:text-4xl font-extrabold mb-3 sm:mb-4 leading-tight bg-clip-text text-transparent bg-gradient-to-r from-white to-slate-400">{tournament.title}</h3>
+            <div className="text-sm sm:text-base text-slate-400 mb-6 sm:mb-8 flex items-center justify-center gap-2">
                 <MapPin size={16}/> {tournament.venue}
             </div>
 
             {!isFinished ? (
-                 <div className="grid grid-cols-4 gap-2 sm:gap-3 mb-8">
+                 <div className="grid grid-cols-4 gap-2 sm:gap-3 mb-6 sm:mb-8">
                      {Object.entries(timeLeft).map(([unit, val]) => (
                          <div key={unit} className="bg-slate-900 p-2 sm:p-3 rounded-xl border border-slate-700 shadow-inner">
-                             <div className="text-2xl sm:text-3xl font-black text-white mb-1">{val}</div>
+                             <div className="text-xl sm:text-3xl font-black text-white mb-0.5 sm:mb-1">{val}</div>
                              <div className="text-[8px] sm:text-[10px] uppercase text-slate-500 tracking-wider font-bold">{unit}</div>
                          </div>
                      ))}
@@ -1138,25 +1242,25 @@ function TournamentPublicView({ tournament, dqs, events, isOnline, onBack, onLog
             
             {isFinished ? (
                  tournament.resultUrl ? (
-                    <button onClick={() => setShowPdf(true)} className="w-full py-3 sm:py-4 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-bold flex justify-center items-center gap-2 transition active:scale-95 shadow-lg shadow-blue-900/50 text-base sm:text-lg">
+                    <button onClick={() => setShowPdf(true)} className="w-full py-3 sm:py-4 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-bold flex justify-center items-center gap-2 transition active:scale-95 shadow-lg shadow-blue-900/50 text-sm sm:text-lg">
                         <FileText size={20}/> {t[lang].btn_results_full}
                     </button>
                  ) : (
-                    <div className="text-slate-500 italic bg-slate-900 p-4 rounded-xl border border-slate-800 text-sm sm:text-base">{t[lang].waiting_results}</div>
+                    <div className="text-slate-500 italic bg-slate-900 p-4 rounded-xl border border-slate-800 text-xs sm:text-base">{t[lang].waiting_results}</div>
                  )
             ) : (
-                <div className="text-xs sm:text-sm text-slate-500 border-t border-slate-700 pt-6">
+                <div className="text-xs sm:text-sm text-slate-500 border-t border-slate-700 pt-4 sm:pt-6">
                     {tournament.status === 'paused' ? t[lang].paused_until : t[lang].scheduled_on}<br/>
-                    <span className="text-white font-bold text-base sm:text-lg mt-1 block">
+                    <span className="text-white font-bold text-sm sm:text-lg block mt-1">
                         {tournament.status === 'paused' && tournament.liveState?.pauseUntil 
-                            ? new Date(tournament.liveState.pauseUntil).toLocaleString(lang === 'id' ? 'id-ID' : 'en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' }) + (lang === 'id' ? ' WIB' : '')
+                            ? new Date(tournament.liveState.pauseUntil).toLocaleString(lang === 'id' ? 'id-ID' : 'en-US', { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })
                             : formatDateRange(tournament.eventDate, tournament.endDate)}
                     </span>
                 </div>
             )}
         </div>
       </div>
-      <footer className="bg-slate-950 text-slate-600 py-4 text-center text-[10px] sm:text-xs border-t border-slate-800 z-10 shrink-0">{t[lang].footer_text}</footer>
+      <footer className="bg-slate-950 text-slate-600 py-3 sm:py-4 text-center text-[10px] sm:text-xs border-t border-slate-800 z-10 shrink-0">{t[lang].footer_text}</footer>
 
       {/* MODAL DAFTAR HASIL ACARA */}
       {showResultsList && (
@@ -1200,10 +1304,10 @@ function TournamentPublicView({ tournament, dqs, events, isOnline, onBack, onLog
         {showPdfUrl && (
           <div className="fixed inset-0 z-[90] bg-black/90 flex flex-col p-2 sm:p-4 animate-in fade-in">
               <div className="flex justify-between items-center mb-2 sm:mb-4 text-white">
-                  <div className="flex flex-col min-w-0 pr-2">
-                    <h2 className="font-bold text-base sm:text-lg flex items-center gap-1.5 sm:gap-2 truncate"><FileText size={16}/> <span className="truncate">{t[lang].results_detail_title}</span></h2>
+                  <div className="flex flex-col">
+                    <h2 className="font-bold text-base sm:text-lg flex items-center gap-1.5 sm:gap-2"><FileText size={18} className="sm:w-5 sm:h-5"/> <span className="hidden sm:inline">{t[lang].results_detail_title}</span></h2>
                     {currentResultIndex !== -1 && (
-                      <span className="text-blue-300 text-xs sm:text-sm font-semibold truncate max-w-[200px] sm:max-w-[250px] md:max-w-md">
+                      <span className="text-blue-300 text-xs sm:text-sm font-semibold truncate max-w-[200px] sm:max-w-[250px] md:max-w-md mt-0.5">
                         {eventsWithResults[currentResultIndex].number}. {eventsWithResults[currentResultIndex].name}
                       </span>
                     )}
@@ -1250,6 +1354,9 @@ function LiveScoreboard({ tournament, dqs, events, isOnline, onBack, onLoginRequ
   const [showResultsList, setShowResultsList] = useState(false);
   const [showPdfUrl, setShowPdfUrl] = useState<string | null>(null);
 
+  const currentTime = useLiveClock();
+
+  // State untuk navigasi antar hasil acara
   const eventsWithResults = events.filter((ev: any) => ev.resultUrl);
   const currentResultIndex = eventsWithResults.findIndex((ev: any) => ev.resultUrl === showPdfUrl);
 
@@ -1269,22 +1376,21 @@ function LiveScoreboard({ tournament, dqs, events, isOnline, onBack, onLoginRequ
       if (dqPage > totalPages) setDqPage(1);
   }, [dqs.length, totalPages, dqPage]);
 
-  const currentTime = useLiveClock();
-
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col relative">
-        <header className="bg-slate-900 text-white shrink-0 flex items-center justify-between px-3 sm:px-6 border-b border-slate-800 shadow-xl z-50 py-3 sm:py-0 sm:h-16">
-            <div className="flex items-center gap-2 sm:gap-4 truncate w-full sm:w-auto pr-2">
-                <img src="/sangkuriang%201.png" alt="Logo" className="hidden sm:block h-8 sm:h-10 w-auto object-contain" onError={(e:any) => e.target.style.display='none'} />
-                <div className="flex flex-col justify-center min-w-0">
-                    <h1 className="font-extrabold text-sm sm:text-lg leading-tight sm:leading-none tracking-wide uppercase truncate">{tournament.title}</h1>
-                    
-                    {/* Jam Real-time di HP ada di bawah judul */}
-                    <div className="flex items-center gap-1.5 mt-0.5 sm:hidden">
-                       <div className="flex items-center gap-1 text-[8px] font-mono text-slate-400 bg-slate-800/50 px-1.5 py-0.5 rounded border border-slate-700/50">
-                           <Clock size={8} className="text-blue-400"/>
-                           <span>{currentTime.toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' })}</span>
-                       </div>
+        <header className="bg-slate-900 text-white h-auto sm:h-16 shrink-0 flex flex-wrap sm:flex-nowrap items-center justify-between px-3 sm:px-6 py-2 sm:py-0 border-b border-slate-800 shadow-xl z-50">
+            <div className="flex items-center gap-2 sm:gap-4 w-full sm:w-auto mb-2 sm:mb-0 relative">
+                <img src="/sangkuriang%201.png" alt="Logo" className="h-8 sm:h-10 w-auto object-contain" onError={(e:any) => e.target.style.display='none'} />
+                <div className="flex flex-col justify-center">
+                    <h1 className="font-extrabold text-sm sm:text-lg leading-none tracking-wide uppercase truncate max-w-[140px] md:max-w-xs">{tournament.title}</h1>
+                    <p className="text-[8px] sm:text-[10px] text-blue-400 font-bold tracking-[0.2em] uppercase">Swim Organizer</p>
+                </div>
+                
+                {/* Jam Real-time untuk layar Mobile ditempatkan di bawah judul khusus untuk halaman Live ini agar lega */}
+                <div className="absolute top-[42px] left-0 w-full sm:hidden">
+                    <div className="flex items-center gap-1.5 text-blue-300">
+                        <Clock size={10} />
+                        <span className="text-[10px] font-mono font-bold tracking-widest">{currentTime.toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' })}</span>
                     </div>
                 </div>
             </div>
@@ -1319,7 +1425,7 @@ function LiveScoreboard({ tournament, dqs, events, isOnline, onBack, onLoginRequ
 
         <div className="flex flex-col md:flex-row border-b border-slate-200 shadow-sm shrink-0">
             {/* CALL ROOM */}
-            <div className="w-full md:w-1/2 bg-slate-900 relative px-4 py-6 md:p-12 min-h-[180px] sm:min-h-[250px] md:min-h-[45vh] flex flex-col justify-center">
+            <div className="w-full md:w-1/2 bg-slate-900 relative px-4 py-6 md:p-12 min-h-[180px] sm:min-h-[250px] md:min-h-[45vh] flex flex-col justify-center mt-3 sm:mt-0">
                 <div className="absolute inset-0 bg-gradient-to-br from-blue-900/40 via-slate-900 to-slate-900 z-0"></div>
                 <div className="relative z-10 w-full max-w-lg mx-auto">
                     <div className="flex justify-between items-start sm:items-center mb-3 sm:mb-6">
@@ -1465,10 +1571,10 @@ function LiveScoreboard({ tournament, dqs, events, isOnline, onBack, onLoginRequ
         {showPdfUrl && (
           <div className="fixed inset-0 z-[90] bg-black/90 flex flex-col p-2 sm:p-4 animate-in fade-in">
               <div className="flex justify-between items-center mb-2 sm:mb-4 text-white">
-                  <div className="flex flex-col min-w-0 pr-2">
-                    <h2 className="font-bold text-base sm:text-lg flex items-center gap-1.5 sm:gap-2 truncate"><FileText size={16}/> <span className="truncate">{t[lang].results_detail_title}</span></h2>
+                  <div className="flex flex-col">
+                    <h2 className="font-bold text-base sm:text-lg flex items-center gap-1.5 sm:gap-2"><FileText size={18} className="sm:w-5 sm:h-5"/> <span className="hidden sm:inline">{t[lang].results_detail_title}</span></h2>
                     {currentResultIndex !== -1 && (
-                      <span className="text-blue-300 text-xs sm:text-sm font-semibold truncate max-w-[200px] sm:max-w-[250px] md:max-w-md">
+                      <span className="text-blue-300 text-xs sm:text-sm font-semibold truncate max-w-[200px] sm:max-w-[250px] md:max-w-md mt-0.5">
                         {eventsWithResults[currentResultIndex].number}. {eventsWithResults[currentResultIndex].name}
                       </span>
                     )}
@@ -1556,6 +1662,7 @@ function AdminPanel({ tournament, events, masterPinHash, onUpdateTournament, onA
   const [infoForm, setInfoForm] = useState({
     title: tournament.title || '',
     venue: tournament.venue || '',
+    sportType: tournament.sportType || 'Renang',
     eventDate: tournament.eventDate ? tournament.eventDate.substring(0, 10) : '',
     endDate: tournament.endDate ? tournament.endDate.substring(0, 10) : (tournament.eventDate ? tournament.eventDate.substring(0, 10) : '')
   });
@@ -1674,6 +1781,7 @@ function AdminPanel({ tournament, events, masterPinHash, onUpdateTournament, onA
       await onUpdateTournament({
         title: infoForm.title,
         venue: infoForm.venue,
+        sportType: infoForm.sportType,
         eventDate: new Date(infoForm.eventDate).toISOString(),
         endDate: new Date(infoForm.endDate).toISOString()
       });
@@ -1787,9 +1895,19 @@ function AdminPanel({ tournament, events, masterPinHash, onUpdateTournament, onA
               <label className="text-xs text-slate-500 font-bold mb-1 block">{t[lang].tournament_name}</label>
               <input required type="text" value={infoForm.title} onChange={(e) => setInfoForm({...infoForm, title: e.target.value})} className="w-full p-2 border rounded text-sm bg-slate-50 focus:bg-white transition-colors" />
             </div>
-            <div>
-              <label className="text-xs text-slate-500 font-bold mb-1 block">{t[lang].venue}</label>
-              <input required type="text" value={infoForm.venue} onChange={(e) => setInfoForm({...infoForm, venue: e.target.value})} className="w-full p-2 border rounded text-sm bg-slate-50 focus:bg-white transition-colors" />
+            {}
+            <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="text-xs text-slate-500 font-bold mb-1 block">Cabang Olahraga</label>
+                  <select value={infoForm.sportType} onChange={(e) => setInfoForm({...infoForm, sportType: e.target.value})} className="w-full p-2 border rounded text-sm bg-slate-50 focus:bg-white transition-colors">
+                    <option value="Renang">Renang</option>
+                    <option value="Selam">Selam</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="text-xs text-slate-500 font-bold mb-1 block">{t[lang].venue}</label>
+                  <input required type="text" value={infoForm.venue} onChange={(e) => setInfoForm({...infoForm, venue: e.target.value})} className="w-full p-2 border rounded text-sm bg-slate-50 focus:bg-white transition-colors" />
+                </div>
             </div>
             <div className="grid grid-cols-2 gap-2">
               <div>
@@ -2211,6 +2329,226 @@ function CallRoomPanel({ tournament, events, updateLiveState, lang, t }: any) {
            <div className="bg-slate-800 text-white p-5 rounded-xl shadow-md"><h3 className="text-slate-400 text-xs uppercase font-bold mb-2">{t[lang].live_in_pool}</h3><div className="text-2xl font-bold text-yellow-400">{t[lang].event} {ls.currentEventNumber || '-'}</div><div className="text-lg">{t[lang].series} {ls.currentSeries}</div></div>
            <div className="bg-white p-5 rounded-xl shadow-sm border border-slate-200"><h3 className="text-slate-400 text-xs uppercase font-bold mb-3">{t[lang].next_event_prep}</h3>{nextEvent ? <div><div className="font-bold text-slate-800">{nextEvent.number}. {nextEvent.name}</div><div className="text-sm text-slate-500 mt-1">{nextEvent.totalSeries} {t[lang].series}</div></div> : <div className="text-slate-400 text-sm italic">{t[lang].no_next_event}</div>}</div>
         </div>
+    </div>
+  );
+}
+
+function AthleteManager({ athletes, onAdd, onUpdate, onDelete, onImport }: any) {
+  const [showForm, setShowForm] = useState(false);
+  const [form, setForm] = useState({ name: '', gender: 'L', birthDate: '', club: '', school: '', sport: 'Renang' });
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [search, setSearch] = useState('');
+  
+  const [loading, setLoading] = useState(false);
+
+  const handleSubmit = (e: any) => {
+    e.preventDefault();
+    if (editingId) {
+      onUpdate(editingId, form);
+      setEditingId(null);
+    } else {
+      onAdd(form);
+    }
+    setForm({ name: '', gender: 'L', birthDate: '', club: '', school: '', sport: 'Renang' });
+    setShowForm(false);
+  };
+
+  const handleEdit = (a: any) => {
+    setForm({ name: a.name, gender: a.gender, birthDate: a.birthDate, club: a.club, school: a.school, sport: a.sport });
+    setEditingId(a.id);
+    setShowForm(true);
+  };
+
+  const handleImportExcel = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!(window as any).XLSX) {
+      setLoading(true);
+      try {
+        await new Promise((resolve, reject) => {
+          const script = document.createElement('script');
+          script.src = 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
+          script.onload = resolve;
+          script.onerror = reject;
+          document.head.appendChild(script);
+        });
+      } catch (err) {
+        setLoading(false);
+        alert("Gagal memuat library Excel.");
+        if (e.target) e.target.value = '';
+        return;
+      }
+      setLoading(false);
+    }
+
+    const XLSXLoader = (window as any).XLSX;
+    setLoading(true);
+    try {
+      const data = await file.arrayBuffer();
+      const workbook = XLSXLoader.read(data, { type: 'array' });
+      const sheetName = workbook.SheetNames[0];
+      const worksheet = workbook.Sheets[sheetName];
+      const jsonData = XLSXLoader.utils.sheet_to_json(worksheet) as any[];
+
+      const athletesToAdd: any[] = [];
+      
+      jsonData.forEach((row: any) => {
+        const name = row['Nama'] || row['Name'] || row['Nama Atlet'];
+        if (name) {
+          athletesToAdd.push({
+            name: String(name).trim(),
+            gender: (String(row['Gender'] || row['Jenis Kelamin'] || '').toUpperCase() === 'P') ? 'P' : 'L',
+            birthDate: String(row['Tanggal Lahir'] || row['Tahun Lahir'] || '').trim(),
+            club: String(row['Klub'] || row['Club'] || '').trim(),
+            school: String(row['Sekolah'] || row['School'] || '').trim(),
+            sport: String(row['Cabang'] || row['Sport'] || 'Renang').trim()
+          });
+        }
+      });
+
+      if (athletesToAdd.length > 0) {
+        await onImport(athletesToAdd);
+        alert(`Berhasil mengimpor ${athletesToAdd.length} atlet!`);
+      } else {
+        alert("Format Excel tidak sesuai. Pastikan ada header kolom 'Nama' di baris pertama.");
+      }
+    } catch (error) {
+      console.error(error);
+      alert("Gagal membaca file Excel.");
+    } finally {
+      setLoading(false);
+      if (e.target) e.target.value = '';
+    }
+  };
+
+  const filteredAthletes = athletes.filter((a: any) => 
+    a.name.toLowerCase().includes(search.toLowerCase()) || 
+    a.club.toLowerCase().includes(search.toLowerCase()) || 
+    a.school.toLowerCase().includes(search.toLowerCase())
+  );
+
+  return (
+    <div className="space-y-6 animate-in fade-in relative">
+      {loading && <div className="absolute inset-0 bg-white/50 z-50 flex items-center justify-center rounded-2xl"><Loader2 className="animate-spin text-blue-600" size={40}/></div>}
+      
+      <div className="flex flex-col md:flex-row justify-between items-center gap-4">
+          <div className="flex-1 w-full md:w-auto relative">
+             <input type="text" placeholder="Cari Nama, Klub, atau Sekolah..." value={search} onChange={e=>setSearch(e.target.value)} className="w-full md:max-w-md p-3 pl-10 border rounded-xl bg-white shadow-sm outline-none focus:ring-2 focus:ring-blue-500" />
+             <Users className="absolute left-3 top-3.5 text-slate-400" size={18} />
+          </div>
+          <div className="flex gap-2 w-full md:w-auto">
+             <label className="flex-1 md:flex-none bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2.5 rounded-xl font-bold flex items-center justify-center gap-2 shadow-sm transition cursor-pointer">
+                <Upload size={18}/> Impor Excel
+                <input type="file" accept=".xlsx, .xls, .csv" className="hidden" onChange={handleImportExcel} disabled={loading} />
+             </label>
+             <button onClick={() => { setEditingId(null); setForm({ name: '', gender: 'L', birthDate: '', club: '', school: '', sport: 'Renang' }); setShowForm(!showForm); }} className="flex-1 md:flex-none bg-blue-600 hover:bg-blue-700 text-white px-4 py-2.5 rounded-xl font-bold flex items-center justify-center gap-2 shadow-sm transition">
+                <Plus size={18}/> Tambah Atlet
+             </button>
+          </div>
+      </div>
+
+      {showForm && (
+          <form onSubmit={handleSubmit} className="bg-white p-6 rounded-2xl shadow-sm border border-blue-100 grid md:grid-cols-2 gap-4 animate-in fade-in">
+             <div className="md:col-span-2 font-bold text-blue-900 border-b pb-2 mb-2">{editingId ? 'Edit Data Atlet' : 'Tambah Atlet Baru'}</div>
+             <div><label className="block text-xs font-bold text-slate-500 mb-1">Nama Lengkap</label><input required type="text" value={form.name} onChange={e=>setForm({...form, name: e.target.value})} className="w-full p-2 border rounded bg-slate-50 focus:bg-white" /></div>
+             <div>
+                <label className="block text-xs font-bold text-slate-500 mb-1">Jenis Kelamin</label>
+                <select value={form.gender} onChange={e=>setForm({...form, gender: e.target.value as any})} className="w-full p-2 border rounded bg-slate-50 focus:bg-white"><option value="L">Laki-Laki (Putra)</option><option value="P">Perempuan (Putri)</option></select>
+             </div>
+             <div><label className="block text-xs font-bold text-slate-500 mb-1">Tanggal/Tahun Lahir</label><input type="text" placeholder="Misal: 2005 atau 12-05-2005" value={form.birthDate} onChange={e=>setForm({...form, birthDate: e.target.value})} className="w-full p-2 border rounded bg-slate-50 focus:bg-white" /></div>
+             <div>
+                <label className="block text-xs font-bold text-slate-500 mb-1">Cabang Olahraga</label>
+                <select value={form.sport} onChange={e=>setForm({...form, sport: e.target.value})} className="w-full p-2 border rounded bg-slate-50 focus:bg-white"><option value="Renang">Renang</option><option value="Selam">Selam / Finswimming</option><option value="Keduanya">Keduanya</option></select>
+             </div>
+             <div><label className="block text-xs font-bold text-slate-500 mb-1">Nama Klub (Bila Ada)</label><input type="text" value={form.club} onChange={e=>setForm({...form, club: e.target.value})} className="w-full p-2 border rounded bg-slate-50 focus:bg-white" placeholder="Misal: Millenium Aquatic" /></div>
+             <div><label className="block text-xs font-bold text-slate-500 mb-1">Asal Sekolah (Bila Ada)</label><input type="text" value={form.school} onChange={e=>setForm({...form, school: e.target.value})} className="w-full p-2 border rounded bg-slate-50 focus:bg-white" placeholder="Misal: SMAN 1 Jakarta" /></div>
+             
+             <div className="md:col-span-2 flex justify-end gap-2 border-t pt-4 mt-2">
+               <button type="button" onClick={()=>setShowForm(false)} className="px-6 py-2 rounded-xl text-slate-500 hover:bg-slate-100 font-bold transition">Batal</button>
+               <button type="submit" className="px-8 py-2 rounded-xl bg-blue-600 text-white font-bold shadow-lg hover:bg-blue-700 transition">{editingId ? 'SIMPAN PERUBAHAN' : 'SIMPAN ATLET'}</button>
+             </div>
+          </form>
+      )}
+
+      <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full text-left text-sm">
+            <thead className="bg-slate-50 border-b"><tr>
+                <th className="p-4 font-bold text-slate-600">Nama Atlet</th>
+                <th className="p-4 font-bold text-slate-600 w-16 text-center">JK</th>
+                <th className="p-4 font-bold text-slate-600 whitespace-nowrap">Lahir</th>
+                <th className="p-4 font-bold text-slate-600">Klub & Sekolah</th>
+                <th className="p-4 font-bold text-slate-600">Cabor</th>
+                <th className="p-4 font-bold text-slate-600 text-right w-24">Aksi</th>
+            </tr></thead>
+            <tbody>
+              {filteredAthletes.map((a:any) => (
+                <tr key={a.id} className="border-b last:border-0 hover:bg-slate-50 transition">
+                  <td className="p-4 font-bold text-slate-800">{a.name}</td>
+                  <td className="p-4 text-center font-bold text-slate-600">{a.gender}</td>
+                  <td className="p-4 text-slate-600">{a.birthDate || '-'}</td>
+                  <td className="p-4 text-slate-600">
+                    {a.club && <div className="flex items-center gap-1.5 text-xs"><Trophy size={14} className="text-blue-500"/> {a.club}</div>}
+                    {a.school && <div className="flex items-center gap-1.5 text-xs mt-1"><MapPin size={14} className="text-emerald-500"/> {a.school}</div>}
+                    {!a.club && !a.school && '-'}
+                  </td>
+                  <td className="p-4">
+                     <span className={`text-[10px] font-bold px-2 py-1 rounded-full whitespace-nowrap ${a.sport === 'Renang' ? 'bg-blue-100 text-blue-700' : a.sport === 'Selam' ? 'bg-emerald-100 text-emerald-700' : 'bg-purple-100 text-purple-700'}`}>
+                       {a.sport}
+                     </span>
+                  </td>
+                  <td className="p-4 text-right space-x-1 whitespace-nowrap">
+                    <button onClick={() => handleEdit(a)} className="bg-slate-100 text-slate-600 hover:bg-blue-100 hover:text-blue-600 p-2 rounded-lg transition" title="Edit"><Edit2 size={16}/></button>
+                    <button onClick={() => { if(window.confirm('Hapus atlet ini?')) onDelete(a.id); }} className="bg-slate-100 text-slate-600 hover:bg-red-100 hover:text-red-600 p-2 rounded-lg transition" title="Hapus"><Trash2 size={16}/></button>
+                  </td>
+                </tr>
+              ))}
+              {filteredAthletes.length === 0 && (
+                 <tr><td colSpan={6} className="p-8 text-center text-slate-400 italic">Belum ada data atlet yang sesuai.</td></tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function LanguageSplash({ setLang, onSelect }: any) {
+  return (
+    <div className="fixed inset-0 z-[100] bg-slate-950 flex flex-col items-center justify-center p-4">
+      <div className="absolute inset-0 opacity-20 bg-[url('https://images.unsplash.com/photo-1530549387789-4c1017266635?ixlib=rb-1.2.1&auto=format&fit=crop&w=1920&q=80')] bg-cover bg-center" />
+      
+      <div className="max-w-md w-full bg-slate-900/90 backdrop-blur-md border border-slate-700 rounded-3xl p-8 sm:p-10 shadow-2xl text-center relative z-10 animate-in zoom-in-95 duration-500">
+         <img src="/sangkuriang%201.png" alt="Logo" className="h-20 sm:h-24 w-auto mx-auto mb-6 drop-shadow-lg" onError={(e:any) => e.target.style.display='none'} />
+         <h1 className="text-2xl sm:text-3xl font-extrabold text-white mb-3 tracking-wide bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-emerald-400">Welcome</h1>
+         <p className="text-slate-400 mb-8 text-xs sm:text-sm">Please select your preferred language<br/><span className="italic mt-1 block">Silakan pilih bahasa pilihan Anda</span></p>
+         
+         <div className="flex flex-col gap-4">
+            <button 
+              onClick={() => { setLang('id'); onSelect(); }} 
+              className="w-full flex items-center justify-between bg-slate-800 hover:bg-blue-600 hover:border-blue-500 border border-slate-700 text-white p-4 sm:p-5 rounded-2xl transition-all group shadow-lg"
+            >
+                <div className="flex items-center gap-4">
+                    <img src="https://flagcdn.com/w80/id.png" alt="ID" className="w-8 h-8 rounded-full object-cover border border-slate-600 group-hover:border-white transition-colors" />
+                    <span className="font-bold text-lg group-hover:text-white text-slate-200">ID - Bahasa Indonesia</span>
+                </div>
+                <ChevronRight className="text-slate-500 group-hover:text-white" />
+            </button>
+            
+            <button 
+              onClick={() => { setLang('en'); onSelect(); }} 
+              className="w-full flex items-center justify-between bg-slate-800 hover:bg-blue-600 hover:border-blue-500 border border-slate-700 text-white p-4 sm:p-5 rounded-2xl transition-all group shadow-lg"
+            >
+                <div className="flex items-center gap-4">
+                    <img src="https://flagcdn.com/w80/us.png" alt="EN" className="w-8 h-8 rounded-full object-cover border border-slate-600 group-hover:border-white transition-colors" />
+                    <span className="font-bold text-lg group-hover:text-white text-slate-200">EN - English</span>
+                </div>
+                <ChevronRight className="text-slate-500 group-hover:text-white" />
+            </button>
+         </div>
+      </div>
     </div>
   );
 }
