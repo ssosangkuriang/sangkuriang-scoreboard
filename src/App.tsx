@@ -135,7 +135,7 @@ const MASTER_PIN_HASH = "1450575459";
 const t = {
   id: {
     connecting: "Menghubungkan ke Server...",
-    title_swimming_portal: "Portal Kejuaraan Akuatik",
+    title_swimming_portal: "Portal Kejuaraan",
     subtitle_swimming_portal: "Pilih kompetisi untuk melihat Live Scoreboard & Jadwal",
     status_live: "Sedang Berlangsung",
     status_upcoming: "Akan Datang",
@@ -145,7 +145,7 @@ const t = {
     badge_finished: "SELESAI",
     badge_paused: "JEDA / ISTIRAHAT",
     no_tournament: "Belum ada data kejuaraan di dalam sistem.",
-    footer_text: "© anak magang SSO 2026",
+    footer_text: "© Sangkuriang Swim Organizer - 2026",
     role_admin: "Admin Lomba",
     role_announcer: "Announcer",
     role_callroom: "Call Room",
@@ -256,7 +256,7 @@ const t = {
   },
   en: {
     connecting: "Connecting to Server...",
-    title_swimming_portal: "Aquatic Championship Portal",
+    title_swimming_portal: "Championship Portal",
     subtitle_swimming_portal: "Select a competition to view Live Scoreboard & Schedule",
     status_live: "Live Now",
     status_upcoming: "Upcoming",
@@ -266,7 +266,7 @@ const t = {
     badge_finished: "FINISHED",
     badge_paused: "PAUSED / BREAK",
     no_tournament: "No championship data in the system yet.",
-    footer_text: "© SSO intern 2026",
+    footer_text: "© Sangkuriang Swim Organizer - 2026",
     role_admin: "Event Admin",
     role_announcer: "Announcer",
     role_callroom: "Call Room",
@@ -422,8 +422,9 @@ const DQ_REASONS_RENANG = [
   "7.2 c - (Dada) Gerakan setelah turn tdk diawali lengan",
   "7.2 d - (Dada) Gerakan setelah turn diawali lengan selain dada",
   "7.2 e - (Dada) Posisi badan tidak telungkup",
-  "7.3 a - (Dada) Meninggalkan dinding, badan tidak telungkup",
-  "7.3 b - (Dada) Siklus tdk 1 tarikan & 1 tendangan / Tangan tdk bersamaan",
+  "7.3 a - (Dada) Meninggalkan dinding setelah pembalikan, badan tidak telungkup",
+  "7.3 b - (Dada) Siklus tdk 1 tarikan & 1 tendangan",
+  "7.3 c - (Dada) Gerakan tangan tdk bersamaan",
   "7.4 a - (Dada) Tangan tidak didorong ke depan bersama-sama",
   "7.4 b - (Dada) Kedua siku tidak berada di bawah permukaan air",
   "7.4 c - (Dada) Tarikan tangan melebihi garis pinggang",
@@ -468,6 +469,7 @@ const DQ_REASONS_RENANG = [
   "8.6 g - (Kupu) Kepala blm memecah air sblm 15m (turn)",
   "8.6 h - (Kupu) Menyelam sepenuhnya saat finish",
   "8.6 i - (Kupu) Menyelam sepenuhnya selama lomba",
+  "9.1 - (Ganti) Berenang dengaan gaya punggung, dada, atau kupu pada bagian gaya bebas",
   "9.1 a - (Ganti) Salah urutan gaya ganti individu",
   "9.1 b - (Ganti) Salah satu gaya lebih/kurang dari 1/4 jarak (individu)",
   "9.2 a - (Ganti) Salah urutan gaya ganti estafet",
@@ -503,13 +505,18 @@ const DQ_REASONS_RENANG = [
   "10.4.5 - Meninggalkan platform sblm Atlet terdahulu finish",
   "10.4.6 - Anggota estafet bkn giliran masuk ke kolam",
   "10.4.7 - Setelah finish, estafet tdk segera naik",
-  "Lain - Pakaian tidak memenuhi syarat / Transparan",
-  "Lain - Memakai perangkat bantu / plester berlebihan",
+  "Lain - Pakaian tidak memenuhi syarat (approval of World Aquatics) 6.1",
+  "Lain - Atlet memakai pakaian transparan, memiliki nilai moral yang tidak baik, dan simbol yang menyinggung 6.3",
+  "Lain - Setiap penggunaan iklan (pada pakaian, topi, kaca mata) tidak sesuai peraturan World Aquatics  7.1",
+  "Lain - Pakaian perempuan menutup leher dan bahu, pakaian laki-laki di bawah lutut di atas pusar 6.8.12",
+  "Lain - Atlet menggunakan perangkat atau pakaian renang apapun yang membantu kecepatan, daya apung, daya tahan dan transfer data 14.2",
+  "Lain - Atlet menggunakan perangkat yang dapat mengirim data, suara, atau sinyal kepada Atlet 14.3",
+  "Lain - Atlet menggunakan plester di badan dan melilit lebih dari dua jari (tangan atau kaki) 14.4",
   "Lainnya (Input Manual)"
 ];
 
 const DQ_REASONS_SELAM = [
-  "2.1.5 - ESTAFET 4 anggota estafet jenis kelamin tdk sama",
+  "2.1.5.1 - ESTAFET 4 anggota estafet jenis kelamin tdk sama",
   "2.1.5.1 - ESTAFET Peralatan berbeda",
   "2.1.5.2 - ESTAFET Susunan tdk sesuai (Pa-Pi-Pa-Pi)",
   "2.2.1.2 - (SF) Setelah start snorkel/kepala muncul lwt 15m",
@@ -534,7 +541,6 @@ const DQ_REASONS_SELAM = [
   "LAIN - Menggunakan selotip pada tubuh (kinesio tape)",
   "Lainnya (Input Manual)"
 ];
-
 
 type LangType = 'id' | 'en';
 
@@ -796,7 +802,6 @@ export default function App() {
           onChangeMasterPin={async (newPin: string) => {
             if (user) {
               await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'settings', 'master'), { pinHash: simpleHash(newPin) });
-              alert('PIN Superuser berhasil diperbarui!');
             }
           }}
           lang={lang} t={t}
@@ -985,13 +990,13 @@ function GlobalLandingPage({ tournaments, onSelectTournament, onMasterLogin, lan
                     onClick={() => setActiveTab('Renang')} 
                     className={`px-6 py-2.5 rounded-lg font-bold text-sm sm:text-base transition-all ${activeTab === 'Renang' ? 'bg-blue-600 text-white shadow-md' : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800'}`}
                 >
-                    Renang
+                    {lang === 'en' ? 'Swim' : 'Renang'}
                 </button>
                 <button 
                     onClick={() => setActiveTab('Selam')} 
                     className={`px-6 py-2.5 rounded-lg font-bold text-sm sm:text-base transition-all ${activeTab === 'Selam' ? 'bg-emerald-600 text-white shadow-md' : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800'}`}
                 >
-                    Selam
+                    {lang === 'en' ? 'Finswimming' : 'Selam'}
                 </button>
             </div>
         </div>
@@ -1024,7 +1029,9 @@ function GlobalLandingPage({ tournaments, onSelectTournament, onMasterLogin, lan
         ) : null}
         
         {filteredTournaments.length === 0 ? (
-            <div className="text-center text-slate-500 py-16 sm:py-20 italic text-sm sm:text-base">Belum ada data kejuaraan {activeTab} di dalam sistem.</div>
+            <div className="text-center text-slate-500 py-16 sm:py-20 italic text-sm sm:text-base">
+                {lang === 'en' ? `No ${activeTab === 'Renang' ? 'Swim' : 'Finswimming'} championship data in the system yet.` : `Belum ada data kejuaraan ${activeTab} di dalam sistem.`}
+            </div>
         ) : null}
       </div>
       <footer className="bg-slate-950 text-slate-600 py-3 sm:py-4 text-center text-[10px] sm:text-xs border-t border-slate-900 shrink-0">{t[lang].footer_text}</footer>
@@ -1039,6 +1046,9 @@ function MasterDashboard({ tournaments, onCreate, onEdit, onDelete, onLogout, on
   const [showPinModal, setShowPinModal] = useState(false);
   const [newMasterPin, setNewMasterPin] = useState('');
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  
+  const [toastMsg, setToastMsg] = useState('');
+  const showToast = (msg: string) => { setToastMsg(msg); setTimeout(() => setToastMsg(''), 4000); };
 
   const handleCreate = (e: any) => {
     e.preventDefault();
@@ -1056,11 +1066,17 @@ function MasterDashboard({ tournaments, onCreate, onEdit, onDelete, onLogout, on
       onChangeMasterPin(newMasterPin);
       setShowPinModal(false);
       setNewMasterPin('');
+      showToast('PIN Superuser berhasil diperbarui!');
     }
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 font-sans text-slate-900">
+    <div className="min-h-screen bg-slate-50 font-sans text-slate-900 relative">
+      {toastMsg && (
+        <div className="fixed top-4 right-4 bg-emerald-600 text-white px-6 py-3 rounded-xl shadow-lg z-[100] animate-in slide-in-from-right font-bold flex items-center gap-2">
+           <CheckCircle size={18} /> {toastMsg}
+        </div>
+      )}
       <header className="bg-blue-900 text-white p-4 shadow-lg sticky top-0 z-50">
         <div className="max-w-6xl mx-auto flex justify-between items-center">
           <div className="font-bold text-xl flex items-center gap-2"><ShieldAlert className="text-blue-400"/> {t[lang].role_master}</div>
@@ -1745,6 +1761,9 @@ function AdminPanel({ tournament, events, masterPinHash, onUpdateTournament, onA
   const [pauseResumeTime, setPauseResumeTime] = useState('');
   const [showFinishConfirm, setShowFinishConfirm] = useState(false);
 
+  const [toastMsg, setToastMsg] = useState('');
+  const showToast = (msg: string) => { setToastMsg(msg); setTimeout(() => setToastMsg(''), 4000); };
+
   const wrapAsync = async (fn: () => Promise<void>) => { setLoading(true); try { await fn(); } finally { setLoading(false); }};
   const handleAddEvent = (e: React.FormEvent) => { e.preventDefault(); if(!newEvent.number) return; wrapAsync(async () => { await onAddEvent({ number: parseInt(newEvent.number), name: newEvent.name, totalSeries: parseInt(newEvent.totalSeries) }); setNewEvent({ number: '', name: '', totalSeries: '' }); }); };
   
@@ -1764,7 +1783,7 @@ function AdminPanel({ tournament, events, masterPinHash, onUpdateTournament, onA
         });
       } catch (err) {
         setLoading(false);
-        alert("Gagal memuat library Excel. Periksa koneksi internet Anda.");
+        showToast("Gagal memuat library Excel. Periksa koneksi internet Anda.");
         if (e.target) e.target.value = '';
         return;
       }
@@ -1830,13 +1849,13 @@ function AdminPanel({ tournament, events, masterPinHash, onUpdateTournament, onA
         if (eventsToAdd.length > 0) {
           eventsToAdd.sort((a, b) => a.number - b.number);
           await onAddMultipleEvents(eventsToAdd);
-          alert(`Berhasil mengimpor ${eventsToAdd.length} acara dari Excel!`);
+          showToast(`Berhasil mengimpor ${eventsToAdd.length} acara dari Excel!`);
         } else {
-          alert("Tidak ditemukan data acara yang valid atau tidak ada acara dengan seri minimal 1 di file Excel.");
+          showToast("Tidak ditemukan data acara yang valid atau tidak ada acara dengan seri minimal 1 di file Excel.");
         }
       } catch (error) {
         console.error("Error parsing Excel:", error);
-        alert("Gagal membaca file Excel. Pastikan format file benar (.xlsx atau .xls).");
+        showToast("Gagal membaca file Excel. Pastikan format file benar (.xlsx atau .xls).");
       } finally {
         if (e.target) e.target.value = '';
       }
@@ -1894,6 +1913,11 @@ function AdminPanel({ tournament, events, masterPinHash, onUpdateTournament, onA
 
   return (
     <div className="grid md:grid-cols-3 gap-6 relative">
+      {toastMsg && (
+        <div className="fixed top-4 right-4 bg-emerald-600 text-white px-6 py-3 rounded-xl shadow-lg z-[100] animate-in slide-in-from-right font-bold flex items-center gap-2">
+           <CheckCircle size={18} /> {toastMsg}
+        </div>
+      )}
       {loading && <div className="absolute inset-0 bg-white/50 z-50 flex items-center justify-center"><Loader2 className="animate-spin text-blue-600" size={40}/></div>}
       
       <div className="md:col-span-1 space-y-6">
