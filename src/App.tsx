@@ -926,7 +926,6 @@ function GlobalLandingPage({ tournaments, onSelectTournament, onMasterLogin, lan
 }
 
 function MasterDashboard({ tournaments, athletes, onCreate, onEdit, onDelete, onLogout, onChangeMasterPin, onAddAthlete, onUpdateAthlete, onDeleteAthlete, onAddMultipleAthletes, lang, t }: any) {
-  const [activeTab, setActiveTab] = useState<'tournaments' | 'athletes'>('tournaments');
   const [showCreate, setShowCreate] = useState(false);
   const [form, setForm] = useState({ title: '', venue: '', eventDate: '', endDate: '', adminPin: '1234', announcerPin: '1234', callroomPin: '1234', sportType: 'Renang' });
 
@@ -966,21 +965,14 @@ function MasterDashboard({ tournaments, athletes, onCreate, onEdit, onDelete, on
       </header>
       
       <main className="max-w-6xl mx-auto p-6">
-        <div className="flex gap-4 border-b border-slate-200 mb-6">
-           <button onClick={() => setActiveTab('tournaments')} className={`pb-3 px-4 font-bold transition-all ${activeTab === 'tournaments' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-slate-500 hover:text-slate-800'}`}>Manajemen Lomba</button>
-           <button onClick={() => setActiveTab('athletes')} className={`pb-3 px-4 font-bold transition-all ${activeTab === 'athletes' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-slate-500 hover:text-slate-800'}`}>Database Atlet</button>
+        <div className="flex flex-col md:flex-row justify-between items-center mb-8 gap-4">
+          <h2 className="text-2xl font-bold text-slate-800">Daftar Semua Lomba</h2>
+          <div className="flex gap-2">
+             <button onClick={() => setShowCreate(!showCreate)} className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2.5 rounded-lg font-bold flex items-center gap-2 shadow-sm transition"><Plus size={18}/> Buat Lomba Baru</button>
+          </div>
         </div>
 
-        {activeTab === 'tournaments' && (
-          <>
-            <div className="flex flex-col md:flex-row justify-between items-center mb-8 gap-4">
-              <h2 className="text-2xl font-bold text-slate-800">Daftar Semua Lomba</h2>
-              <div className="flex gap-2">
-                 <button onClick={() => setShowCreate(!showCreate)} className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2.5 rounded-lg font-bold flex items-center gap-2 shadow-sm transition"><Plus size={18}/> Buat Lomba Baru</button>
-              </div>
-            </div>
-
-            {showCreate && (
+        {showCreate && (
               <form onSubmit={handleCreate} className="bg-white p-6 rounded-2xl shadow-sm border border-blue-100 mb-8 grid md:grid-cols-2 gap-6 animate-in fade-in">
                  <div className="space-y-4">
                     <h3 className="font-bold text-blue-900 border-b pb-2">Informasi Umum</h3>
@@ -1045,18 +1037,7 @@ function MasterDashboard({ tournaments, athletes, onCreate, onEdit, onDelete, on
                 </tbody>
               </table>
             </div>
-          </>
-        )}
 
-        {activeTab === 'athletes' && (
-           <AthleteManager 
-              athletes={athletes} 
-              onAdd={onAddAthlete} 
-              onUpdate={onUpdateAthlete} 
-              onDelete={onDeleteAthlete} 
-              onImport={onAddMultipleAthletes} 
-           />
-        )}
       </main>
 
       {showPinModal && (
@@ -2331,188 +2312,6 @@ function CallRoomPanel({ tournament, events, updateLiveState, lang, t }: any) {
            <div className="bg-slate-800 text-white p-5 rounded-xl shadow-md"><h3 className="text-slate-400 text-xs uppercase font-bold mb-2">{t[lang].live_in_pool}</h3><div className="text-2xl font-bold text-yellow-400">{t[lang].event} {ls.currentEventNumber || '-'}</div><div className="text-lg">{t[lang].series} {ls.currentSeries}</div></div>
            <div className="bg-white p-5 rounded-xl shadow-sm border border-slate-200"><h3 className="text-slate-400 text-xs uppercase font-bold mb-3">{t[lang].next_event_prep}</h3>{nextEvent ? <div><div className="font-bold text-slate-800">{nextEvent.number}. {nextEvent.name}</div><div className="text-sm text-slate-500 mt-1">{nextEvent.totalSeries} {t[lang].series}</div></div> : <div className="text-slate-400 text-sm italic">{t[lang].no_next_event}</div>}</div>
         </div>
-    </div>
-  );
-}
-
-function AthleteManager({ athletes, onAdd, onUpdate, onDelete, onImport }: any) {
-  const [showForm, setShowForm] = useState(false);
-  const [form, setForm] = useState({ name: '', gender: 'L', birthDate: '', club: '', school: '', sport: 'Renang' });
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [search, setSearch] = useState('');
-  
-  const [loading, setLoading] = useState(false);
-
-  const handleSubmit = (e: any) => {
-    e.preventDefault();
-    if (editingId) {
-      onUpdate(editingId, form);
-      setEditingId(null);
-    } else {
-      onAdd(form);
-    }
-    setForm({ name: '', gender: 'L', birthDate: '', club: '', school: '', sport: 'Renang' });
-    setShowForm(false);
-  };
-
-  const handleEdit = (a: any) => {
-    setForm({ name: a.name, gender: a.gender, birthDate: a.birthDate, club: a.club, school: a.school, sport: a.sport });
-    setEditingId(a.id);
-    setShowForm(true);
-  };
-
-  const handleImportExcel = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    if (!(window as any).XLSX) {
-      setLoading(true);
-      try {
-        await new Promise((resolve, reject) => {
-          const script = document.createElement('script');
-          script.src = 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
-          script.onload = resolve;
-          script.onerror = reject;
-          document.head.appendChild(script);
-        });
-      } catch (err) {
-        setLoading(false);
-        alert("Gagal memuat library Excel.");
-        if (e.target) e.target.value = '';
-        return;
-      }
-      setLoading(false);
-    }
-
-    const XLSXLoader = (window as any).XLSX;
-    setLoading(true);
-    try {
-      const data = await file.arrayBuffer();
-      const workbook = XLSXLoader.read(data, { type: 'array' });
-      const sheetName = workbook.SheetNames[0];
-      const worksheet = workbook.Sheets[sheetName];
-      const jsonData = XLSXLoader.utils.sheet_to_json(worksheet) as any[];
-
-      const athletesToAdd: any[] = [];
-      
-      jsonData.forEach((row: any) => {
-        const name = row['Nama'] || row['Name'] || row['Nama Atlet'];
-        if (name) {
-          athletesToAdd.push({
-            name: String(name).trim(),
-            gender: (String(row['Gender'] || row['Jenis Kelamin'] || '').toUpperCase() === 'P') ? 'P' : 'L',
-            birthDate: String(row['Tanggal Lahir'] || row['Tahun Lahir'] || '').trim(),
-            club: String(row['Klub'] || row['Club'] || '').trim(),
-            school: String(row['Sekolah'] || row['School'] || '').trim(),
-            sport: String(row['Cabang'] || row['Sport'] || 'Renang').trim()
-          });
-        }
-      });
-
-      if (athletesToAdd.length > 0) {
-        await onImport(athletesToAdd);
-        alert(`Berhasil mengimpor ${athletesToAdd.length} atlet!`);
-      } else {
-        alert("Format Excel tidak sesuai. Pastikan ada header kolom 'Nama' di baris pertama.");
-      }
-    } catch (error) {
-      console.error(error);
-      alert("Gagal membaca file Excel.");
-    } finally {
-      setLoading(false);
-      if (e.target) e.target.value = '';
-    }
-  };
-
-  const filteredAthletes = athletes.filter((a: any) => 
-    a.name.toLowerCase().includes(search.toLowerCase()) || 
-    a.club.toLowerCase().includes(search.toLowerCase()) || 
-    a.school.toLowerCase().includes(search.toLowerCase())
-  );
-
-  return (
-    <div className="space-y-6 animate-in fade-in relative">
-      {loading && <div className="absolute inset-0 bg-white/50 z-50 flex items-center justify-center rounded-2xl"><Loader2 className="animate-spin text-blue-600" size={40}/></div>}
-      
-      <div className="flex flex-col md:flex-row justify-between items-center gap-4">
-          <div className="flex-1 w-full md:w-auto relative">
-             <input type="text" placeholder="Cari Nama, Klub, atau Sekolah..." value={search} onChange={e=>setSearch(e.target.value)} className="w-full md:max-w-md p-3 pl-10 border rounded-xl bg-white shadow-sm outline-none focus:ring-2 focus:ring-blue-500" />
-             <Users className="absolute left-3 top-3.5 text-slate-400" size={18} />
-          </div>
-          <div className="flex gap-2 w-full md:w-auto">
-             <label className="flex-1 md:flex-none bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2.5 rounded-xl font-bold flex items-center justify-center gap-2 shadow-sm transition cursor-pointer">
-                <Upload size={18}/> Impor Excel
-                <input type="file" accept=".xlsx, .xls, .csv" className="hidden" onChange={handleImportExcel} disabled={loading} />
-             </label>
-             <button onClick={() => { setEditingId(null); setForm({ name: '', gender: 'L', birthDate: '', club: '', school: '', sport: 'Renang' }); setShowForm(!showForm); }} className="flex-1 md:flex-none bg-blue-600 hover:bg-blue-700 text-white px-4 py-2.5 rounded-xl font-bold flex items-center justify-center gap-2 shadow-sm transition">
-                <Plus size={18}/> Tambah Atlet
-             </button>
-          </div>
-      </div>
-
-      {showForm && (
-          <form onSubmit={handleSubmit} className="bg-white p-6 rounded-2xl shadow-sm border border-blue-100 grid md:grid-cols-2 gap-4 animate-in fade-in">
-             <div className="md:col-span-2 font-bold text-blue-900 border-b pb-2 mb-2">{editingId ? 'Edit Data Atlet' : 'Tambah Atlet Baru'}</div>
-             <div><label className="block text-xs font-bold text-slate-500 mb-1">Nama Lengkap</label><input required type="text" value={form.name} onChange={e=>setForm({...form, name: e.target.value})} className="w-full p-2 border rounded bg-slate-50 focus:bg-white" /></div>
-             <div>
-                <label className="block text-xs font-bold text-slate-500 mb-1">Jenis Kelamin</label>
-                <select value={form.gender} onChange={e=>setForm({...form, gender: e.target.value as any})} className="w-full p-2 border rounded bg-slate-50 focus:bg-white"><option value="L">Laki-Laki (Putra)</option><option value="P">Perempuan (Putri)</option></select>
-             </div>
-             <div><label className="block text-xs font-bold text-slate-500 mb-1">Tanggal/Tahun Lahir</label><input type="text" placeholder="Misal: 2005 atau 12-05-2005" value={form.birthDate} onChange={e=>setForm({...form, birthDate: e.target.value})} className="w-full p-2 border rounded bg-slate-50 focus:bg-white" /></div>
-             <div>
-                <label className="block text-xs font-bold text-slate-500 mb-1">Cabang Olahraga</label>
-                <select value={form.sport} onChange={e=>setForm({...form, sport: e.target.value})} className="w-full p-2 border rounded bg-slate-50 focus:bg-white"><option value="Renang">Renang</option><option value="Selam">Selam / Finswimming</option><option value="Keduanya">Keduanya</option></select>
-             </div>
-             <div><label className="block text-xs font-bold text-slate-500 mb-1">Nama Klub (Bila Ada)</label><input type="text" value={form.club} onChange={e=>setForm({...form, club: e.target.value})} className="w-full p-2 border rounded bg-slate-50 focus:bg-white" placeholder="Misal: Millenium Aquatic" /></div>
-             <div><label className="block text-xs font-bold text-slate-500 mb-1">Asal Sekolah (Bila Ada)</label><input type="text" value={form.school} onChange={e=>setForm({...form, school: e.target.value})} className="w-full p-2 border rounded bg-slate-50 focus:bg-white" placeholder="Misal: SMAN 1 Jakarta" /></div>
-             
-             <div className="md:col-span-2 flex justify-end gap-2 border-t pt-4 mt-2">
-               <button type="button" onClick={()=>setShowForm(false)} className="px-6 py-2 rounded-xl text-slate-500 hover:bg-slate-100 font-bold transition">Batal</button>
-               <button type="submit" className="px-8 py-2 rounded-xl bg-blue-600 text-white font-bold shadow-lg hover:bg-blue-700 transition">{editingId ? 'SIMPAN PERUBAHAN' : 'SIMPAN ATLET'}</button>
-             </div>
-          </form>
-      )}
-
-      <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm">
-            <thead className="bg-slate-50 border-b"><tr>
-                <th className="p-4 font-bold text-slate-600">Nama Atlet</th>
-                <th className="p-4 font-bold text-slate-600 w-16 text-center">JK</th>
-                <th className="p-4 font-bold text-slate-600 whitespace-nowrap">Lahir</th>
-                <th className="p-4 font-bold text-slate-600">Klub & Sekolah</th>
-                <th className="p-4 font-bold text-slate-600">Cabor</th>
-                <th className="p-4 font-bold text-slate-600 text-right w-24">Aksi</th>
-            </tr></thead>
-            <tbody>
-              {filteredAthletes.map((a:any) => (
-                <tr key={a.id} className="border-b last:border-0 hover:bg-slate-50 transition">
-                  <td className="p-4 font-bold text-slate-800">{a.name}</td>
-                  <td className="p-4 text-center font-bold text-slate-600">{a.gender}</td>
-                  <td className="p-4 text-slate-600">{a.birthDate || '-'}</td>
-                  <td className="p-4 text-slate-600">
-                    {a.club && <div className="flex items-center gap-1.5 text-xs"><Trophy size={14} className="text-blue-500"/> {a.club}</div>}
-                    {a.school && <div className="flex items-center gap-1.5 text-xs mt-1"><MapPin size={14} className="text-emerald-500"/> {a.school}</div>}
-                    {!a.club && !a.school && '-'}
-                  </td>
-                  <td className="p-4">
-                     <span className={`text-[10px] font-bold px-2 py-1 rounded-full whitespace-nowrap ${a.sport === 'Renang' ? 'bg-blue-100 text-blue-700' : a.sport === 'Selam' ? 'bg-emerald-100 text-emerald-700' : 'bg-purple-100 text-purple-700'}`}>
-                       {a.sport}
-                     </span>
-                  </td>
-                  <td className="p-4 text-right space-x-1 whitespace-nowrap">
-                    <button onClick={() => handleEdit(a)} className="bg-slate-100 text-slate-600 hover:bg-blue-100 hover:text-blue-600 p-2 rounded-lg transition" title="Edit"><Edit2 size={16}/></button>
-                    <button onClick={() => { if(window.confirm('Hapus atlet ini?')) onDelete(a.id); }} className="bg-slate-100 text-slate-600 hover:bg-red-100 hover:text-red-600 p-2 rounded-lg transition" title="Hapus"><Trash2 size={16}/></button>
-                  </td>
-                </tr>
-              ))}
-              {filteredAthletes.length === 0 && (
-                 <tr><td colSpan={6} className="p-8 text-center text-slate-400 italic">Belum ada data atlet yang sesuai.</td></tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
     </div>
   );
 }
