@@ -1,14 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  Users, 
-  Mic, 
-  Settings, 
-  ChevronRight, 
-  ChevronLeft, 
-  AlertOctagon, 
-  Plus, 
-  Trash2, 
-  List, 
+import { 
+  Users, 
+  Mic, 
+  Settings, 
+  ChevronRight, 
+  ChevronLeft, 
+  AlertOctagon, 
+  Plus, 
+  Trash2, 
+  List, 
   MonitorPlay,
   LogOut,
   Megaphone,
@@ -22,34 +22,36 @@ import {
   Edit2,
   Save,
   Wifi,
-  Play, 
+  Play, 
   Loader2,
   WifiOff,
-  FileText, 
-  CheckCircle, 
+  FileText, 
+  CheckCircle, 
   Timer,
   ShieldAlert,
   Upload,
-  Globe
+  Globe,
+  Activity,
+  TrendingUp
 } from 'lucide-react';
 
 // --- FIREBASE IMPORTS ---
 import { initializeApp } from 'firebase/app';
-import { 
-  getAuth, 
-  signInAnonymously, 
-  signInWithCustomToken, 
+import { 
+  getAuth, 
+  signInAnonymously, 
+  signInWithCustomToken, 
   onAuthStateChanged
 } from 'firebase/auth';
 import type { User } from 'firebase/auth';
 
-import { 
-  getFirestore, 
-  collection, 
-  doc, 
-  addDoc, 
-  updateDoc, 
-  deleteDoc, 
+import { 
+  getFirestore, 
+  collection, 
+  doc, 
+  addDoc, 
+  updateDoc, 
+  deleteDoc, 
   onSnapshot,
   setDoc
 } from 'firebase/firestore';
@@ -123,12 +125,12 @@ const simpleHash = (str: string) => {
   for (let i = 0; i < str.length; i++) {
     const char = str.charCodeAt(i);
     hash = ((hash << 5) - hash) + char;
-    hash = hash & hash; 
+    hash = hash & hash; 
   }
   return hash.toString();
 };
 
-const MASTER_PIN_HASH = "1450575459"; 
+const MASTER_PIN_HASH = "1450575459"; 
 
 const t = {
   id: {
@@ -277,13 +279,13 @@ const t = {
     btn_results_full: "View Full Results",
     btn_back: "Back",
     call_room: "Call Room",
-    call_room_sub: "", 
+    call_room_sub: "", 
     last_update: "Last Update",
     event: "Event",
     series: "Heat",
     lane: "Lane",
     waiting: "Waiting...",
-    racing_now: "LIVE", 
+    racing_now: "LIVE", 
     dq_info: "LATEST DISQUALIFICATION INFO",
     dq_reason: "Reason / Infraction",
     dq_empty: "No disqualification information at this time.",
@@ -509,7 +511,7 @@ const DQ_REASONS_RENANG = [
   "10.4.7 - Setelah finish, estafet tdk segera naik",
   "Lain - Pakaian tidak memenuhi syarat (approval of World Aquatics) 6.1",
   "Lain - Atlet memakai pakaian transparan, memiliki nilai moral yang tidak baik, dan simbol yang menyinggung 6.3",
-  "Lain - Setiap penggunaan iklan (pada pakaian, topi, kaca mata) tidak sesuai peraturan World Aquatics  7.1",
+  "Lain - Setiap penggunaan iklan (pada pakaian, topi, kaca mata) tidak sesuai peraturan World Aquatics  7.1",
   "Lain - Pakaian perempuan menutup leher dan bahu, pakaian laki-laki di bawah lutut di atas pusar 6.8.12",
   "Lain - Atlet menggunakan perangkat atau pakaian renang apapun yang membantu kecepatan, daya apung, daya tahan dan transfer data 14.2",
   "Lain - Atlet menggunakan perangkat yang dapat mengirim data, suara, atau sinyal kepada Atlet 14.3",
@@ -567,8 +569,8 @@ const ClockDisplay = ({ time }: { time: Date }) => (
 // --- TIPE DATA ---
 type LiveState = {
   currentEventId: string | null;
-  currentEventNumber?: number; 
-  currentEventName?: string;   
+  currentEventNumber?: number; 
+  currentEventName?: string;   
   currentEventTotalSeries?: number;
   currentSeries: number;
   callRoomEventId: string | null;
@@ -576,20 +578,20 @@ type LiveState = {
   callRoomEventName?: string;
   callRoomEventTotalSeries?: number;
   callRoomSeries: number;
-  lastUpdate: string; 
-  callRoomLastUpdate: string; 
-  pauseUntil?: string | null; 
+  lastUpdate: string; 
+  callRoomLastUpdate: string; 
+  pauseUntil?: string | null; 
 };
 
 type Tournament = {
   id: string;
   title: string;
   venue: string;
-  eventDate: string; 
+  eventDate: string; 
   endDate?: string;
   status: 'upcoming' | 'live' | 'paused' | 'finished';
-  resultUrl: string; 
-  sportType: 'Renang' | 'Selam'; 
+  resultUrl: string; 
+  sportType: 'Renang' | 'Selam'; 
   pins: { admin: string, announcer: string, callroom: string };
   liveState: LiveState;
   createdAt: number;
@@ -621,6 +623,32 @@ export default function App() {
   const [allDqs, setAllDqs] = useState<DQRecord[]>([]);
   
   const [masterPinHash, setMasterPinHash] = useState(MASTER_PIN_HASH);
+
+  // --- SISTEM HEARTBEAT ANALYTICS ---
+  useEffect(() => {
+    // Bikin ID sesi unik untuk pengunjung ini
+    const sessionId = Math.random().toString(36).substring(2, 15) + Date.now().toString(36);
+    const presenceRef = doc(db, 'artifacts', appId, 'public', 'data', 'presence', sessionId);
+
+    // Fungsi untuk lapor status aktif ke database
+    const updatePresence = async () => {
+        try { await setDoc(presenceRef, { lastSeen: Date.now() }); } catch(e){}
+    };
+
+    // Lapor sekarang, lalu lapor ulang tiap 60 detik
+    updatePresence();
+    const interval = setInterval(updatePresence, 60000); 
+
+    // Hapus data kalau pengunjung menutup tab/browser
+    const cleanup = () => { deleteDoc(presenceRef).catch(()=>{}); };
+    window.addEventListener('beforeunload', cleanup);
+
+    return () => {
+        clearInterval(interval);
+        cleanup();
+        window.removeEventListener('beforeunload', cleanup);
+    }
+  }, []);
 
   const activeTournament = tournaments.find(t => t.id === activeTournamentId);
   const activeEvents = allEvents.filter(e => e.tournamentId === activeTournamentId).sort((a, b) => a.number - b.number);
@@ -661,8 +689,8 @@ export default function App() {
         } else {
            await signInAnonymously(auth);
         }
-      } catch (err) { 
-        console.warn("Auth inisialisasi: ", err); 
+      } catch (err) { 
+        console.warn("Auth inisialisasi: ", err); 
       }
     };
     initAuth();
@@ -671,29 +699,29 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    if (!user) return; 
+    if (!user) return; 
     
     const unsubTournaments = onSnapshot(
-      collection(db, 'artifacts', appId, 'public', 'data', 'tournaments'), 
+      collection(db, 'artifacts', appId, 'public', 'data', 'tournaments'), 
       (snapshot) => {
         setTournaments(snapshot.docs.map(d => ({ id: d.id, ...d.data() } as Tournament)).sort((a,b) => b.createdAt - a.createdAt));
-      }, 
+      }, 
       (error) => console.warn("Sinkronisasi Tournaments ditunda", error.message)
     );
 
     const unsubEvents = onSnapshot(
-      collection(db, 'artifacts', appId, 'public', 'data', 'events'), 
+      collection(db, 'artifacts', appId, 'public', 'data', 'events'), 
       (snapshot) => {
         setAllEvents(snapshot.docs.map(d => ({ id: d.id, ...d.data() } as EventItem)));
-      }, 
+      }, 
       (error) => console.warn("Sinkronisasi Events ditunda", error.message)
     );
 
     const unsubDqs = onSnapshot(
-      collection(db, 'artifacts', appId, 'public', 'data', 'dqs'), 
+      collection(db, 'artifacts', appId, 'public', 'data', 'dqs'), 
       (snapshot) => {
         setAllDqs(snapshot.docs.map(d => ({ id: d.id, ...d.data() } as DQRecord)));
-      }, 
+      }, 
       (error) => console.warn("Sinkronisasi DQs ditunda", error.message)
     );
 
@@ -775,8 +803,8 @@ export default function App() {
   return (
     <>
       {showLoginModal && (
-        <LoginModal 
-          targetRole={targetLoginRole} 
+        <LoginModal 
+          targetRole={targetLoginRole} 
           onClose={() => setShowLoginModal(false)}
           onLogin={processLogin}
           lang={lang}
@@ -785,7 +813,7 @@ export default function App() {
       )}
 
       {viewMode === 'global' && (
-        <GlobalLandingPage 
+        <GlobalLandingPage 
           tournaments={tournaments}
           onSelectTournament={(id: string) => { setActiveTournamentId(id); setRole('public'); setViewMode('tournament'); }}
           onMasterLogin={() => { setTargetLoginRole('master'); setShowLoginModal(true); }}
@@ -794,7 +822,7 @@ export default function App() {
       )}
 
       {viewMode === 'master_dashboard' && role === 'master' && (
-        <MasterDashboard 
+        <MasterDashboard 
           tournaments={tournaments}
           onCreate={handleCreateTournament}
           onEdit={(id: string) => { setActiveTournamentId(id); setRole('admin'); setViewMode('tournament'); }}
@@ -803,6 +831,7 @@ export default function App() {
           onChangeMasterPin={async (newPin: string) => {
             if (user) {
               await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'settings', 'master'), { pinHash: simpleHash(newPin) });
+              alert('PIN Superuser berhasil diperbarui!');
             }
           }}
           lang={lang} t={t}
@@ -812,17 +841,17 @@ export default function App() {
       {viewMode === 'tournament' && activeTournament && (
         <div className="min-h-screen bg-slate-50 font-sans text-slate-900">
           {role === 'public' ? (
-            <TournamentPublicView 
+            <TournamentPublicView 
               tournament={activeTournament} dqs={activeDqs} events={activeEvents} isOnline={isOnline}
               onBack={() => { setActiveTournamentId(null); setViewMode('global'); }}
               onLoginRequest={() => { setRole(null); }}
               lang={lang} setLang={setLang} t={t}
             />
           ) : !role ? (
-            <RoleSelectionPanel 
+            <RoleSelectionPanel 
               tournament={activeTournament}
-              onBack={() => { setRole('public'); }} 
-              onLoginRequest={(r:any) => { setTargetLoginRole(r); setShowLoginModal(true); }} 
+              onBack={() => { setRole('public'); }} 
+              onLoginRequest={(r:any) => { setTargetLoginRole(r); setShowLoginModal(true); }} 
               lang={lang} t={t}
             />
           ) : (
@@ -830,7 +859,7 @@ export default function App() {
                <Header role={role} isOnline={isOnline} lang={lang} setLang={setLang} t={t} onHome={() => { setRole('public'); }} onLogout={() => { setRole('public'); }} />
                <main className="flex-1 max-w-7xl mx-auto w-full p-4 md:p-6">
                   {role === 'admin' && (
-                    <AdminPanel 
+                    <AdminPanel 
                       tournament={activeTournament} events={activeEvents}
                       masterPinHash={masterPinHash}
                       onUpdateTournament={(data: any) => handleUpdateTournament(activeTournament.id, data)}
@@ -848,7 +877,7 @@ export default function App() {
                     />
                   )}
                   {role === 'announcer' && (
-                    <AnnouncerPanel 
+                    <AnnouncerPanel 
                       tournament={activeTournament} events={activeEvents} dqs={activeDqs} updateLiveState={updateLiveState}
                       onAddDQ={async (data: any) => { if(user) await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'dqs'), { ...data, tournamentId: activeTournament.id, createdAt: Date.now() }); }}
                       onDeleteDQ={async (id: string) => { if(user) await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'dqs', id)); }}
@@ -896,8 +925,8 @@ const Header = ({ role, onHome, onLogout, isOnline, lang, setLang, t }: any) => 
               <div className="text-xs font-mono font-bold">{currentTime.toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' })}</div>
            </div>
 
-           <button 
-             onClick={() => setLang(lang === 'id' ? 'en' : 'id')} 
+           <button 
+             onClick={() => setLang(lang === 'id' ? 'en' : 'id')} 
              className="flex items-center justify-center bg-slate-800 hover:bg-slate-700 text-white w-8 h-8 sm:w-auto sm:h-auto sm:px-3 sm:py-1.5 rounded-xl border border-slate-700 transition"
              title="Switch Language"
            >
@@ -931,11 +960,11 @@ const LogoBar = ({ onMasterLogin, lang, setLang }: any) => {
         </div>
 
         <div className="flex items-center gap-2 sm:gap-3 shrink-0 ml-auto">
-          <button 
-             onClick={() => setLang(lang === 'id' ? 'en' : 'id')} 
+          <button 
+             onClick={() => setLang(lang === 'id' ? 'en' : 'id')} 
              className="flex items-center justify-center bg-slate-800 hover:bg-slate-700 text-white px-2 sm:px-3 py-1.5 rounded-full border border-slate-700 transition"
              title="Switch Language"
-           >
+          >
              <Globe size={14} className="text-blue-400" />
              <span className="font-bold text-[10px] sm:text-xs ml-1.5">{lang === 'id' ? 'ID' : 'EN'}</span>
           </button>
@@ -983,14 +1012,14 @@ function GlobalLandingPage({ tournaments, onSelectTournament, onMasterLogin, lan
 
         <div className="flex justify-center mb-8">
             <div className="bg-slate-900 p-1 rounded-xl flex gap-1 border border-slate-800">
-                <button 
-                    onClick={() => setActiveTab('Renang')} 
+                <button 
+                    onClick={() => setActiveTab('Renang')} 
                     className={`px-6 py-2.5 rounded-lg font-bold text-sm sm:text-base transition-all ${activeTab === 'Renang' ? 'bg-blue-600 text-white shadow-md' : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800'}`}
                 >
                     {lang === 'id' ? 'Renang' : 'Swim'}
                 </button>
-                <button 
-                    onClick={() => setActiveTab('Selam')} 
+                <button 
+                    onClick={() => setActiveTab('Selam')} 
                     className={`px-6 py-2.5 rounded-lg font-bold text-sm sm:text-base transition-all ${activeTab === 'Selam' ? 'bg-emerald-600 text-white shadow-md' : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800'}`}
                 >
                     {lang === 'id' ? 'Selam' : 'Finswimming'}
@@ -1046,6 +1075,38 @@ function MasterDashboard({ tournaments, onCreate, onEdit, onDelete, onLogout, on
   
   const [masterAlert, setMasterAlert] = useState('');
 
+  // --- STATE ANALYTICS ---
+  const [liveViewers, setLiveViewers] = useState(0);
+  const [peakStats, setPeakStats] = useState({ peak: 0, timestamp: 0 });
+
+  // Tarik data pengunjung aktif dan rekor tertinggi
+  useEffect(() => {
+     const unsubPresence = onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'presence'), (snap) => {
+         const now = Date.now();
+         // Hitung hanya yang memancarkan sinyal dalam 90 detik terakhir
+         const activeCount = snap.docs.map(d => d.data()).filter(d => now - d.lastSeen < 90000).length;
+         setLiveViewers(activeCount);
+     });
+
+     const unsubPeak = onSnapshot(doc(db, 'artifacts', appId, 'public', 'data', 'analytics', 'peak'), (docSnap) => {
+         if(docSnap.exists()) {
+             setPeakStats(docSnap.data() as any);
+         }
+     });
+
+     return () => { unsubPresence(); unsubPeak(); }
+  }, []);
+
+  // Update rekor kalau jumlah live mengalahkan rekor sebelumnya
+  useEffect(() => {
+     if (liveViewers > peakStats.peak) {
+         setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'analytics', 'peak'), {
+             peak: liveViewers,
+             timestamp: Date.now()
+         }).catch(()=>{});
+     }
+  }, [liveViewers, peakStats.peak]);
+
   const handleCreate = (e: any) => {
     e.preventDefault();
     onCreate({
@@ -1062,8 +1123,6 @@ function MasterDashboard({ tournaments, onCreate, onEdit, onDelete, onLogout, on
       onChangeMasterPin(newMasterPin);
       setShowPinModal(false);
       setNewMasterPin('');
-      setMasterAlert('PIN Superuser berhasil diperbarui!');
-      setTimeout(() => setMasterAlert(''), 4000);
     }
   };
 
@@ -1082,6 +1141,33 @@ function MasterDashboard({ tournaments, onCreate, onEdit, onDelete, onLogout, on
       <main className="max-w-6xl mx-auto p-6">
          {masterAlert && <div className="mb-4 bg-emerald-100 border border-emerald-400 text-emerald-700 px-4 py-3 rounded relative" role="alert"><span className="block sm:inline">{masterAlert}</span></div>}
          
+         {/* --- ANALYTICS DASHBOARD --- */}
+         <div className="mb-8 bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
+             <h2 className="text-xl font-bold text-slate-800 mb-4 flex items-center gap-2"><Activity className="text-blue-600"/> Real-time Analytics</h2>
+             <div className="grid md:grid-cols-2 gap-4">
+                 <div className="bg-slate-50 p-6 rounded-xl border border-slate-100 flex items-center gap-4 shadow-inner">
+                     <div className="bg-red-100 text-red-500 p-4 rounded-full"><Users size={32} /></div>
+                     <div>
+                         <div className="text-sm font-bold text-slate-500 uppercase tracking-wider">Live Viewers Saat Ini</div>
+                         <div className="text-4xl font-black text-slate-800 flex items-center gap-3 mt-1">
+                             {liveViewers} <span className="text-[10px] bg-red-500 text-white px-2 py-1 rounded-full animate-pulse font-bold tracking-widest">LIVE</span>
+                         </div>
+                     </div>
+                 </div>
+                 <div className="bg-slate-50 p-6 rounded-xl border border-slate-100 flex items-center gap-4 shadow-inner">
+                     <div className="bg-blue-100 text-blue-500 p-4 rounded-full"><TrendingUp size={32} /></div>
+                     <div>
+                         <div className="text-sm font-bold text-slate-500 uppercase tracking-wider">Peak Viewers (Rekor)</div>
+                         <div className="text-4xl font-black text-slate-800 mt-1">{peakStats.peak}</div>
+                         <div className="text-[10px] text-slate-400 mt-1.5 font-mono bg-slate-200 inline-block px-2 py-0.5 rounded">
+                             TERCAPAI: {peakStats.timestamp ? new Date(peakStats.timestamp).toLocaleString('id-ID', { weekday: 'long', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) + ' WIB' : '-'}
+                         </div>
+                     </div>
+                 </div>
+             </div>
+         </div>
+         {/* --- END ANALYTICS DASHBOARD --- */}
+
          <div className="flex flex-col md:flex-row justify-between items-center mb-8 gap-4">
             <h2 className="text-2xl font-bold text-slate-800">Daftar Semua Lomba</h2>
             <div className="flex gap-2">
@@ -1119,8 +1205,8 @@ function MasterDashboard({ tournaments, onCreate, onEdit, onDelete, onLogout, on
                   <div><label className="block text-xs font-bold text-slate-500 mb-1">PIN Call Room</label><input required type="text" value={form.callroomPin} onChange={e=>setForm({...form, callroomPin: e.target.value})} className="w-full p-2 border rounded bg-slate-50" /></div>
                </div>
               <div className="md:col-span-2 flex justify-end gap-2 border-t pt-4">
-                 <button type="button" onClick={()=>setShowCreate(false)} className="px-6 py-2 rounded text-slate-500 hover:bg-slate-100 font-bold">Batal</button>
-                 <button type="submit" className="px-8 py-2 rounded bg-blue-600 text-white font-bold shadow-lg">SIMPAN & BUAT LOMBA</button>
+                  <button type="button" onClick={()=>setShowCreate(false)} className="px-6 py-2 rounded text-slate-500 hover:bg-slate-100 font-bold">Batal</button>
+                  <button type="submit" className="px-8 py-2 rounded bg-blue-600 text-white font-bold shadow-lg">SIMPAN & BUAT LOMBA</button>
               </div>
             </form>
          )}
@@ -1260,12 +1346,11 @@ function TournamentPublicView({ tournament, dqs, events, isOnline, onBack, onLog
 
       <div className="absolute inset-0 opacity-20 bg-[url('https://images.unsplash.com/photo-1530549387789-4c1017266635?ixlib=rb-1.2.1&auto=format&fit=crop&w=1920&q=80')] bg-cover bg-center" />
       
-      {}
-      <header className="bg-slate-900/80 backdrop-blur-md text-white h-14 sm:h-16 shrink-0 flex items-center justify-between px-3 sm:px-6 border-b border-slate-800 z-50">
-        <div className="flex items-center gap-2 sm:gap-4 relative overflow-hidden shrink-0">
+      <header className="bg-slate-900/80 backdrop-blur-md text-white h-auto shrink-0 flex flex-nowrap items-center justify-between px-3 sm:px-6 py-3 border-b border-slate-800 z-50">
+        <div className="flex items-center gap-2 sm:gap-4 shrink-0">
           <img src="/sangkuriang%201.png" alt="Logo" className="h-8 sm:h-10 w-auto object-contain" onError={(e:any) => e.target.style.display='none'} />
           <div className="flex flex-col justify-center">
-            <h1 className="font-extrabold text-sm sm:text-lg leading-none tracking-wide uppercase truncate max-w-[120px] sm:max-w-[200px] md:max-w-xs">Sangkuriang</h1>
+            <h1 className="font-extrabold text-sm sm:text-lg leading-none tracking-wide uppercase">Sangkuriang</h1>
             <p className="text-[8px] sm:text-xs text-blue-400 font-bold tracking-[0.2em] uppercase">Swim Organizer</p>
           </div>
         </div>
@@ -1273,8 +1358,8 @@ function TournamentPublicView({ tournament, dqs, events, isOnline, onBack, onLog
         <div className="flex items-center gap-1.5 sm:gap-3 shrink-0 ml-auto">
           <span className={`text-[10px] hidden sm:flex items-center gap-1 ${isOnline ? 'text-emerald-400' : 'text-red-500'}`}>{isOnline ? <Wifi size={10} /> : <WifiOff size={10} />}</span>
           
-          <button 
-            onClick={() => setLang(lang === 'id' ? 'en' : 'id')} 
+          <button 
+            onClick={() => setLang(lang === 'id' ? 'en' : 'id')} 
             className="flex items-center justify-center bg-slate-800 hover:bg-slate-700 text-white w-9 h-9 sm:w-auto sm:h-auto sm:px-3 sm:py-1.5 rounded-xl border border-slate-700 transition"
             title="Switch Language"
           >
@@ -1296,14 +1381,8 @@ function TournamentPublicView({ tournament, dqs, events, isOnline, onBack, onLog
       </header>
       
       <div className="flex-1 flex flex-col justify-center items-center text-center p-4 sm:p-6 z-10 relative">
-        <div className="bg-slate-800/80 backdrop-blur border border-slate-700 p-6 sm:p-8 rounded-2xl shadow-2xl max-w-xl w-full">
-            <div className="flex justify-center items-center gap-3 mb-4 sm:mb-6">
-              {}
-              <div className="bg-slate-900/60 border border-slate-700 px-3 py-1 rounded-full flex items-center gap-2 shadow-inner">
-                  <Clock size={12} className="text-blue-400"/>
-                  <span className="text-sm font-mono font-bold text-white">{currentTime.toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' })}</span>
-              </div>
-              
+        <div className="bg-slate-800/80 backdrop-blur border border-slate-700 p-6 sm:p-8 rounded-2xl shadow-2xl max-w-xl w-full mt-4">
+            <div className="flex justify-center mb-4 sm:mb-6">
               {isFinished ? (
                 <span className="bg-blue-500/20 text-blue-400 text-[10px] sm:text-sm px-3 py-1 rounded-full font-bold flex items-center gap-2 border border-blue-500/30"><CheckCircle size={14} /> {t[lang].tournament_finished}</span>
               ) : tournament.status === 'paused' ? (
@@ -1341,7 +1420,7 @@ function TournamentPublicView({ tournament, dqs, events, isOnline, onBack, onLog
             <div className="text-xs sm:text-sm text-slate-500 border-t border-slate-700 pt-4 sm:pt-6">
               {tournament.status === 'paused' ? t[lang].paused_until : t[lang].scheduled_on}<br/>
               <span className="text-white font-bold text-sm sm:text-lg block mt-1">
-                {tournament.status === 'paused' && tournament.liveState?.pauseUntil 
+                {tournament.status === 'paused' && tournament.liveState?.pauseUntil 
                   ? new Date(tournament.liveState.pauseUntil).toLocaleString(lang === 'id' ? 'id-ID' : 'en-US', { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })
                   : formatDateRange(tournament.eventDate, tournament.endDate)}
               </span>
@@ -1404,7 +1483,7 @@ function TournamentPublicView({ tournament, dqs, events, isOnline, onBack, onLog
         
         <div className="flex-1 w-full relative flex items-center">
           {currentResultIndex > 0 && (
-            <button 
+            <button 
               onClick={handlePrevResult}
               className="absolute left-1 sm:left-2 z-10 bg-slate-800/80 hover:bg-blue-600 text-white p-2 sm:p-3 rounded-full shadow-lg transition-colors backdrop-blur-sm"
             >
@@ -1415,7 +1494,7 @@ function TournamentPublicView({ tournament, dqs, events, isOnline, onBack, onLog
           <iframe src={showPdfUrl} className="w-full h-full rounded-lg bg-white" title="Hasil Acara"></iframe>
 
           {currentResultIndex !== -1 && currentResultIndex < eventsWithResults.length - 1 && (
-            <button 
+            <button 
               onClick={handleNextResult}
               className="absolute right-1 sm:right-2 z-10 bg-slate-800/80 hover:bg-blue-600 text-white p-2 sm:p-3 rounded-full shadow-lg transition-colors backdrop-blur-sm"
             >
@@ -1425,8 +1504,8 @@ function TournamentPublicView({ tournament, dqs, events, isOnline, onBack, onLog
         </div>
       </div>
     )}
-  </div>
-  );
+ </div>
+ );
 }
 
 function LiveScoreboard({ tournament, dqs, events, isOnline, onBack, onLoginRequest, lang, setLang, t }: any) {
@@ -1488,25 +1567,20 @@ function LiveScoreboard({ tournament, dqs, events, isOnline, onBack, onLoginRequ
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col relative">
         {}
-        <header className="bg-slate-900 text-white h-14 sm:h-16 shrink-0 flex items-center justify-between px-3 sm:px-6 border-b border-slate-800 shadow-xl z-50">
-            <div className="flex items-center gap-2 sm:gap-4 relative overflow-hidden shrink-0">
+        <header className="bg-slate-900 text-white h-auto shrink-0 flex flex-nowrap items-center justify-between px-3 sm:px-6 py-3 border-b border-slate-800 shadow-xl z-50">
+            <div className="flex items-center gap-2 sm:gap-4 shrink-0">
                 <img src="/sangkuriang%201.png" alt="Logo" className="h-8 sm:h-10 w-auto object-contain" onError={(e:any) => e.target.style.display='none'} />
                 <div className="flex flex-col justify-center">
-                    <h1 className="font-extrabold text-sm sm:text-lg leading-none tracking-wide uppercase truncate max-w-[120px] sm:max-w-[200px] md:max-w-xs">{tournament.title}</h1>
+                    <h1 className="font-extrabold text-sm sm:text-lg leading-none tracking-wide uppercase truncate max-w-[140px] md:max-w-xs">{tournament.title}</h1>
                     <p className="text-[8px] sm:text-[10px] text-blue-400 font-bold tracking-[0.2em] uppercase">Swim Organizer</p>
                 </div>
-            </div>
-
-            <div className="absolute left-1/2 transform -translate-x-1/2 bg-slate-800/80 px-4 py-1.5 rounded-full border border-slate-700/50 flex-col items-center hidden md:flex">
-               <span className="text-[8px] text-slate-400 uppercase font-bold tracking-[0.2em] -mb-1">Time</span>
-               <ClockDisplay time={currentTime} />
             </div>
 
             <div className="flex items-center gap-1.5 sm:gap-3 shrink-0 ml-auto">
                 <span className={`text-[10px] items-center gap-1 hidden sm:flex ${isOnline ? 'text-emerald-400' : 'text-red-500'}`}>{isOnline ? <Wifi size={10} /> : <WifiOff size={10} />}</span>
                 
-                <button 
-                  onClick={() => setLang(lang === 'id' ? 'en' : 'id')} 
+                <button 
+                  onClick={() => setLang(lang === 'id' ? 'en' : 'id')} 
                   className="flex items-center justify-center bg-slate-800 hover:bg-slate-700 text-white w-9 h-9 sm:w-auto sm:h-auto sm:px-3 sm:py-1.5 rounded-xl border border-slate-700 transition"
                   title="Switch Language"
                 >
@@ -1524,6 +1598,7 @@ function LiveScoreboard({ tournament, dqs, events, isOnline, onBack, onLoginRequ
             </div>
         </header>
 
+        {}
         <div className="flex flex-col md:flex-row w-full border-b border-slate-200 shadow-sm shrink-0">
             {/* Panel Call Room (Kiri) */}
             <div className="w-full md:w-1/2 bg-slate-900 relative flex flex-col justify-between min-h-[300px] md:min-h-[48vh]">
@@ -1585,24 +1660,19 @@ function LiveScoreboard({ tournament, dqs, events, isOnline, onBack, onLoginRequ
                 </div>
             </div>
             
-            {}
             {/* Panel Live (Kanan) */}
             <div className="w-full md:w-1/2 bg-white relative flex flex-col justify-between border-t md:border-t-0 md:border-l border-slate-200 min-h-[300px] md:min-h-[48vh]">
-                
+                {/* Header Live & Jam Real-time */}
                 <div className="relative z-10 px-4 py-5 md:px-8 md:pt-6 flex justify-between items-center w-full">
-                    <h2 className="text-slate-800 text-lg sm:text-2xl md:text-3xl font-bold flex items-center gap-1.5 sm:gap-2 truncate mr-2">
-                        <MonitorPlay className="text-red-500 w-5 h-5 sm:w-8 sm:h-8 shrink-0" /> <span className="truncate">{t[lang].racing_now}</span>
+                    <h2 className="text-slate-800 text-lg sm:text-2xl md:text-3xl font-bold flex items-center gap-1.5 sm:gap-2">
+                        <MonitorPlay className="text-red-500 w-5 h-5 sm:w-8 sm:h-8" /> {t[lang].racing_now}
                     </h2>
-                    
-                    {/* POSISI JAM BARU: Tepat di sebelah badge LIVE */}
-                    <div className="flex items-center gap-2 sm:gap-3 shrink-0">
-                        <div className="flex items-center gap-1.5 bg-slate-100 px-2 sm:px-3 py-1 rounded-full border border-slate-200 shadow-sm">
+                    <div className="flex items-center gap-2 sm:gap-3">
+                        <div className="flex items-center gap-1.5 bg-slate-100 px-2 sm:px-3 py-1 rounded-full border border-slate-200">
                             <Clock size={12} className="text-slate-500 sm:w-3.5 sm:h-3.5" />
-                            <span className="font-mono font-bold text-slate-700 text-[10px] sm:text-sm tracking-wider">
-                                {currentTime.toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' })}
-                            </span>
+                            <span className="font-mono font-bold text-slate-700 text-[10px] sm:text-sm tracking-wider">{currentTime.toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' })}</span>
                         </div>
-                        <span className="bg-red-500 text-white text-[10px] sm:text-xs px-2.5 sm:px-3 py-0.5 sm:py-1 rounded-full font-bold animate-pulse shadow-sm">LIVE</span>
+                        <span className="bg-red-500 text-white text-[10px] sm:text-xs px-2.5 sm:px-3 py-0.5 sm:py-1 rounded-full font-bold animate-pulse">LIVE</span>
                     </div>
                 </div>
 
@@ -1660,17 +1730,17 @@ function LiveScoreboard({ tournament, dqs, events, isOnline, onBack, onLoginRequ
 
                     {totalPages > 1 && (
                         <div className="bg-slate-100 border-t border-slate-200 p-2 sm:p-3 md:p-4 px-3 sm:px-4 md:px-6 flex justify-between items-center shrink-0">
-                            <button 
-                                onClick={() => setDqPage(p => Math.max(1, p - 1))} 
-                                disabled={dqPage === 1} 
+                            <button 
+                                onClick={() => setDqPage(p => Math.max(1, p - 1))} 
+                                disabled={dqPage === 1} 
                                 className="px-2 sm:px-4 py-1.5 sm:py-2 bg-white border border-slate-300 rounded-md sm:rounded-lg text-[10px] sm:text-xs md:text-sm font-bold text-slate-600 disabled:opacity-50 hover:bg-slate-50 flex items-center gap-1 transition"
                             >
                                 <ChevronLeft size={14} className="sm:w-4 sm:h-4"/> <span className="hidden sm:inline">{t[lang].prev}</span>
                             </button>
                             <span className="text-[9px] sm:text-xs md:text-sm font-bold text-slate-500 uppercase tracking-widest">{t[lang].page} {dqPage} {t[lang].of} {totalPages}</span>
-                            <button 
-                                onClick={() => setDqPage(p => Math.min(totalPages, p + 1))} 
-                                disabled={dqPage === totalPages} 
+                            <button 
+                                onClick={() => setDqPage(p => Math.min(totalPages, p + 1))} 
+                                disabled={dqPage === totalPages} 
                                 className="px-2 sm:px-4 py-1.5 sm:py-2 bg-white border border-slate-300 rounded-md sm:rounded-lg text-[10px] sm:text-xs md:text-sm font-bold text-slate-600 disabled:opacity-50 hover:bg-slate-50 flex items-center gap-1 transition"
                             >
                                 <span className="hidden sm:inline">{t[lang].next}</span> <ChevronRight size={14} className="sm:w-4 sm:h-4"/>
@@ -1737,7 +1807,7 @@ function LiveScoreboard({ tournament, dqs, events, isOnline, onBack, onLoginRequ
                 
                 <div className="flex-1 w-full relative flex items-center">
                     {currentResultIndex > 0 && (
-                      <button 
+                      <button 
                         onClick={handlePrevResult}
                         className="absolute left-1 sm:left-2 z-10 bg-slate-800/80 hover:bg-blue-600 text-white p-2 sm:p-3 rounded-full shadow-lg transition-colors backdrop-blur-sm"
                       >
@@ -1748,7 +1818,7 @@ function LiveScoreboard({ tournament, dqs, events, isOnline, onBack, onLoginRequ
                     <iframe src={showPdfUrl} className="w-full h-full rounded-lg bg-white" title="Hasil Acara"></iframe>
 
                     {currentResultIndex !== -1 && currentResultIndex < eventsWithResults.length - 1 && (
-                      <button 
+                      <button 
                         onClick={handleNextResult}
                         className="absolute right-1 sm:right-2 z-10 bg-slate-800/80 hover:bg-blue-600 text-white p-2 sm:p-3 rounded-full shadow-lg transition-colors backdrop-blur-sm"
                       >
@@ -1827,8 +1897,6 @@ function AdminPanel({ tournament, events, masterPinHash, onUpdateTournament, onA
   const [showPauseModal, setShowPauseModal] = useState(false);
   const [pauseResumeTime, setPauseResumeTime] = useState('');
   const [showFinishConfirm, setShowFinishConfirm] = useState(false);
-  
-  const [uploadMessage, setUploadMessage] = useState({ text: '', type: '' });
 
   const wrapAsync = async (fn: () => Promise<void>) => { setLoading(true); try { await fn(); } finally { setLoading(false); }};
   const handleAddEvent = (e: React.FormEvent) => { e.preventDefault(); if(!newEvent.number) return; wrapAsync(async () => { await onAddEvent({ number: parseInt(newEvent.number), name: newEvent.name, totalSeries: parseInt(newEvent.totalSeries) }); setNewEvent({ number: '', name: '', totalSeries: '' }); }); };
@@ -1849,8 +1917,7 @@ function AdminPanel({ tournament, events, masterPinHash, onUpdateTournament, onA
         });
       } catch (err) {
         setLoading(false);
-        setUploadMessage({ text: "Gagal memuat library Excel. Periksa koneksi internet Anda.", type: "error" });
-        setTimeout(() => setUploadMessage({ text: '', type: '' }), 5000);
+        alert("Gagal memuat library Excel. Periksa koneksi internet Anda.");
         if (e.target) e.target.value = '';
         return;
       }
@@ -1908,7 +1975,7 @@ function AdminPanel({ tournament, events, masterPinHash, onUpdateTournament, onA
                 if (!eventsToAdd.find(e => e.number === evtNum)) {
                     eventsToAdd.push({ number: evtNum, name: name, totalSeries: heats });
                 }
-                c = heatsCol; 
+                c = heatsCol; 
             }
           }
         }
@@ -1916,15 +1983,14 @@ function AdminPanel({ tournament, events, masterPinHash, onUpdateTournament, onA
         if (eventsToAdd.length > 0) {
           eventsToAdd.sort((a, b) => a.number - b.number);
           await onAddMultipleEvents(eventsToAdd);
-          setUploadMessage({ text: `Berhasil mengimpor ${eventsToAdd.length} acara dari Excel!`, type: "success" });
+          alert(`Berhasil mengimpor ${eventsToAdd.length} acara dari Excel!`);
         } else {
-          setUploadMessage({ text: "Tidak ditemukan data acara yang valid atau tidak ada acara dengan seri minimal 1 di file Excel.", type: "error" });
+          alert("Tidak ditemukan data acara yang valid atau tidak ada acara dengan seri minimal 1 di file Excel.");
         }
       } catch (error) {
         console.error("Error parsing Excel:", error);
-        setUploadMessage({ text: "Gagal membaca file Excel. Pastikan format file benar (.xlsx atau .xls).", type: "error" });
+        alert("Gagal membaca file Excel. Pastikan format file benar (.xlsx atau .xls).");
       } finally {
-        setTimeout(() => setUploadMessage({ text: '', type: '' }), 5000);
         if (e.target) e.target.value = '';
       }
     });
@@ -1995,50 +2061,50 @@ function AdminPanel({ tournament, events, masterPinHash, onUpdateTournament, onA
           </div>
 
           <div className="space-y-3">
-             {isUpcoming && (
-                 <button onClick={() => { wrapAsync(async() => await onUpdateTournament({ status: 'live' })); }} className="w-full py-4 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl font-bold flex justify-center items-center gap-2 transition shadow-lg">
-                     <Play size={20}/> {t[lang].btn_start_race}
-                 </button>
-             )}
-             {isLive && (
-                 <>
-                   <button onClick={() => setShowPauseModal(true)} className="w-full py-3 bg-yellow-500 hover:bg-yellow-400 text-white rounded-xl font-bold flex justify-center items-center gap-2 transition shadow-md">
-                       <Timer size={18}/> {t[lang].btn_pause_race}
-                   </button>
-                   <button onClick={() => setShowFinishConfirm(true)} className="w-full py-3 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-bold flex justify-center items-center gap-2 transition shadow-md">
-                       <CheckCircle size={18}/> {t[lang].btn_finish_race}
-                   </button>
-                 </>
-             )}
-             {tournament.status === 'paused' && (
-                 <>
+               {isUpcoming && (
                    <button onClick={() => { wrapAsync(async() => await onUpdateTournament({ status: 'live' })); }} className="w-full py-4 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl font-bold flex justify-center items-center gap-2 transition shadow-lg">
-                       <Play size={20}/> {t[lang].btn_resume_race}
+                        <Play size={20}/> {t[lang].btn_start_race}
                    </button>
-                   <button onClick={() => setShowFinishConfirm(true)} className="w-full py-3 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-bold flex justify-center items-center gap-2 transition shadow-md mt-2">
-                       <CheckCircle size={18}/> {t[lang].btn_finish_race}
+               )}
+               {isLive && (
+                   <>
+                    <button onClick={() => setShowPauseModal(true)} className="w-full py-3 bg-yellow-500 hover:bg-yellow-400 text-white rounded-xl font-bold flex justify-center items-center gap-2 transition shadow-md">
+                        <Timer size={18}/> {t[lang].btn_pause_race}
+                    </button>
+                    <button onClick={() => setShowFinishConfirm(true)} className="w-full py-3 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-bold flex justify-center items-center gap-2 transition shadow-md">
+                        <CheckCircle size={18}/> {t[lang].btn_finish_race}
+                    </button>
+                   </>
+               )}
+               {tournament.status === 'paused' && (
+                   <>
+                    <button onClick={() => { wrapAsync(async() => await onUpdateTournament({ status: 'live' })); }} className="w-full py-4 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl font-bold flex justify-center items-center gap-2 transition shadow-lg">
+                        <Play size={20}/> {t[lang].btn_resume_race}
+                    </button>
+                    <button onClick={() => setShowFinishConfirm(true)} className="w-full py-3 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-bold flex justify-center items-center gap-2 transition shadow-md mt-2">
+                        <CheckCircle size={18}/> {t[lang].btn_finish_race}
+                    </button>
+                   </>
+               )}
+               {tournament.status === 'finished' && (
+                   <button onClick={() => { wrapAsync(async() => await onUpdateTournament({ status: 'live' })); }} className="w-full py-4 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl font-bold flex justify-center items-center gap-2 transition shadow-lg">
+                        <Play size={20}/> {t[lang].btn_reopen_race}
                    </button>
-                 </>
-             )}
-             {tournament.status === 'finished' && (
-                 <button onClick={() => { wrapAsync(async() => await onUpdateTournament({ status: 'live' })); }} className="w-full py-4 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl font-bold flex justify-center items-center gap-2 transition shadow-lg">
-                     <Play size={20}/> {t[lang].btn_reopen_race}
-                 </button>
-             )}
-             
-             <div className="pt-4 border-t border-slate-100 mt-6">
-                <label className="text-xs text-slate-500 font-bold mb-1 block">{t[lang].link_results_pdf}</label>
-                <div className="flex gap-2">
-                    <input type="text" value={tournament.resultUrl || ''} onChange={(e) => onUpdateTournament({ resultUrl: e.target.value })} className="flex-1 p-2 border rounded text-sm bg-slate-50" placeholder="https://drive.google.com/..." />
-                </div>
-                <p className="text-[10px] text-slate-400 mt-1">{t[lang].link_results_desc}</p>
-             </div>
+               )}
+               
+               <div className="pt-4 border-t border-slate-100 mt-6">
+                 <label className="text-xs text-slate-500 font-bold mb-1 block">{t[lang].link_results_pdf}</label>
+                 <div className="flex gap-2">
+                     <input type="text" value={tournament.resultUrl || ''} onChange={(e) => onUpdateTournament({ resultUrl: e.target.value })} className="flex-1 p-2 border rounded text-sm bg-slate-50" placeholder="https://drive.google.com/..." />
+                 </div>
+                 <p className="text-[10px] text-slate-400 mt-1">{t[lang].link_results_desc}</p>
+              </div>
 
-             <div className="pt-6 border-t border-slate-100 mt-6">
+              <div className="pt-6 border-t border-slate-100 mt-6">
                 <button onClick={() => setShowResetModal(true)} className="w-full py-3 bg-red-50 hover:bg-red-100 text-red-600 rounded-xl font-bold flex justify-center items-center gap-2 transition border border-red-200">
                     <AlertOctagon size={18}/> {t[lang].btn_reset_race}
                 </button>
-             </div>
+              </div>
           </div>
         </div>
 
@@ -2103,12 +2169,6 @@ function AdminPanel({ tournament, events, masterPinHash, onUpdateTournament, onA
       </div>
 
       <div className="md:col-span-2">
-          {uploadMessage.text && (
-             <div className={`mb-4 px-4 py-3 rounded relative border ${uploadMessage.type === 'error' ? 'bg-red-100 border-red-400 text-red-700' : 'bg-emerald-100 border-emerald-400 text-emerald-700'}`} role="alert">
-                <span className="block sm:inline">{uploadMessage.text}</span>
-             </div>
-          )}
-          
           <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
             <div className="flex justify-between items-center mb-4">
               <h2 className="font-bold flex gap-2"><List className="text-blue-600"/> {t[lang].events_list}</h2>
@@ -2192,22 +2252,22 @@ function AdminPanel({ tournament, events, masterPinHash, onUpdateTournament, onA
             <p className="text-sm text-slate-500 mb-4">{linkModal.eventName}</p>
             <div className="mb-4">
               <label className="text-xs font-bold text-slate-600 mb-1 block">{t[lang].google_drive_url}</label>
-              <input 
-                autoFocus 
-                type="url" 
-                value={linkModal.url} 
-                onChange={e => setLinkModal({...linkModal, url: e.target.value})} 
-                className="w-full border border-slate-300 rounded-xl p-3 text-sm focus:ring-2 focus:ring-blue-500 outline-none" 
-                placeholder="https://..." 
+              <input 
+                autoFocus 
+                type="url" 
+                value={linkModal.url} 
+                onChange={e => setLinkModal({...linkModal, url: e.target.value})} 
+                className="w-full border border-slate-300 rounded-xl p-3 text-sm focus:ring-2 focus:ring-blue-500 outline-none" 
+                placeholder="https://..." 
               />
             </div>
             <div className="flex gap-2 justify-end">
               <button onClick={() => setLinkModal({ show: false, eventId: '', url: '', eventName: '' })} className="px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl transition">{t[lang].btn_cancel}</button>
-              <button onClick={() => { 
-                wrapAsync(async () => { 
-                  await onEditEvent(linkModal.eventId, { resultUrl: linkModal.url }); 
-                  setLinkModal({ show: false, eventId: '', url: '', eventName: '' }); 
-                }); 
+              <button onClick={() => { 
+                wrapAsync(async () => { 
+                  await onEditEvent(linkModal.eventId, { resultUrl: linkModal.url }); 
+                  setLinkModal({ show: false, eventId: '', url: '', eventName: '' }); 
+                }); 
               }} className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-md transition">{t[lang].btn_save_link}</button>
             </div>
           </div>
@@ -2292,13 +2352,13 @@ function AnnouncerPanel({ tournament, events, dqs, updateLiveState, onAddDQ, onD
   
   let canGoNext = true; let blockReason = "";
   if (activeIdx > -1 && callIdx > -1) {
-    if (activeIdx > callIdx) { canGoNext = false; blockReason = "Call Room tertinggal"; } 
+    if (activeIdx > callIdx) { canGoNext = false; blockReason = "Call Room tertinggal"; } 
     else if (activeIdx === callIdx && ls.currentSeries >= ls.callRoomSeries) { canGoNext = false; blockReason = "Menunggu Call Room"; }
   }
 
   const wrapAsync = async (fn: () => Promise<void>) => { setLoading(true); try { await fn(); } finally { setLoading(false); }};
 
-  const handleNav = async (direction: 'next' | 'prev') => { 
+  const handleNav = async (direction: 'next' | 'prev') => { 
       if(activeIdx === -1) return;
       let nextSeries = ls.currentSeries;
       let targetEvent = events[activeIdx];
@@ -2327,15 +2387,15 @@ function AnnouncerPanel({ tournament, events, dqs, updateLiveState, onAddDQ, onD
       const finalReason = newDQ.reason === 'Lainnya (Input Manual)' ? manualReason : newDQ.reason;
       if (!finalReason) return;
       
-      wrapAsync(async() => { 
-          await onAddDQ({ 
-              eventNumber: parseInt(newDQ.eventNumber), 
-              series: parseInt(newDQ.series), 
-              lane: parseInt(newDQ.lane), 
-              reason: finalReason, 
-              timestamp: getWIBTime() 
-          }); 
-          setNewDQ({ eventNumber: '', series: '', lane: '', reason: '' }); 
+      wrapAsync(async() => { 
+          await onAddDQ({ 
+              eventNumber: parseInt(newDQ.eventNumber), 
+              series: parseInt(newDQ.series), 
+              lane: parseInt(newDQ.lane), 
+              reason: finalReason, 
+              timestamp: getWIBTime() 
+          }); 
+          setNewDQ({ eventNumber: '', series: '', lane: '', reason: '' }); 
           setManualReason('');
       });
   };
@@ -2352,7 +2412,7 @@ function AnnouncerPanel({ tournament, events, dqs, updateLiveState, onAddDQ, onD
                     <div className="animate-in fade-in zoom-in">
                         <p className="text-slate-400 mb-4">Papan skor belum menampilkan data.</p>
                         <button onClick={() => wrapAsync(async () => {
-                             const first = events[0]; 
+                             const first = events[0]; 
                              await updateLiveState({ currentEventId: first.id, currentEventName: first.name, currentEventNumber: first.number, currentEventTotalSeries: first.totalSeries, currentSeries: 1, lastUpdate: getWIBTime() });
                         })} className="bg-purple-600 hover:bg-purple-500 text-white px-8 py-4 rounded-xl font-bold text-xl shadow-lg flex items-center gap-3"><Play size={24} fill="currentColor" /> MULAI ACARA PERTAMA</button>
                     </div>
@@ -2362,7 +2422,7 @@ function AnnouncerPanel({ tournament, events, dqs, updateLiveState, onAddDQ, onD
                     
                     <div className="w-full flex items-center justify-center h-24 sm:h-32 mb-6 sm:mb-8">
                        <h1 className="text-3xl sm:text-5xl font-extrabold text-white leading-tight line-clamp-3 overflow-hidden text-balance">
-                           {activeEvent.name}
+                            {activeEvent.name}
                        </h1>
                     </div>
 
@@ -2434,7 +2494,7 @@ function CallRoomPanel({ tournament, events, updateLiveState, lang, t }: any) {
   
   const wrapAsync = async (fn: () => Promise<void>) => { setLoading(true); try { await fn(); } finally { setLoading(false); }};
 
-  const handleNav = async (direction: 'next' | 'prev') => { 
+  const handleNav = async (direction: 'next' | 'prev') => { 
       if(activeIdx === -1) return;
       let nextSeries = ls.callRoomSeries;
       let targetEvent = events[activeIdx];
@@ -2467,7 +2527,7 @@ function CallRoomPanel({ tournament, events, updateLiveState, lang, t }: any) {
                  <div className="animate-in fade-in zoom-in">
                     <p className="text-emerald-700 mb-4 font-medium">{t[lang].ready_to_call}</p>
                     <button onClick={() => wrapAsync(async () => {
-                             const first = events[0]; 
+                             const first = events[0]; 
                              await updateLiveState({ callRoomEventId: first.id, callRoomEventName: first.name, callRoomEventNumber: first.number, callRoomEventTotalSeries: first.totalSeries, callRoomSeries: 1, callRoomLastUpdate: getWIBTime() });
                     })} className="bg-emerald-600 hover:bg-emerald-700 text-white px-8 py-4 rounded-xl font-bold text-xl shadow-lg flex items-center gap-3"><Play size={24} fill="currentColor" /> {t[lang].btn_init_callroom}</button>
                 </div>
@@ -2482,15 +2542,15 @@ function CallRoomPanel({ tournament, events, updateLiveState, lang, t }: any) {
                   </div>
 
                   <div className="inline-block bg-white shadow-sm border border-emerald-200 rounded-lg p-6 mb-8">
-                     <span className="text-6xl font-black text-emerald-600">{ls.callRoomSeries}</span>
-                     <span className="text-xs sm:text-sm text-slate-400 block uppercase mt-2">{t[lang].from_series} {currentCallEvent.totalSeries} {t[lang].series}</span>
+                       <span className="text-6xl font-black text-emerald-600">{ls.callRoomSeries}</span>
+                       <span className="text-xs sm:text-sm text-slate-400 block uppercase mt-2">{t[lang].from_series} {currentCallEvent.totalSeries} {t[lang].series}</span>
                   </div>
                   
                   <div className="flex gap-2 sm:gap-4 justify-center w-full px-4 sm:px-0">
-                     <button onClick={() => handleNav('prev')} className="flex-1 sm:flex-none px-4 sm:px-6 py-3 rounded-lg border-2 border-slate-200 text-slate-500 hover:bg-slate-50 font-bold transition text-sm sm:text-base">Prev</button>
-                     <button onClick={() => handleNav('next')} className="flex-[2] sm:flex-none px-6 sm:px-10 py-3 rounded-lg bg-emerald-600 text-white hover:bg-emerald-700 font-bold shadow-lg transition transform active:scale-95 flex items-center justify-center gap-2 text-sm sm:text-base">
-                        {t[lang].btn_call_next} <ChevronRight size={20} />
-                     </button>
+                       <button onClick={() => handleNav('prev')} className="flex-1 sm:flex-none px-4 sm:px-6 py-3 rounded-lg border-2 border-slate-200 text-slate-500 hover:bg-slate-50 font-bold transition text-sm sm:text-base">Prev</button>
+                       <button onClick={() => handleNav('next')} className="flex-[2] sm:flex-none px-6 sm:px-10 py-3 rounded-lg bg-emerald-600 text-white hover:bg-emerald-700 font-bold shadow-lg transition transform active:scale-95 flex items-center justify-center gap-2 text-sm sm:text-base">
+                          {t[lang].btn_call_next} <ChevronRight size={20} />
+                       </button>
                   </div>
                 </>
               ) : <div className="text-slate-400 italic">{t[lang].waiting_data}</div>}
@@ -2516,8 +2576,8 @@ function LanguageSplash({ setLang, onSelect }: any) {
          <p className="text-slate-400 mb-8 text-xs sm:text-sm">Please select your preferred language<br/><span className="italic mt-1 block">Silakan pilih bahasa pilihan Anda</span></p>
          
          <div className="flex flex-col gap-4">
-            <button 
-              onClick={() => { setLang('id'); onSelect(); }} 
+            <button 
+              onClick={() => { setLang('id'); onSelect(); }} 
               className="w-full flex items-center justify-between bg-slate-800 hover:bg-blue-600 hover:border-blue-500 border border-slate-700 text-white p-4 sm:p-5 rounded-2xl transition-all group shadow-lg"
             >
                 <div className="flex items-center gap-4">
@@ -2527,8 +2587,8 @@ function LanguageSplash({ setLang, onSelect }: any) {
                 <ChevronRight className="text-slate-500 group-hover:text-white" />
             </button>
             
-            <button 
-              onClick={() => { setLang('en'); onSelect(); }} 
+            <button 
+              onClick={() => { setLang('en'); onSelect(); }} 
               className="w-full flex items-center justify-between bg-slate-800 hover:bg-blue-600 hover:border-blue-500 border border-slate-700 text-white p-4 sm:p-5 rounded-2xl transition-all group shadow-lg"
             >
                 <div className="flex items-center gap-4">
