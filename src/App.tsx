@@ -420,8 +420,6 @@ type LiveState = {
 type EventItem = { id: string; tournamentId: string; number: number; name: string; totalSeries: number; resultUrl?: string; };
 type DQRecord = { id: string; tournamentId: string; eventNumber: number; series: number; lane: number; reason: string; timestamp: string; createdAt: number; };
 
-type Athlete = { id: string; name: string; gender: 'L' | 'P'; birthDate: string; club: string; school: string; sport: string; createdAt: number; };
-
 // --- DEFAULT STATES ---
 const DEFAULT_LIVE_STATE: LiveState = {
   currentEventId: null, currentSeries: 1, callRoomEventId: null, callRoomSeries: 1, lastUpdate: '-', callRoomLastUpdate: '-'
@@ -447,7 +445,6 @@ export default function App() {
   const [tournaments, setTournaments] = useState<Tournament[]>([]);
   const [allEvents, setAllEvents] = useState<EventItem[]>([]);
   const [allDqs, setAllDqs] = useState<DQRecord[]>([]);
-  const [athletes, setAthletes] = useState<Athlete[]>([]);
 
   const [masterPinHash, setMasterPinHash] = useState<string>(MASTER_PIN_HASH);
   const [viewMode, setViewMode] = useState<'global' | 'master_dashboard' | 'tournament'>('global');
@@ -544,14 +541,6 @@ export default function App() {
       (error) => console.warn("Sinkronisasi DQs ditunda", error.message)
     );
 
-    const unsubAthletes = onSnapshot(
-      collection(db, 'artifacts', appId, 'public', 'data', 'athletes'), 
-      (snapshot) => {
-        setAthletes(snapshot.docs.map(d => ({ id: d.id, ...d.data() } as Athlete)).sort((a,b) => b.createdAt - a.createdAt));
-      }, 
-      (error) => console.warn("Sinkronisasi Athletes ditunda", error.message)
-    );
-
     const unsubSettings = onSnapshot(
       doc(db, 'artifacts', appId, 'public', 'data', 'settings', 'master'),
       (docSnap) => {
@@ -562,7 +551,7 @@ export default function App() {
       (error) => console.warn("Sinkronisasi Settings ditunda", error.message)
     );
 
-    return () => { unsubTournaments(); unsubEvents(); unsubDqs(); unsubAthletes(); unsubSettings(); };
+    return () => { unsubTournaments(); unsubEvents(); unsubDqs(); unsubSettings(); };
   }, [user]);
 
   // --- ACTIONS ---
@@ -593,29 +582,6 @@ export default function App() {
     for (const dqId of dqIds) {
       await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'dqs', dqId));
     }
-  };
-
-  const handleAddAthlete = async (data: Omit<Athlete, 'id' | 'createdAt'>) => {
-    if (!user) return;
-    await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'athletes'), {
-      ...data, createdAt: Date.now()
-    });
-  };
-
-  const handleUpdateAthlete = async (id: string, data: Partial<Athlete>) => {
-    if (!user) return;
-    await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'athletes', id), data);
-  };
-
-  const handleDeleteAthlete = async (id: string) => {
-    if (!user) return;
-    await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'athletes', id));
-  };
-  
-  const handleAddMultipleAthletes = async (athletesData: any[]) => {
-    if (!user) return;
-    const promises = athletesData.map(data => addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'athletes'), { ...data, createdAt: Date.now() }));
-    await Promise.all(promises);
   };
 
   const updateLiveState = async (newState: Partial<LiveState>) => {
@@ -674,7 +640,6 @@ export default function App() {
       {viewMode === 'master_dashboard' && role === 'master' && (
         <MasterDashboard 
           tournaments={tournaments}
-          athletes={athletes}
           onCreate={handleCreateTournament}
           onEdit={(id: string) => { setActiveTournamentId(id); setRole('admin'); setViewMode('tournament'); }}
           onDelete={handleDeleteTournament}
@@ -685,10 +650,6 @@ export default function App() {
               alert('PIN Superuser berhasil diperbarui!');
             }
           }}
-          onAddAthlete={handleAddAthlete}
-          onUpdateAthlete={handleUpdateAthlete}
-          onDeleteAthlete={handleDeleteAthlete}
-          onAddMultipleAthletes={handleAddMultipleAthletes}
           lang={lang} t={t}
         />
       )}
@@ -925,7 +886,7 @@ function GlobalLandingPage({ tournaments, onSelectTournament, onMasterLogin, lan
   );
 }
 
-function MasterDashboard({ tournaments, athletes, onCreate, onEdit, onDelete, onLogout, onChangeMasterPin, onAddAthlete, onUpdateAthlete, onDeleteAthlete, onAddMultipleAthletes, lang, t }: any) {
+function MasterDashboard({ tournaments, onCreate, onEdit, onDelete, onLogout, onChangeMasterPin, lang, t }: any) {
   const [showCreate, setShowCreate] = useState(false);
   const [form, setForm] = useState({ title: '', venue: '', eventDate: '', endDate: '', adminPin: '1234', announcerPin: '1234', callroomPin: '1234', sportType: 'Renang' });
 
