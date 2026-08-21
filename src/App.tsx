@@ -36,16 +36,6 @@ import {
   Download
 } from 'lucide-react';
 
-import { 
-  LineChart, 
-  Line, 
-  XAxis, 
-  YAxis, 
-  CartesianGrid, 
-  Tooltip as RechartsTooltip, 
-  ResponsiveContainer 
-} from 'recharts';
-
 // --- FIREBASE IMPORTS ---
 import { initializeApp } from 'firebase/app';
 import { 
@@ -1080,6 +1070,71 @@ function GlobalLandingPage({ tournaments, onSelectTournament, onMasterLogin, lan
   );
 }
 
+const CustomLineChart = ({ data }: { data: {time: string, viewers: number}[] }) => {
+  if (!data || data.length === 0) return <div className="h-full w-full flex items-center justify-center text-slate-400 text-sm">Belum ada data tren</div>;
+
+  const maxViewers = Math.max(...data.map(d => d.viewers), 5);
+  const height = 200;
+  const width = 800;
+  const paddingX = 30;
+  const paddingY = 20;
+
+  const points = data.map((d, index) => {
+    const x = data.length === 1 ? width / 2 : paddingX + (index / (data.length - 1)) * (width - 2 * paddingX);
+    const y = height - paddingY - (d.viewers / maxViewers) * (height - 2 * paddingY);
+    return `${x},${y}`;
+  }).join(' ');
+
+  return (
+    <div className="w-full h-full min-h-[250px] relative overflow-hidden bg-white rounded-xl flex flex-col p-2">
+      <svg viewBox={`0 0 ${width} ${height}`} className="w-full flex-1 overflow-visible" preserveAspectRatio="none">
+        {}
+        {[0, 0.5, 1].map(ratio => {
+          const y = height - paddingY - ratio * (height - 2 * paddingY);
+          return (
+            <g key={ratio}>
+              <line x1={paddingX} y1={y} x2={width - paddingX} y2={y} stroke="#e2e8f0" strokeDasharray="4 4" />
+              <text x={0} y={y + 4} fill="#64748b" fontSize="12" fontWeight="bold">{Math.round(ratio * maxViewers)}</text>
+            </g>
+          )
+        })}
+        
+        {}
+        {data.length > 1 && (
+          <polyline
+            points={points}
+            fill="none"
+            stroke="#3b82f6"
+            strokeWidth="4"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            className="drop-shadow-md"
+          />
+        )}
+        
+        {}
+        {data.map((d, index) => {
+          const x = data.length === 1 ? width / 2 : paddingX + (index / (data.length - 1)) * (width - 2 * paddingX);
+          const y = height - paddingY - (d.viewers / maxViewers) * (height - 2 * paddingY);
+          return (
+            <g key={index} className="group cursor-pointer">
+              <circle cx={x} cy={y} r="5" fill="#ffffff" stroke="#3b82f6" strokeWidth="2" className="transition-all duration-300" />
+              <text x={x} y={y - 12} textAnchor="middle" fill="#0f172a" fontSize="12" fontWeight="bold" className="opacity-0 group-hover:opacity-100 transition-opacity duration-300">{d.viewers}</text>
+            </g>
+          );
+        })}
+      </svg>
+      
+      {}
+      <div className="flex justify-between text-[10px] sm:text-xs text-slate-500 mt-2" style={{ paddingLeft: paddingX, paddingRight: paddingX }}>
+         <span>{data[0]?.time}</span>
+         {data.length > 2 && <span>{data[Math.floor(data.length / 2)]?.time}</span>}
+         {data.length > 1 && <span>{data[data.length - 1]?.time}</span>}
+      </div>
+    </div>
+  );
+};
+
 function MasterDashboard({ tournaments, onCreate, onEdit, onDelete, onLogout, onChangeMasterPin, lang, t }: any) {
   const [showCreate, setShowCreate] = useState(false);
   const [form, setForm] = useState({ title: '', venue: '', eventDate: '', endDate: '', sportType: 'Renang', adminPin: '1234', announcerPin: '1234', callroomPin: '1234' });
@@ -1219,39 +1274,7 @@ function MasterDashboard({ tournaments, onCreate, onEdit, onDelete, onLogout, on
                      <MonitorPlay size={16} className="text-blue-500"/> Grafik Tren Penonton (30 Menit Terakhir)
                  </h3>
                  <div className="h-64 w-full">
-                     <ResponsiveContainer width="100%" height="100%">
-                        <LineChart data={chartData} margin={{ top: 5, right: 20, left: -20, bottom: 0 }}>
-                          <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" vertical={false} />
-                          <XAxis 
-                              dataKey="time" 
-                              tick={{fontSize: 10, fill: '#64748b'}} 
-                              axisLine={false} 
-                              tickLine={false} 
-                              minTickGap={30}
-                          />
-                          <YAxis 
-                              tick={{fontSize: 10, fill: '#64748b'}} 
-                              axisLine={false} 
-                              tickLine={false} 
-                              allowDecimals={false}
-                          />
-                          <RechartsTooltip 
-                              contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
-                              itemStyle={{ color: '#0f172a', fontWeight: 'bold' }}
-                              labelStyle={{ color: '#64748b', fontSize: '12px', marginBottom: '4px' }}
-                          />
-                          <Line 
-                              type="monotone" 
-                              dataKey="viewers" 
-                              name="Live Viewers" 
-                              stroke="#3b82f6" 
-                              strokeWidth={3} 
-                              dot={false} 
-                              activeDot={{ r: 6, fill: '#3b82f6', stroke: '#fff', strokeWidth: 2 }} 
-                              animationDuration={500}
-                          />
-                        </LineChart>
-                     </ResponsiveContainer>
+                     <CustomLineChart data={chartData} />
                  </div>
              </div>
          </div>
