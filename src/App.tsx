@@ -1441,305 +1441,320 @@ function LiveScoreboard({ tournament, dqs, events, isOnline, onBack, onLoginRequ
   const currentResultIndex = eventsWithResults.findIndex((ev: any) => ev.resultUrl === showPdfUrl);
 
   const handleNextResult = () => {
-    if (currentResultIndex < eventsWithResults.length - 1) {
-      setShowPdfUrl(eventsWithResults[currentResultIndex + 1].resultUrl);
-    }
+    if (currentResultIndex < eventsWithResults.length - 1) {
+      setShowPdfUrl(eventsWithResults[currentResultIndex + 1].resultUrl);
+    }
   };
 
   const handlePrevResult = () => {
-    if (currentResultIndex > 0) {
-      setShowPdfUrl(eventsWithResults[currentResultIndex - 1].resultUrl);
-    }
+    if (currentResultIndex > 0) {
+      setShowPdfUrl(eventsWithResults[currentResultIndex - 1].resultUrl);
+    }
   };
 
   useEffect(() => {
-      if (dqPage > totalPages) setDqPage(1);
+      if (dqPage > totalPages) setDqPage(1);
   }, [dqs.length, totalPages, dqPage]);
 
   const calculateNextRace = (offset: number) => {
-      let currentEventIdx = events.findIndex((e: any) => e.id === ls.callRoomEventId);
-      if (currentEventIdx === -1) return null;
+      if (!ls.currentEventId) return null;
+      let currentEventIdx = events.findIndex((e: any) => e.id === ls.currentEventId);
+      if (currentEventIdx === -1) return null;
 
-      let currentEvent = events[currentEventIdx];
-      let targetSeries = ls.callRoomSeries + offset;
+      let currentEvent = events[currentEventIdx];
+      let targetSeries = ls.currentSeries + offset;
 
-      while (targetSeries > currentEvent.totalSeries) {
-          targetSeries -= currentEvent.totalSeries;
-          currentEventIdx++;
-          if (currentEventIdx < events.length) {
-              currentEvent = events[currentEventIdx];
-          } else {
-              return null;
-          }
-      }
+      while (targetSeries > currentEvent.totalSeries) {
+          targetSeries -= currentEvent.totalSeries;
+          currentEventIdx++;
+          if (currentEventIdx < events.length) {
+              currentEvent = events[currentEventIdx];
+          } else {
+              return null;
+          }
+      }
 
-      return { event: currentEvent, series: targetSeries };
+      return { event: currentEvent, series: targetSeries };
   };
 
   const readyToRace = calculateNextRace(1);
   const inTheNext = calculateNextRace(2);
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col relative">
-        <header className="bg-slate-900 text-white h-auto sm:h-16 shrink-0 flex flex-wrap sm:flex-nowrap items-center justify-between px-3 sm:px-6 py-2 sm:py-0 border-b border-slate-800 shadow-xl z-50">
-            <div className="flex items-center gap-2 sm:gap-4 w-full sm:w-auto mb-2 sm:mb-0 relative">
-                <img src="/sangkuriang%201.png" alt="Logo" className="h-8 sm:h-10 w-auto object-contain" onError={(e:any) => e.target.style.display='none'} />
-                <div className="flex flex-col justify-center">
-                    <h1 className="font-extrabold text-sm sm:text-lg leading-none tracking-wide uppercase truncate max-w-[140px] md:max-w-xs">{tournament.title}</h1>
-                    <p className="text-[8px] sm:text-[10px] text-blue-400 font-bold tracking-[0.2em] uppercase">Swim Organizer</p>
-                </div>
-            </div>
+    <div className="min-h-screen bg-slate-50 flex flex-col relative">
+      {}
+      <header className="bg-slate-900 text-white h-auto sm:h-16 shrink-0 flex flex-wrap sm:flex-nowrap items-center justify-between px-3 sm:px-6 py-2 sm:py-0 border-b border-slate-800 shadow-xl z-50">
+          <div className="flex items-center gap-2 sm:gap-4 w-full sm:w-auto mb-2 sm:mb-0 relative">
+              <img src="/sangkuriang%201.png" alt="Logo" className="h-8 sm:h-10 w-auto object-contain" onError={(e:any) => e.target.style.display='none'} />
+              <div className="flex flex-col justify-center">
+                  <h1 className="font-extrabold text-sm sm:text-lg leading-none tracking-wide uppercase truncate max-w-[140px] md:max-w-xs">{tournament.title}</h1>
+                  <p className="text-[8px] sm:text-[10px] text-blue-400 font-bold tracking-[0.2em] uppercase">Swim Organizer</p>
+              </div>
+              
+              <div className="absolute top-[42px] left-0 w-full sm:hidden">
+                  <div className="flex items-center gap-1.5 text-blue-300">
+                      <Clock size={10} />
+                      <span className="text-[10px] font-mono font-bold tracking-widest">{currentTime.toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' })}</span>
+                  </div>
+              </div>
+          </div>
 
-            <div className="flex items-center gap-1.5 sm:gap-3 shrink-0 ml-auto">
-                <span className={`text-[10px] items-center gap-1 hidden sm:flex ${isOnline ? 'text-emerald-400' : 'text-red-500'}`}>{isOnline ? <Wifi size={10} /> : <WifiOff size={10} />}</span>
-                
-                <button 
-                  onClick={() => setLang(lang === 'id' ? 'en' : 'id')} 
-                  className="flex items-center justify-center bg-slate-800 hover:bg-slate-700 text-white w-9 h-9 sm:w-auto sm:h-auto sm:px-3 sm:py-1.5 rounded-xl border border-slate-700 transition"
-                  title="Switch Language"
-                >
-                  <Globe size={18} className="text-blue-400 sm:w-4 sm:h-4" />
-                  <span className="font-bold text-xs hidden sm:inline sm:ml-1.5">{lang === 'id' ? 'ID' : 'EN'}</span>
-                </button>
+          <div className="absolute left-1/2 transform -translate-x-1/2 bg-slate-800/80 px-4 py-1.5 rounded-full border border-slate-700/50 flex-col items-center hidden md:flex">
+             <span className="text-[8px] text-slate-400 uppercase font-bold tracking-[0.2em] -mb-1">Time</span>
+             <ClockDisplay time={currentTime} />
+          </div>
 
-                <button onClick={() => setShowResultsList(true)} className="w-9 h-9 sm:w-auto sm:h-auto sm:px-3 sm:py-1.5 flex items-center justify-center bg-blue-600 hover:bg-blue-500 text-white rounded-xl transition shadow-md" title={t[lang].btn_results}>
-                    <FileText size={18} className="sm:w-4 sm:h-4" /> <span className="text-xs font-bold hidden sm:inline sm:ml-1.5">{t[lang].btn_results}</span>
-                </button>
-                <button onClick={onBack} className="w-9 h-9 sm:w-auto sm:h-auto sm:px-3 sm:py-1.5 flex items-center justify-center bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl transition border border-slate-700" title={t[lang].btn_home}>
-                    <ChevronLeft size={18} className="sm:w-4 sm:h-4" /> <span className="text-xs hidden sm:inline sm:ml-1.5">{t[lang].btn_home}</span>
-                </button>
-                <button onClick={onLoginRequest} className="w-9 h-9 sm:w-auto sm:h-auto flex items-center justify-center text-slate-400 hover:text-white transition" title="Login"><Settings size={20}/></button>
-            </div>
-        </header>
+          <div className="flex items-center gap-1.5 sm:gap-3 shrink-0 ml-auto">
+              <span className={`text-[10px] items-center gap-1 hidden sm:flex ${isOnline ? 'text-emerald-400' : 'text-red-500'}`}>{isOnline ? <Wifi size={10} /> : <WifiOff size={10} />}</span>
+              
+              <button 
+                onClick={() => setLang(lang === 'id' ? 'en' : 'id')} 
+                className="flex items-center justify-center bg-slate-800 hover:bg-slate-700 text-white w-9 h-9 sm:w-auto sm:h-auto sm:px-3 sm:py-1.5 rounded-xl border border-slate-700 transition"
+                title="Switch Language"
+              >
+                <Globe size={18} className="text-blue-400 sm:w-4 sm:h-4" />
+                <span className="font-bold text-xs hidden sm:inline sm:ml-1.5">{lang === 'id' ? 'ID' : 'EN'}</span>
+              </button>
 
-        {/* TATA LETAK UTAMA: KIRI (Call Room lengkap dengan Nama Acara & Antrean), KANAN (Live di kolam & Clock) */}
-        <div className="flex flex-col md:flex-row w-full border-b border-slate-200 shadow-sm shrink-0">
-            {/* Panel Call Room (Kiri) */}
-            <div className="w-full md:w-1/2 bg-slate-900 relative flex flex-col justify-between min-h-[300px] md:min-h-[48vh]">
-                <div className="absolute inset-0 bg-gradient-to-br from-blue-900/40 via-slate-900 to-slate-900 z-0"></div>
-                
-                {/* Header Call Room & Last Update */}
-                <div className="relative z-10 px-4 py-5 md:px-8 md:pt-6 flex justify-between items-center w-full">
-                    <h2 className="text-white text-lg sm:text-2xl md:text-3xl font-bold flex items-center gap-1.5 sm:gap-2"><Users className="text-blue-400 w-5 h-5 sm:w-8 sm:h-8" /> {t[lang].call_room}</h2>
-                    <div className="text-right">
-                        <span className="text-blue-200/40 text-[8px] sm:text-[10px] uppercase block">{t[lang].last_update}</span>
-                        <span className="text-white text-xs sm:text-sm md:text-base font-mono font-bold flex items-center gap-1 justify-end"><Clock size={12} className="text-blue-400" /> {ls.callRoomLastUpdate || '-'}</span>
-                    </div>
-                </div>
+              <button onClick={() => setShowResultsList(true)} className="w-9 h-9 sm:w-auto sm:h-auto sm:px-3 sm:py-1.5 flex items-center justify-center bg-blue-600 hover:bg-blue-500 text-white rounded-xl transition shadow-md" title={t[lang].btn_results}>
+                  <FileText size={18} className="sm:w-4 sm:h-4" /> <span className="text-xs font-bold hidden sm:inline sm:ml-1.5">{t[lang].btn_results}</span>
+              </button>
+              <button onClick={onBack} className="w-9 h-9 sm:w-auto sm:h-auto sm:px-3 sm:py-1.5 flex items-center justify-center bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl transition border border-slate-700" title={t[lang].btn_home}>
+                  <ChevronLeft size={18} className="sm:w-4 sm:h-4" /> <span className="text-xs hidden sm:inline sm:ml-1.5">{t[lang].btn_home}</span>
+              </button>
+              <button onClick={onLoginRequest} className="w-9 h-9 sm:w-auto sm:h-auto flex items-center justify-center text-slate-400 hover:text-white transition" title="Login"><Settings size={20}/></button>
+          </div>
+      </header>
 
-                {/* Kotak Angka Event & Heat Call Room */}
-                <div className="relative z-10 px-4 md:px-8 w-full max-w-lg mx-auto my-auto">
-                    <div className="flex gap-2 sm:gap-4">
-                        <div className="flex-1 bg-white/5 border border-white/10 rounded-xl sm:rounded-2xl p-2 sm:p-4 text-center shadow-lg">
-                          <div className="text-blue-200 text-[10px] sm:text-sm uppercase mb-0.5 sm:mb-1">{t[lang].event}</div>
-                          <div className="text-white text-4xl sm:text-6xl md:text-8xl font-bold tracking-tighter leading-none">{ls.callRoomEventNumber || '-'}</div>
-                        </div>
-                        <div className="flex-1 bg-white/5 border border-white/10 rounded-xl sm:rounded-2xl p-2 sm:p-4 text-center shadow-lg">
-                          <div className="text-blue-200 text-[10px] sm:text-sm uppercase mb-0.5 sm:mb-1">{t[lang].series}</div>
-                          <div className="text-white text-4xl sm:text-6xl md:text-8xl font-bold tracking-tighter leading-none">{ls.callRoomSeries}</div>
-                        </div>
-                    </div>
-                </div>
+      {}
+      <div className="flex flex-col md:flex-row w-full border-b border-slate-200 shadow-sm shrink-0">
+          {/* Panel Call Room (Kiri) */}
+          <div className="w-full md:w-1/2 bg-slate-900 relative flex flex-col justify-between min-h-[300px] md:min-h-[48vh]">
+              <div className="absolute inset-0 bg-gradient-to-br from-blue-900/40 via-slate-900 to-slate-900 z-0"></div>
+              
+              {/* Header Call Room */}
+              <div className="relative z-10 px-4 py-5 md:px-8 md:pt-6 flex justify-between items-center w-full">
+                  <h2 className="text-white text-lg sm:text-2xl md:text-3xl font-bold flex items-center gap-1.5 sm:gap-2"><Users className="text-blue-400 w-5 h-5 sm:w-8 sm:h-8" /> {t[lang].call_room}</h2>
+                  <div className="text-right">
+                      <span className="text-blue-200/40 text-[8px] sm:text-[10px] uppercase block">{t[lang].last_update}</span>
+                      <span className="text-white text-xs sm:text-sm md:text-base font-mono font-bold flex items-center gap-1 justify-end"><Clock size={12} className="text-blue-400" /> {ls.callRoomLastUpdate || '-'}</span>
+                  </div>
+              </div>
 
-                {/* Nama Acara Call Room */}
-                <div className="relative z-10 w-full bg-slate-950/80 border-t border-slate-800 py-2 sm:py-3 px-4 text-center">
-                    <p className="text-slate-200 text-sm sm:text-base md:text-lg font-bold tracking-widest uppercase line-clamp-1">{ls.callRoomEventName || t[lang].waiting}</p>
-                </div>
+              {/* Kotak Angka Event & Heat Call Room */}
+              <div className="relative z-10 px-4 md:px-8 w-full max-w-lg mx-auto my-auto">
+                  <div className="flex gap-2 sm:gap-4">
+                      <div className="flex-1 bg-white/5 border border-white/10 rounded-xl sm:rounded-2xl p-2 sm:p-4 text-center shadow-lg">
+                        <div className="text-blue-200 text-[10px] sm:text-sm uppercase mb-0.5 sm:mb-1">{t[lang].event}</div>
+                        <div className="text-white text-4xl sm:text-6xl md:text-8xl font-bold tracking-tighter leading-none">{ls.callRoomEventNumber || '-'}</div>
+                      </div>
+                      <div className="flex-1 bg-white/5 border border-white/10 rounded-xl sm:rounded-2xl p-2 sm:p-4 text-center shadow-lg">
+                        <div className="text-blue-200 text-[10px] sm:text-sm uppercase mb-0.5 sm:mb-1">{t[lang].series}</div>
+                        <div className="text-white text-4xl sm:text-6xl md:text-8xl font-bold tracking-tighter leading-none">{ls.callRoomSeries}</div>
+                      </div>
+                  </div>
+              </div>
 
-                {/* Baris Antrean di bawah Panel Call Room: In The Next & Ready To Race */}
-                <div className="relative z-10 w-full flex flex-col sm:flex-row divide-y sm:divide-y-0 sm:divide-x divide-slate-700 bg-slate-800/90 border-t border-slate-700">
-                    <div className="flex-1 p-2.5 sm:p-3.5 flex items-center justify-center gap-2">
-                        <div className="bg-slate-700 text-slate-300 text-[9px] sm:text-[10px] font-bold px-2 py-1 rounded uppercase tracking-wider whitespace-nowrap">In The Next</div>
-                        {inTheNext ? (
-                            <div className="flex gap-1.5">
-                                 <span className="font-mono font-bold text-slate-200 text-xs sm:text-sm border border-slate-600 bg-slate-800 px-2 py-0.5 rounded shadow-sm">EV <span className="text-blue-400">{inTheNext.event.number}</span></span>
-                                 <span className="font-mono font-bold text-slate-200 text-xs sm:text-sm border border-slate-600 bg-slate-800 px-2 py-0.5 rounded shadow-sm">HT <span className="text-blue-400">{inTheNext.series}</span></span>
-                            </div>
-                        ) : (
-                            <span className="text-slate-500 italic text-[10px] sm:text-xs font-medium">No Data</span>
-                        )}
-                    </div>
+              {/* Nama Acara Call Room */}
+              <div className="relative z-10 w-full bg-slate-950/80 border-t border-slate-800 py-2 sm:py-3 px-4 text-center">
+                  <p className="text-slate-200 text-sm sm:text-base md:text-lg font-bold tracking-widest uppercase line-clamp-1">{ls.callRoomEventName || t[lang].waiting}</p>
+              </div>
 
-                    <div className="flex-1 p-2.5 sm:p-3.5 flex items-center justify-center gap-2 bg-blue-900/20">
-                        <div className="bg-yellow-500/20 text-yellow-400 text-[9px] sm:text-[10px] font-bold px-2 py-1 rounded uppercase tracking-wider whitespace-nowrap border border-yellow-500/30">Ready To Race</div>
-                        {readyToRace ? (
-                            <div className="flex gap-1.5">
-                                 <span className="font-mono font-bold text-slate-200 text-xs sm:text-sm border border-blue-800 bg-slate-900 px-2 py-0.5 rounded shadow-sm">EV <span className="text-yellow-400">{readyToRace.event.number}</span></span>
-                                 <span className="font-mono font-bold text-slate-200 text-xs sm:text-sm border border-blue-800 bg-slate-900 px-2 py-0.5 rounded shadow-sm">HT <span className="text-yellow-400">{readyToRace.series}</span></span>
-                            </div>
-                        ) : (
-                            <span className="text-slate-500 italic text-[10px] sm:text-xs font-medium">No Data</span>
-                        )}
-                    </div>
-                </div>
-            </div>
-            
-            {/* Panel Live (Kanan) dengan Live Clock di pojok kanan atas */}
-            <div className="w-full md:w-1/2 bg-white relative flex flex-col justify-between border-t md:border-t-0 md:border-l border-slate-200 min-h-[300px] md:min-h-[48vh]">
-                {/* Header Live & Jam Real-time */}
-                <div className="relative z-10 px-4 py-5 md:px-8 md:pt-6 flex justify-between items-center w-full">
-                    <h2 className="text-slate-800 text-lg sm:text-2xl md:text-3xl font-bold flex items-center gap-1.5 sm:gap-2"><MonitorPlay className="text-red-500 w-5 h-5 sm:w-8 sm:h-8" /> {t[lang].racing_now}</h2>
-                    <div className="flex items-center gap-3">
-                        <div className="hidden sm:flex items-center gap-1.5 bg-slate-100 px-3 py-1 rounded-full border border-slate-200">
-                            <Clock size={14} className="text-slate-500" />
-                            <span className="font-mono font-bold text-slate-700 text-xs sm:text-sm tracking-wider">{currentTime.toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' })}</span>
-                        </div>
-                        <span className="bg-red-500 text-white text-[10px] sm:text-xs px-2.5 sm:px-3 py-0.5 sm:py-1 rounded-full font-bold animate-pulse">LIVE</span>
-                    </div>
-                </div>
+              {/* Baris Antrean di bawah Panel Call Room: In The Next & Ready To Race */}
+              <div className="relative z-10 w-full flex flex-col sm:flex-row divide-y sm:divide-y-0 sm:divide-x divide-slate-700 bg-slate-800/90 border-t border-slate-700">
+                  <div className="flex-1 p-2.5 sm:p-3.5 flex items-center justify-center gap-2">
+                      <div className="bg-slate-700 text-slate-300 text-[9px] sm:text-[10px] font-bold px-2 py-1 rounded uppercase tracking-wider whitespace-nowrap">In The Next</div>
+                      {inTheNext ? (
+                          <div className="flex gap-1.5">
+                              <span className="font-mono font-bold text-slate-200 text-xs sm:text-sm border border-slate-600 bg-slate-800 px-2 py-0.5 rounded shadow-sm">EV <span className="text-blue-400">{inTheNext.event.number}</span></span>
+                              <span className="font-mono font-bold text-slate-200 text-xs sm:text-sm border border-slate-600 bg-slate-800 px-2 py-0.5 rounded shadow-sm">HT <span className="text-blue-400">{inTheNext.series}</span></span>
+                          </div>
+                      ) : (
+                          <span className="text-slate-500 italic text-[10px] sm:text-xs font-medium">No Data</span>
+                      )}
+                  </div>
 
-                {/* Kotak Angka Event & Heat Live */}
-                <div className="relative z-10 px-4 md:px-8 w-full max-w-lg mx-auto my-auto">
-                    <div className="flex gap-2 sm:gap-4">
-                        <div className="flex-1 bg-slate-50 border border-slate-200 rounded-xl sm:rounded-2xl p-2 sm:p-4 text-center shadow-inner">
-                          <div className="text-slate-400 text-[10px] sm:text-sm uppercase mb-0.5 sm:mb-1">{t[lang].event}</div>
-                          <div className="text-slate-800 text-4xl sm:text-6xl md:text-8xl font-bold tracking-tighter leading-none">{ls.currentEventNumber || '-'}</div>
-                        </div>
-                        <div className="flex-1 bg-slate-50 border border-slate-200 rounded-xl sm:rounded-2xl p-2 sm:p-4 text-center shadow-inner">
-                          <div className="text-slate-400 text-[10px] sm:text-sm uppercase mb-0.5 sm:mb-1">{t[lang].series}</div>
-                          <div className="text-slate-800 text-4xl sm:text-6xl md:text-8xl font-bold tracking-tighter leading-none">{ls.currentSeries}</div>
-                        </div>
-                    </div>
-                </div>
+                  <div className="flex-1 p-2.5 sm:p-3.5 flex items-center justify-center gap-2 bg-blue-900/20">
+                      <div className="bg-yellow-500/20 text-yellow-400 text-[9px] sm:text-[10px] font-bold px-2 py-1 rounded uppercase tracking-wider whitespace-nowrap border border-yellow-500/30">Ready To Race</div>
+                      {readyToRace ? (
+                          <div className="flex gap-1.5">
+                              <span className="font-mono font-bold text-slate-200 text-xs sm:text-sm border border-blue-800 bg-slate-900 px-2 py-0.5 rounded shadow-sm">EV <span className="text-yellow-400">{readyToRace.event.number}</span></span>
+                              <span className="font-mono font-bold text-slate-200 text-xs sm:text-sm border border-blue-800 bg-slate-900 px-2 py-0.5 rounded shadow-sm">HT <span className="text-yellow-400">{readyToRace.series}</span></span>
+                          </div>
+                      ) : (
+                          <span className="text-slate-500 italic text-[10px] sm:text-xs font-medium">No Data</span>
+                      )}
+                  </div>
+              </div>
+          </div>
+          
+          {/* Panel Live (Kanan) */}
+          <div className="w-full md:w-1/2 bg-white relative flex flex-col justify-between border-t md:border-t-0 md:border-l border-slate-200 min-h-[300px] md:min-h-[48vh]">
+              {/* Header Live & Jam Real-time */}
+              <div className="relative z-10 px-4 py-5 md:px-8 md:pt-6 flex justify-between items-center w-full">
+                  <h2 className="text-slate-800 text-lg sm:text-2xl md:text-3xl font-bold flex items-center gap-1.5 sm:gap-2"><MonitorPlay className="text-red-500 w-5 h-5 sm:w-8 sm:h-8" /> {t[lang].racing_now}</h2>
+                  <div className="flex items-center gap-3">
+                      <div className="hidden sm:flex items-center gap-1.5 bg-slate-100 px-3 py-1 rounded-full border border-slate-200">
+                          <Clock size={14} className="text-slate-500" />
+                          <span className="font-mono font-bold text-slate-700 text-xs sm:text-sm tracking-wider">{currentTime.toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' })}</span>
+                      </div>
+                      <span className="bg-red-500 text-white text-[10px] sm:text-xs px-2.5 sm:px-3 py-0.5 sm:py-1 rounded-full font-bold animate-pulse">LIVE</span>
+                  </div>
+              </div>
 
-                {/* Nama Acara Live di bawah */}
-                <div className="relative z-10 w-full bg-slate-100 border-t border-slate-200 py-3 sm:py-4 px-4 text-center mt-auto">
-                    <p className="text-slate-800 text-sm sm:text-base md:text-lg font-bold tracking-widest uppercase line-clamp-1">{ls.currentEventName || t[lang].waiting}</p>
-                </div>
-            </div>
-        </div>
-        
-        {/* Informasi Diskualifikasi (DQ) */}
-        <div className="w-full max-w-7xl mx-auto p-3 sm:p-4 md:p-8 flex-1 flex flex-col">
-            <h3 className="text-slate-800 font-extrabold text-sm sm:text-lg md:text-xl mb-2 sm:mb-4 flex items-center gap-1.5 sm:gap-2 uppercase">
-                <AlertOctagon className="text-red-500 w-4 h-4 sm:w-6 sm:h-6" /> {t[lang].dq_info}
-            </h3>
-            <div className="bg-white rounded-xl shadow-md border border-slate-200 overflow-hidden flex flex-col">
-                <div className="flex bg-slate-800 text-white text-[9px] sm:text-sm font-bold uppercase py-2 sm:py-3 md:py-4 px-2 sm:px-3 md:px-6 items-center shrink-0">
-                    <div className="w-10 sm:w-16 md:w-20 text-center shrink-0">{t[lang].event}</div>
-                    <div className="w-8 sm:w-16 md:w-20 text-center shrink-0">{t[lang].series}</div>
-                    <div className="w-8 sm:w-16 md:w-20 text-center shrink-0">{t[lang].lane}</div>
-                    <div className="flex-1 pl-2 sm:pl-3 md:pl-6 text-left">{t[lang].dq_reason}</div>
-                </div>
-                
-                <div className="flex flex-col">
-                    {currentDqs.length === 0 ? (
-                        <div className="flex items-center justify-center text-slate-400 italic text-xs sm:text-sm md:text-base py-8 sm:py-12 px-4 text-center">{t[lang].dq_empty}</div>
-                    ) : (
-                        <div className="flex flex-col">
-                            {currentDqs.map((dq: any, idx: number) => (
-                                <div key={dq.id} className={`flex text-[10px] sm:text-sm md:text-base lg:text-xl py-2 sm:py-3 md:py-5 px-2 sm:px-3 md:px-6 border-b border-slate-100 items-center ${idx % 2 === 0 ? 'bg-white' : 'bg-slate-50'}`}>
-                                    <div className="w-10 sm:w-16 md:w-20 font-bold text-slate-800 text-center shrink-0">{dq.eventNumber}</div>
-                                    <div className="w-8 sm:w-16 md:w-20 text-center text-slate-600 font-semibold shrink-0">{dq.series}</div>
-                                    <div className="w-8 sm:w-16 md:w-20 text-center shrink-0">
-                                        <span className="bg-slate-200 text-slate-700 px-1 sm:px-2 md:px-4 py-0.5 sm:py-1 md:py-1.5 rounded-md sm:rounded-lg font-mono font-bold">{dq.lane}</span>
-                                    </div>
-                                    <div className="flex-1 pl-2 sm:pl-3 md:pl-6 text-red-600 font-bold whitespace-normal break-words leading-tight sm:leading-snug">{dq.reason}</div>
-                                </div>
-                            ))}
-                        </div>
-                    )}
+              {/* Kotak Angka Event & Heat Live */}
+              <div className="relative z-10 px-4 md:px-8 w-full max-w-lg mx-auto my-auto">
+                  <div className="flex gap-2 sm:gap-4">
+                      <div className="flex-1 bg-slate-50 border border-slate-200 rounded-xl sm:rounded-2xl p-2 sm:p-4 text-center shadow-inner">
+                        <div className="text-slate-400 text-[10px] sm:text-sm uppercase mb-0.5 sm:mb-1">{t[lang].event}</div>
+                        <div className="text-slate-800 text-4xl sm:text-6xl md:text-8xl font-bold tracking-tighter leading-none">{ls.currentEventNumber || '-'}</div>
+                      </div>
+                      <div className="flex-1 bg-slate-50 border border-slate-200 rounded-xl sm:rounded-2xl p-2 sm:p-4 text-center shadow-inner">
+                        <div className="text-slate-400 text-[10px] sm:text-sm uppercase mb-0.5 sm:mb-1">{t[lang].series}</div>
+                        <div className="text-slate-800 text-4xl sm:text-6xl md:text-8xl font-bold tracking-tighter leading-none">{ls.currentSeries}</div>
+                      </div>
+                  </div>
+              </div>
 
-                    {totalPages > 1 && (
-                        <div className="bg-slate-100 border-t border-slate-200 p-2 sm:p-3 md:p-4 px-3 sm:px-4 md:px-6 flex justify-between items-center shrink-0">
-                            <button 
-                                onClick={() => setDqPage(p => Math.max(1, p - 1))} 
-                                disabled={dqPage === 1} 
-                                className="px-2 sm:px-4 py-1.5 sm:py-2 bg-white border border-slate-300 rounded-md sm:rounded-lg text-[10px] sm:text-xs md:text-sm font-bold text-slate-600 disabled:opacity-50 hover:bg-slate-50 flex items-center gap-1 transition"
-                            >
-                                <ChevronLeft size={14} className="sm:w-4 sm:h-4"/> <span className="hidden sm:inline">{t[lang].prev}</span>
-                            </button>
-                            <span className="text-[9px] sm:text-xs md:text-sm font-bold text-slate-500 uppercase tracking-widest">{t[lang].page} {dqPage} {t[lang].of} {totalPages}</span>
-                            <button 
-                                onClick={() => setDqPage(p => Math.min(totalPages, p + 1))} 
-                                disabled={dqPage === totalPages} 
-                                className="px-2 sm:px-4 py-1.5 sm:py-2 bg-white border border-slate-300 rounded-md sm:rounded-lg text-[10px] sm:text-xs md:text-sm font-bold text-slate-600 disabled:opacity-50 hover:bg-slate-50 flex items-center gap-1 transition"
-                            >
-                                <span className="hidden sm:inline">{t[lang].next}</span> <ChevronRight size={14} className="sm:w-4 sm:h-4"/>
-                            </button>
-                        </div>
-                    )}
-                </div>
-            </div>
-        </div>
+              {/* Nama Acara Live di bawah */}
+              <div className="relative z-10 w-full bg-slate-100 border-t border-slate-200 py-3 sm:py-4 px-4 text-center mt-auto">
+                  <p className="text-slate-800 text-sm sm:text-base md:text-lg font-bold tracking-widest uppercase line-clamp-1">{ls.currentEventName || t[lang].waiting}</p>
+              </div>
+          </div>
+      </div>
+      
+      {}
+      <div className="w-full max-w-7xl mx-auto p-3 sm:p-4 md:p-8 flex-1 flex flex-col">
+          <h3 className="text-slate-800 font-extrabold text-sm sm:text-lg md:text-xl mb-2 sm:mb-4 flex items-center gap-1.5 sm:gap-2 uppercase">
+              <AlertOctagon className="text-red-500 w-4 h-4 sm:w-6 sm:h-6" /> {t[lang].dq_info}
+          </h3>
+          <div className="bg-white rounded-xl shadow-md border border-slate-200 overflow-hidden flex flex-col">
+              <div className="flex bg-slate-800 text-white text-[9px] sm:text-sm font-bold uppercase py-2 sm:py-3 md:py-4 px-2 sm:px-3 md:px-6 items-center shrink-0">
+                  <div className="w-10 sm:w-16 md:w-20 text-center shrink-0">{t[lang].event}</div>
+                  <div className="w-8 sm:w-16 md:w-20 text-center shrink-0">{t[lang].series}</div>
+                  <div className="w-8 sm:w-16 md:w-20 text-center shrink-0">{t[lang].lane}</div>
+                  <div className="flex-1 pl-2 sm:pl-3 md:pl-6 text-left">{t[lang].dq_reason}</div>
+              </div>
+              
+              <div className="flex flex-col">
+                  {currentDqs.length === 0 ? (
+                      <div className="flex items-center justify-center text-slate-400 italic text-xs sm:text-sm md:text-base py-8 sm:py-12 px-4 text-center">{t[lang].dq_empty}</div>
+                  ) : (
+                      <div className="flex flex-col">
+                          {currentDqs.map((dq: any, idx: number) => (
+                              <div key={dq.id} className={`flex text-[10px] sm:text-sm md:text-base lg:text-xl py-2 sm:py-3 md:py-5 px-2 sm:px-3 md:px-6 border-b border-slate-100 items-center ${idx % 2 === 0 ? 'bg-white' : 'bg-slate-50'}`}>
+                                  <div className="w-10 sm:w-16 md:w-20 font-bold text-slate-800 text-center shrink-0">{dq.eventNumber}</div>
+                                  <div className="w-8 sm:w-16 md:w-20 text-center text-slate-600 font-semibold shrink-0">{dq.series}</div>
+                                  <div className="w-8 sm:w-16 md:w-20 text-center shrink-0">
+                                      <span className="bg-slate-200 text-slate-700 px-1 sm:px-2 md:px-4 py-0.5 sm:py-1 md:py-1.5 rounded-md sm:rounded-lg font-mono font-bold">{dq.lane}</span>
+                                  </div>
+                                  <div className="flex-1 pl-2 sm:pl-3 md:pl-6 text-red-600 font-bold whitespace-normal break-words leading-tight sm:leading-snug">{dq.reason}</div>
+                              </div>
+                          ))}
+                      </div>
+                  )}
 
-        <footer className="bg-slate-900 text-slate-500 text-center py-2 sm:py-3 text-[10px] sm:text-xs font-mono tracking-widest border-t border-slate-800 shrink-0 mt-auto">{t[lang].footer_text}</footer>
+                  {totalPages > 1 && (
+                      <div className="bg-slate-100 border-t border-slate-200 p-2 sm:p-3 md:p-4 px-3 sm:px-4 md:px-6 flex justify-between items-center shrink-0">
+                          <button 
+                              onClick={() => setDqPage(p => Math.max(1, p - 1))} 
+                              disabled={dqPage === 1} 
+                              className="px-2 sm:px-4 py-1.5 sm:py-2 bg-white border border-slate-300 rounded-md sm:rounded-lg text-[10px] sm:text-xs md:text-sm font-bold text-slate-600 disabled:opacity-50 hover:bg-slate-50 flex items-center gap-1 transition"
+                          >
+                              <ChevronLeft size={14} className="sm:w-4 sm:h-4"/> <span className="hidden sm:inline">{t[lang].prev}</span>
+                          </button>
+                          <span className="text-[9px] sm:text-xs md:text-sm font-bold text-slate-500 uppercase tracking-widest">{t[lang].page} {dqPage} {t[lang].of} {totalPages}</span>
+                          <button 
+                              onClick={() => setDqPage(p => Math.min(totalPages, p + 1))} 
+                              disabled={dqPage === totalPages} 
+                              className="px-2 sm:px-4 py-1.5 sm:py-2 bg-white border border-slate-300 rounded-md sm:rounded-lg text-[10px] sm:text-xs md:text-sm font-bold text-slate-600 disabled:opacity-50 hover:bg-slate-50 flex items-center gap-1 transition"
+                          >
+                              <span className="hidden sm:inline">{t[lang].next}</span> <ChevronRight size={14} className="sm:w-4 sm:h-4"/>
+                          </button>
+                      </div>
+                  )}
+              </div>
+          </div>
+      </div>
 
-        {showResultsList && (
-          <div className="fixed inset-0 z-[80] bg-black/80 flex items-center justify-center p-4 animate-in fade-in">
-              <div className="bg-white rounded-2xl w-full max-w-2xl max-h-[80vh] flex flex-col relative shadow-2xl">
-                  <div className="p-4 sm:p-6 border-b border-slate-100 flex justify-between items-center shrink-0">
-                     <h2 className="text-lg sm:text-xl font-bold text-slate-800 flex items-center gap-2"><FileText className="text-blue-600"/> {t[lang].results_list_title}</h2>
-                     <button onClick={() => setShowResultsList(false)} className="text-slate-400 hover:text-red-500 transition"><X size={24}/></button>
-                  </div>
-                  <div className="p-0 overflow-y-auto flex-1">
-                     {events.length === 0 ? (
-                         <div className="p-8 text-center text-slate-500 italic text-sm sm:text-base">Belum ada data acara.</div>
-                     ) : (
-                         <table className="w-full text-left text-xs sm:text-sm md:text-base">
-                            <thead className="bg-slate-50 sticky top-0 border-b border-slate-200">
-                               <tr><th className="p-3 sm:p-4 font-bold text-slate-600">{t[lang].no}</th><th className="p-3 sm:p-4 font-bold text-slate-600">{t[lang].event}</th><th className="p-3 sm:p-4 font-bold text-slate-600 text-right">{t[lang].action}</th></tr>
-                            </thead>
-                            <tbody>
-                               {events.map((ev: any, idx: number) => (
-                                   <tr key={ev.id} className={`border-b border-slate-100 ${idx % 2 === 0 ? 'bg-white' : 'bg-slate-50'}`}>
-                                      <td className="p-3 sm:p-4 font-bold text-slate-800 w-10 sm:w-12">{ev.number}</td>
-                                      <td className="p-3 sm:p-4 font-semibold text-slate-700">{ev.name}</td>
-                                      <td className="p-3 sm:p-4 text-right w-24 sm:w-32">
-                                         {ev.resultUrl ? (
-                                             <button onClick={() => setShowPdfUrl(ev.resultUrl)} className="bg-blue-600 hover:bg-blue-700 text-white px-2 sm:px-4 py-1.5 sm:py-2 rounded-lg font-bold text-[10px] sm:text-xs shadow-sm transition whitespace-nowrap">{t[lang].view_result}</button>
-                                         ) : (
-                                             <span className="text-[10px] sm:text-xs text-slate-400 italic whitespace-nowrap">{t[lang].not_available}</span>
-                                         )}
-                                      </td>
-                                   </tr>
-                               ))}
-                            </tbody>
-                         </table>
-                     )}
-                  </div>
-               </div>
-          </div>
-        )}
+      <footer className="bg-slate-900 text-slate-500 text-center py-2 sm:py-3 text-[10px] sm:text-xs font-mono tracking-widest border-t border-slate-800 shrink-0 mt-auto">{t[lang].footer_text}</footer>
 
-        {showPdfUrl && (
-          <div className="fixed inset-0 z-[90] bg-black/90 flex flex-col p-2 sm:p-4 animate-in fade-in">
-              <div className="flex justify-between items-center mb-2 sm:mb-4 text-white">
-                  <div className="flex flex-col">
-                    <h2 className="font-bold text-base sm:text-lg flex items-center gap-1.5 sm:gap-2"><FileText size={18} className="sm:w-5 sm:h-5"/> <span className="hidden sm:inline">{t[lang].results_detail_title}</span></h2>
-                    {currentResultIndex !== -1 && (
-                      <span className="text-blue-300 text-xs sm:text-sm font-semibold truncate max-w-[200px] sm:max-w-[250px] md:max-w-md mt-0.5">
-                        {eventsWithResults[currentResultIndex].number}. {eventsWithResults[currentResultIndex].name}
-                      </span>
-                    )}
-                  </div>
-                  <button onClick={() => setShowPdfUrl(null)} className="p-1.5 sm:p-2 bg-slate-800 rounded-full hover:bg-slate-700 shrink-0"><X size={20}/></button>
-              </div>
-              
-              <div className="flex-1 w-full relative flex items-center">
-                  {currentResultIndex > 0 && (
-                    <button 
-                      onClick={handlePrevResult}
-                      className="absolute left-1 sm:left-2 z-10 bg-slate-800/80 hover:bg-blue-600 text-white p-2 sm:p-3 rounded-full shadow-lg transition-colors backdrop-blur-sm"
-                    >
-                      <ChevronLeft size={20} className="sm:w-6 sm:h-6" />
-                    </button>
-                  )}
+      {}
+      {showResultsList && (
+        <div className="fixed inset-0 z-[80] bg-black/80 flex items-center justify-center p-4 animate-in fade-in">
+            <div className="bg-white rounded-2xl w-full max-w-2xl max-h-[80vh] flex flex-col relative shadow-2xl">
+                <div className="p-4 sm:p-6 border-b border-slate-100 flex justify-between items-center shrink-0">
+                   <h2 className="text-lg sm:text-xl font-bold text-slate-800 flex items-center gap-2"><FileText className="text-blue-600"/> {t[lang].results_list_title}</h2>
+                   <button onClick={() => setShowResultsList(false)} className="text-slate-400 hover:text-red-500 transition"><X size={24}/></button>
+                </div>
+                <div className="p-0 overflow-y-auto flex-1">
+                   {events.length === 0 ? (
+                       <div className="p-8 text-center text-slate-500 italic text-sm sm:text-base">Belum ada data acara.</div>
+                   ) : (
+                       <table className="w-full text-left text-xs sm:text-sm md:text-base">
+                          <thead className="bg-slate-50 sticky top-0 border-b border-slate-200">
+                             <tr><th className="p-3 sm:p-4 font-bold text-slate-600">{t[lang].no}</th><th className="p-3 sm:p-4 font-bold text-slate-600">{t[lang].event}</th><th className="p-3 sm:p-4 font-bold text-slate-600 text-right">{t[lang].action}</th></tr>
+                          </thead>
+                          <tbody>
+                             {events.map((ev: any, idx: number) => (
+                                 <tr key={ev.id} className={`border-b border-slate-100 ${idx % 2 === 0 ? 'bg-white' : 'bg-slate-50'}`}>
+                                    <td className="p-3 sm:p-4 font-bold text-slate-800 w-10 sm:w-12">{ev.number}</td>
+                                    <td className="p-3 sm:p-4 font-semibold text-slate-700">{ev.name}</td>
+                                    <td className="p-3 sm:p-4 text-right w-24 sm:w-32">
+                                       {ev.resultUrl ? (
+                                           <button onClick={() => setShowPdfUrl(ev.resultUrl)} className="bg-blue-600 hover:bg-blue-700 text-white px-2 sm:px-4 py-1.5 sm:py-2 rounded-lg font-bold text-[10px] sm:text-xs shadow-sm transition whitespace-nowrap">{t[lang].view_result}</button>
+                                       ) : (
+                                           <span className="text-[10px] sm:text-xs text-slate-400 italic whitespace-nowrap">{t[lang].not_available}</span>
+                                       )}
+                                    </td>
+                                 </tr>
+                             ))}
+                          </tbody>
+                       </table>
+                   )}
+                </div>
+             </div>
+          </div>
+        )}
 
-                  <iframe src={showPdfUrl} className="w-full h-full rounded-lg bg-white" title="Hasil Acara"></iframe>
+        {showPdfUrl && (
+          <div className="fixed inset-0 z-[90] bg-black/90 flex flex-col p-2 sm:p-4 animate-in fade-in">
+              <div className="flex justify-between items-center mb-2 sm:mb-4 text-white">
+                  <div className="flex flex-col">
+                    <h2 className="font-bold text-base sm:text-lg flex items-center gap-1.5 sm:gap-2"><FileText size={18} className="sm:w-5 sm:h-5"/> <span className="hidden sm:inline">{t[lang].results_detail_title}</span></h2>
+                    {currentResultIndex !== -1 && (
+                      <span className="text-blue-300 text-xs sm:text-sm font-semibold truncate max-w-[200px] sm:max-w-[250px] md:max-w-md mt-0.5">
+                        {eventsWithResults[currentResultIndex].number}. {eventsWithResults[currentResultIndex].name}
+                      </span>
+                    )}
+                  </div>
+                  <button onClick={() => setShowPdfUrl(null)} className="p-1.5 sm:p-2 bg-slate-800 rounded-full hover:bg-slate-700 shrink-0"><X size={20}/></button>
+              </div>
+              
+              <div className="flex-1 w-full relative flex items-center">
+                  {currentResultIndex > 0 && (
+                    <button 
+                      onClick={handlePrevResult}
+                      className="absolute left-1 sm:left-2 z-10 bg-slate-800/80 hover:bg-blue-600 text-white p-2 sm:p-3 rounded-full shadow-lg transition-colors backdrop-blur-sm"
+                    >
+                      <ChevronLeft size={20} className="sm:w-6 sm:h-6" />
+                    </button>
+                  )}
 
-                  {currentResultIndex !== -1 && currentResultIndex < eventsWithResults.length - 1 && (
-                    <button 
-                      onClick={handleNextResult}
-                      className="absolute right-1 sm:right-2 z-10 bg-slate-800/80 hover:bg-blue-600 text-white p-2 sm:p-3 rounded-full shadow-lg transition-colors backdrop-blur-sm"
-                    >
-                      <ChevronRight size={20} className="sm:w-6 sm:h-6" />
-                    </button>
-                  )}
-              </div>
-          </div>
-        )}
-    </div>
+                  <iframe src={showPdfUrl} className="w-full h-full rounded-lg bg-white" title="Hasil Acara"></iframe>
+
+                  {currentResultIndex !== -1 && currentResultIndex < eventsWithResults.length - 1 && (
+                    <button 
+                      onClick={handleNextResult}
+                      className="absolute right-1 sm:right-2 z-10 bg-slate-800/80 hover:bg-blue-600 text-white p-2 sm:p-3 rounded-full shadow-lg transition-colors backdrop-blur-sm"
+                    >
+                      <ChevronRight size={20} className="sm:w-6 sm:h-6" />
+                    </button>
+                  )}
+              </div>
+          </div>
+        )}
+    </div>
   );
 }
 
