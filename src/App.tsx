@@ -1468,8 +1468,36 @@ function LiveScoreboard({ tournament, dqs, events, isOnline, onBack, onLoginRequ
       if (dqPage > totalPages) setDqPage(1);
   }, [dqs.length, totalPages, dqPage]);
 
+  const calculateNextRace = (offset: number) => {
+      if (!ls.currentEventId) return null;
+      const activeIdx = events.findIndex((e: any) => e.id === ls.currentEventId);
+      if (activeIdx === -1) return null;
+
+      let currentEvent = events[activeIdx];
+      let currentSeries = ls.currentSeries;
+
+      for (let i = 0; i < offset; i++) {
+          if (currentSeries < currentEvent.totalSeries) {
+              currentSeries++;
+          } else {
+              const nextIdx = events.findIndex((e: any) => e.id === currentEvent.id) + 1;
+              if (nextIdx < events.length) {
+                  currentEvent = events[nextIdx];
+                  currentSeries = 1;
+              } else {
+                  return null; // Tidak ada acara lagi
+              }
+          }
+      }
+      return { event: currentEvent, series: currentSeries };
+  };
+
+  const readyToRace = calculateNextRace(1);
+  const inTheNext = calculateNextRace(2);
+
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col relative">
+        {}
         <header className="bg-slate-900 text-white h-auto sm:h-16 shrink-0 flex flex-wrap sm:flex-nowrap items-center justify-between px-3 sm:px-6 py-2 sm:py-0 border-b border-slate-800 shadow-xl z-50">
             <div className="flex items-center gap-2 sm:gap-4 w-full sm:w-auto mb-2 sm:mb-0 relative">
                 <img src="/sangkuriang%201.png" alt="Logo" className="h-8 sm:h-10 w-auto object-contain" onError={(e:any) => e.target.style.display='none'} />
@@ -1513,55 +1541,94 @@ function LiveScoreboard({ tournament, dqs, events, isOnline, onBack, onLoginRequ
             </div>
         </header>
 
-        <div className="flex flex-col md:flex-row border-b border-slate-200 shadow-sm shrink-0">
-            <div className="w-full md:w-1/2 bg-slate-900 relative px-4 py-6 md:p-12 min-h-[180px] sm:min-h-[250px] md:min-h-[45vh] flex flex-col justify-center mt-3 sm:mt-0">
-                <div className="absolute inset-0 bg-gradient-to-br from-blue-900/40 via-slate-900 to-slate-900 z-0"></div>
-                <div className="relative z-10 w-full max-w-lg mx-auto">
-                    <div className="flex justify-between items-start sm:items-center mb-3 sm:mb-6">
-                        <div>
-                            <h2 className="text-white text-lg sm:text-2xl md:text-3xl font-bold flex items-center gap-1.5 sm:gap-2"><Users className="text-blue-400 w-5 h-5 sm:w-8 sm:h-8" /> {t[lang].call_room}</h2>
-                            {t[lang].call_room_sub && <span className="text-blue-200/60 text-[10px] sm:text-sm block mt-0.5 sm:mt-1">{t[lang].call_room_sub}</span>}
+        {}
+        <div className="flex flex-col border-b border-slate-200 shadow-sm shrink-0">
+            {/* Bagian Atas: Call Room & Live Bersebelahan */}
+            <div className="flex flex-col md:flex-row w-full">
+                {/* Call Room Panel (Kiri) */}
+                <div className="w-full md:w-1/2 bg-slate-900 relative px-4 py-6 md:p-12 min-h-[180px] sm:min-h-[200px] flex flex-col justify-center">
+                    <div className="absolute inset-0 bg-gradient-to-br from-blue-900/40 via-slate-900 to-slate-900 z-0"></div>
+                    <div className="relative z-10 w-full max-w-lg mx-auto">
+                        <div className="flex justify-between items-start sm:items-center mb-3 sm:mb-6">
+                            <div>
+                                <h2 className="text-white text-lg sm:text-2xl md:text-3xl font-bold flex items-center gap-1.5 sm:gap-2"><Users className="text-blue-400 w-5 h-5 sm:w-8 sm:h-8" /> {t[lang].call_room}</h2>
+                                {t[lang].call_room_sub && <span className="text-blue-200/60 text-[10px] sm:text-sm block mt-0.5 sm:mt-1">{t[lang].call_room_sub}</span>}
+                            </div>
+                            <div className="text-right">
+                                <span className="text-blue-200/40 text-[8px] sm:text-[10px] uppercase block">{t[lang].last_update}</span>
+                                <span className="text-white text-xs sm:text-base md:text-lg font-mono font-bold flex items-center gap-1 sm:gap-2 justify-end"><Clock size={12} className="text-blue-400 sm:w-4 sm:h-4" /> {ls.callRoomLastUpdate || '-'}</span>
+                            </div>
                         </div>
-                        <div className="text-right">
-                            <span className="text-blue-200/40 text-[8px] sm:text-[10px] uppercase block">{t[lang].last_update}</span>
-                            <span className="text-white text-xs sm:text-base md:text-lg font-mono font-bold flex items-center gap-1 sm:gap-2 justify-end"><Clock size={12} className="text-blue-400 sm:w-4 sm:h-4" /> {ls.callRoomLastUpdate || '-'}</span>
+                        <div className="flex gap-2 sm:gap-4">
+                            <div className="flex-1 bg-white/5 border border-white/10 rounded-xl sm:rounded-2xl p-2 sm:p-4 text-center">
+                              <div className="text-blue-200 text-[10px] sm:text-sm uppercase mb-0.5 sm:mb-1">{t[lang].event}</div>
+                              <div className="text-white text-4xl sm:text-6xl md:text-8xl font-bold tracking-tighter leading-none">{ls.callRoomEventNumber || '-'}</div>
+                            </div>
+                            <div className="flex-1 bg-white/5 border border-white/10 rounded-xl sm:rounded-2xl p-2 sm:p-4 text-center">
+                              <div className="text-blue-200 text-[10px] sm:text-sm uppercase mb-0.5 sm:mb-1">{t[lang].series}</div>
+                              <div className="text-white text-4xl sm:text-6xl md:text-8xl font-bold tracking-tighter leading-none">{ls.callRoomSeries}</div>
+                            </div>
                         </div>
                     </div>
-                    <div className="flex gap-2 sm:gap-4">
-                        <div className="flex-1 bg-white/5 border border-white/10 rounded-xl sm:rounded-2xl p-2 sm:p-4 text-center">
-                          <div className="text-blue-200 text-[10px] sm:text-sm uppercase mb-0.5 sm:mb-1">{t[lang].event}</div>
-                          <div className="text-white text-4xl sm:text-6xl md:text-8xl font-bold tracking-tighter leading-none">{ls.callRoomEventNumber || '-'}</div>
+                </div>
+                
+                {/* Live Panel (Kanan) */}
+                <div className="w-full md:w-1/2 bg-white relative px-4 py-6 md:p-12 min-h-[180px] sm:min-h-[200px] flex flex-col justify-center border-t md:border-t-0 md:border-l border-slate-200">
+                    <div className="relative z-10 w-full max-w-lg mx-auto">
+                        <div className="flex justify-between items-center mb-3 sm:mb-6">
+                            <h2 className="text-slate-800 text-lg sm:text-2xl md:text-3xl font-bold flex items-center gap-1.5 sm:gap-2"><MonitorPlay className="text-red-500 w-5 h-5 sm:w-8 sm:h-8" /> {t[lang].racing_now}</h2>
+                            <span className="bg-red-500 text-white text-[10px] sm:text-xs px-2 sm:px-3 py-0.5 sm:py-1 rounded-full font-bold animate-pulse">LIVE</span>
                         </div>
-                        <div className="flex-1 bg-white/5 border border-white/10 rounded-xl sm:rounded-2xl p-2 sm:p-4 text-center">
-                          <div className="text-blue-200 text-[10px] sm:text-sm uppercase mb-0.5 sm:mb-1">{t[lang].series}</div>
-                          <div className="text-white text-4xl sm:text-6xl md:text-8xl font-bold tracking-tighter leading-none">{ls.callRoomSeries}</div>
+                        <div className="flex gap-2 sm:gap-4">
+                            <div className="flex-1 bg-slate-50 border border-slate-200 rounded-xl sm:rounded-2xl p-2 sm:p-4 text-center shadow-inner">
+                              <div className="text-slate-400 text-[10px] sm:text-sm uppercase mb-0.5 sm:mb-1">{t[lang].event}</div>
+                              <div className="text-slate-800 text-4xl sm:text-6xl md:text-8xl font-bold tracking-tighter leading-none">{ls.currentEventNumber || '-'}</div>
+                            </div>
+                            <div className="flex-1 bg-slate-50 border border-slate-200 rounded-xl sm:rounded-2xl p-2 sm:p-4 text-center shadow-inner">
+                              <div className="text-slate-400 text-[10px] sm:text-sm uppercase mb-0.5 sm:mb-1">{t[lang].series}</div>
+                              <div className="text-slate-800 text-4xl sm:text-6xl md:text-8xl font-bold tracking-tighter leading-none">{ls.currentSeries}</div>
+                            </div>
                         </div>
                     </div>
-                    <p className="text-center text-blue-200/50 mt-2 sm:mt-4 text-xs sm:text-lg md:text-xl font-medium truncate uppercase">{ls.callRoomEventName || t[lang].waiting}</p>
                 </div>
             </div>
-            
-            <div className="w-full md:w-1/2 bg-white relative px-4 py-6 md:p-12 min-h-[180px] sm:min-h-[250px] md:min-h-[45vh] flex flex-col justify-center">
-                <div className="relative z-10 w-full max-w-lg mx-auto">
-                    <div className="flex justify-between items-center mb-3 sm:mb-6">
-                        <h2 className="text-slate-800 text-lg sm:text-2xl md:text-3xl font-bold flex items-center gap-1.5 sm:gap-2"><MonitorPlay className="text-red-500 w-5 h-5 sm:w-8 sm:h-8" /> {t[lang].racing_now}</h2>
-                        <span className="bg-red-500 text-white text-[10px] sm:text-xs px-2 sm:px-3 py-0.5 sm:py-1 rounded-full font-bold animate-pulse">LIVE</span>
-                    </div>
-                    <div className="flex gap-2 sm:gap-4">
-                        <div className="flex-1 bg-slate-50 border border-slate-200 rounded-xl sm:rounded-2xl p-2 sm:p-4 text-center shadow-inner">
-                          <div className="text-slate-400 text-[10px] sm:text-sm uppercase mb-0.5 sm:mb-1">{t[lang].event}</div>
-                          <div className="text-slate-800 text-4xl sm:text-6xl md:text-8xl font-bold tracking-tighter leading-none">{ls.currentEventNumber || '-'}</div>
+
+            {}
+            <div className="w-full bg-slate-800 border-y border-slate-700 py-3 sm:py-4 px-4 text-center">
+                <p className="text-white text-base sm:text-xl md:text-2xl font-bold tracking-widest uppercase line-clamp-1">{ls.currentEventName || t[lang].waiting}</p>
+            </div>
+
+            {}
+            <div className="w-full flex flex-col sm:flex-row divide-y sm:divide-y-0 sm:divide-x divide-slate-200 bg-slate-100">
+                {/* In The Next Panel (Kiri Bawah) */}
+                <div className="flex-1 p-3 sm:p-5 flex items-center justify-center sm:justify-start gap-4 hover:bg-slate-200 transition-colors">
+                    <div className="bg-slate-300 text-slate-600 text-[10px] sm:text-xs font-bold px-3 py-1.5 rounded-full uppercase tracking-wider whitespace-nowrap">In The Next</div>
+                    {inTheNext ? (
+                        <div className="flex gap-2">
+                             <span className="font-mono font-bold text-slate-700 text-sm sm:text-base border border-slate-300 bg-white px-2 py-0.5 rounded shadow-sm">EV <span className="text-blue-600">{inTheNext.event.number}</span></span>
+                             <span className="font-mono font-bold text-slate-700 text-sm sm:text-base border border-slate-300 bg-white px-2 py-0.5 rounded shadow-sm">HT <span className="text-blue-600">{inTheNext.series}</span></span>
                         </div>
-                        <div className="flex-1 bg-slate-50 border border-slate-200 rounded-xl sm:rounded-2xl p-2 sm:p-4 text-center shadow-inner">
-                          <div className="text-slate-400 text-[10px] sm:text-sm uppercase mb-0.5 sm:mb-1">{t[lang].series}</div>
-                          <div className="text-slate-800 text-4xl sm:text-6xl md:text-8xl font-bold tracking-tighter leading-none">{ls.currentSeries}</div>
+                    ) : (
+                        <span className="text-slate-400 italic text-xs sm:text-sm font-medium">No Data</span>
+                    )}
+                </div>
+
+                {/* Ready To Race Panel (Kanan Bawah) */}
+                <div className="flex-1 p-3 sm:p-5 flex items-center justify-center sm:justify-start gap-4 bg-yellow-50 hover:bg-yellow-100 transition-colors">
+                    <div className="bg-yellow-400 text-yellow-900 text-[10px] sm:text-xs font-bold px-3 py-1.5 rounded-full uppercase tracking-wider whitespace-nowrap shadow-sm border border-yellow-500/50">Ready To Race</div>
+                    {readyToRace ? (
+                        <div className="flex gap-2">
+                             <span className="font-mono font-bold text-slate-800 text-sm sm:text-base border border-yellow-300 bg-white px-3 py-0.5 rounded shadow-sm">EV <span className="text-red-600">{readyToRace.event.number}</span></span>
+                             <span className="font-mono font-bold text-slate-800 text-sm sm:text-base border border-yellow-300 bg-white px-3 py-0.5 rounded shadow-sm">HT <span className="text-red-600">{readyToRace.series}</span></span>
                         </div>
-                    </div>
-                    <p className="text-center text-slate-500 mt-2 sm:mt-4 text-xs sm:text-lg md:text-xl font-medium truncate uppercase">{ls.currentEventName || t[lang].waiting}</p>
+                    ) : (
+                        <span className="text-slate-400 italic text-xs sm:text-sm font-medium">No Data</span>
+                    )}
                 </div>
             </div>
         </div>
         
+        {}
         <div className="w-full max-w-7xl mx-auto p-3 sm:p-4 md:p-8 flex-1 flex flex-col">
             <h3 className="text-slate-800 font-extrabold text-sm sm:text-lg md:text-xl mb-2 sm:mb-4 flex items-center gap-1.5 sm:gap-2 uppercase">
                 <AlertOctagon className="text-red-500 w-4 h-4 sm:w-6 sm:h-6" /> {t[lang].dq_info}
