@@ -1227,7 +1227,6 @@ function MasterDashboard({ tournaments, onCreate, onEdit, onDelete, onLogout, on
   }));
 
   const activeTournamentsCount = tournaments.filter((t:any) => t.status === 'live' || t.status === 'paused').length;
-  const finishedTournamentsCount = tournaments.filter((t:any) => t.status === 'finished').length;
 
   return (
     <div className="min-h-screen bg-slate-50 font-sans text-slate-900">
