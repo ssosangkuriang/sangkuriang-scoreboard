@@ -989,7 +989,7 @@ const TourCard = ({ tour, badge, badgeColor, onSelectTournament, lang }: any) =>
   <div onClick={() => onSelectTournament(tour.id)} className="bg-slate-800/80 backdrop-blur border border-slate-700 p-6 rounded-2xl shadow-xl hover:border-blue-500 transition-colors cursor-pointer group text-left">
       <div className="flex justify-between items-start mb-4">
         <span className={`${badgeColor} text-[10px] sm:text-xs px-2 py-1 rounded font-bold uppercase`}>{badge}</span>
-        <span className="text-[10px] font-bold px-2 py-1 rounded bg-slate-700 text-blue-300">{tour.sportType === 'Selam' ? (lang === 'id' ? 'Selam' : 'Finswimming') : (lang === 'id' ? 'Renang' : 'Swim')}</span>
+        <span className="text-[10px] font-bold px-2 py-1 rounded bg-slate-700 text-blue-300">{tour.sportType === 'Selam' ? (lang === 'id' ? 'Selam' : 'Finswimming') : (lang === 'id' ? 'Renang' : 'Swimming')}</span>
       </div>
       <h3 className="text-lg sm:text-xl font-bold mb-2 text-white group-hover:text-blue-400 transition">{tour.title}</h3>
       <div className="text-xs sm:text-sm text-slate-400 mb-2 flex items-center gap-2"><MapPin size={14} className="shrink-0"/> <span className="truncate">{tour.venue}</span></div>
@@ -1136,6 +1136,7 @@ const CustomLineChart = ({ data }: { data: {time: string, viewers: number}[] }) 
 };
 
 function MasterDashboard({ tournaments, onCreate, onEdit, onDelete, onLogout, onChangeMasterPin, lang, t }: any) {
+  const [activeTab, setActiveTab] = useState<'analytics' | 'manage'>('analytics');
   const [showCreate, setShowCreate] = useState(false);
   const [form, setForm] = useState({ title: '', venue: '', eventDate: '', endDate: '', sportType: 'Renang', adminPin: '1234', announcerPin: '1234', callroomPin: '1234' });
 
@@ -1225,6 +1226,9 @@ function MasterDashboard({ tournaments, onCreate, onEdit, onDelete, onLogout, on
       viewers: d.viewers
   }));
 
+  const activeTournamentsCount = tournaments.filter((t:any) => t.status === 'live' || t.status === 'paused').length;
+  const finishedTournamentsCount = tournaments.filter((t:any) => t.status === 'finished').length;
+
   return (
     <div className="min-h-screen bg-slate-50 font-sans text-slate-900">
       <header className="bg-blue-900 text-white p-4 shadow-lg sticky top-0 z-50">
@@ -1237,120 +1241,162 @@ function MasterDashboard({ tournaments, onCreate, onEdit, onDelete, onLogout, on
         </div>
       </header>
       
-      <main className="max-w-6xl mx-auto p-6">
-         <div className="mb-8 bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
-             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-4">
-                 <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2"><Activity className="text-blue-600"/> Real-time Analytics</h2>
-                 <button onClick={handleDownloadReport} className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 shadow transition">
-                     <Download size={16}/> Download Report (.CSV)
-                 </button>
-             </div>
-             
-             <div className="grid md:grid-cols-2 gap-4 mb-6">
-                 <div className="bg-slate-50 p-6 rounded-xl border border-slate-100 flex items-center gap-4 shadow-inner">
-                     <div className="bg-red-100 text-red-500 p-4 rounded-full"><Users size={32} /></div>
-                     <div>
-                         <div className="text-sm font-bold text-slate-500 uppercase tracking-wider">Live Viewers Saat Ini</div>
-                         <div className="text-4xl font-black text-slate-800 flex items-center gap-3 mt-1">
-                             {liveViewers} <span className="text-[10px] bg-red-500 text-white px-2 py-1 rounded-full animate-pulse font-bold tracking-widest">LIVE</span>
-                         </div>
-                     </div>
-                 </div>
-                 <div className="bg-slate-50 p-6 rounded-xl border border-slate-100 flex items-center gap-4 shadow-inner">
-                     <div className="bg-blue-100 text-blue-500 p-4 rounded-full"><TrendingUp size={32} /></div>
-                     <div>
-                         <div className="text-sm font-bold text-slate-500 uppercase tracking-wider">Peak Viewers (Rekor)</div>
-                         <div className="text-4xl font-black text-slate-800 mt-1">{peakStats.peak}</div>
-                         <div className="text-[10px] text-slate-400 mt-1.5 font-mono bg-slate-200 inline-block px-2 py-0.5 rounded">
-                             TERCAPAI: {peakStats.timestamp ? new Date(peakStats.timestamp).toLocaleString('id-ID', { weekday: 'long', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) + ' WIB' : '-'}
-                         </div>
-                     </div>
-                 </div>
-             </div>
-
-             {/* Line Chart Section */}
-             <div className="bg-slate-50 rounded-xl border border-slate-200 p-4 pt-6 shadow-inner">
-                 <h3 className="text-sm font-bold text-slate-600 mb-4 px-2 uppercase tracking-wider flex items-center gap-2">
-                     <MonitorPlay size={16} className="text-blue-500"/> Grafik Tren Penonton (30 Menit Terakhir)
-                 </h3>
-                 <div className="h-64 w-full">
-                     <CustomLineChart data={chartData} />
-                 </div>
-             </div>
-         </div>
-
-         <div className="flex flex-col md:flex-row justify-between items-center mb-8 gap-4">
-            <h2 className="text-2xl font-bold text-slate-800">Daftar Semua Lomba</h2>
-            <div className="flex gap-2">
-               <button onClick={() => setShowCreate(!showCreate)} className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2.5 rounded-lg font-bold flex items-center gap-2 shadow-sm transition"><Plus size={18}/> Buat Lomba Baru</button>
+      <main className="max-w-6xl mx-auto p-4 sm:p-6 py-8">
+         {/* TAB SWITCHER */}
+         <div className="flex justify-center mb-8">
+            <div className="bg-white p-1.5 rounded-xl flex gap-1 border border-slate-200 shadow-sm overflow-x-auto max-w-full">
+                <button 
+                    onClick={() => setActiveTab('analytics')} 
+                    className={`px-4 sm:px-8 py-2.5 rounded-lg font-bold text-xs sm:text-sm transition-all flex items-center gap-2 whitespace-nowrap ${activeTab === 'analytics' ? 'bg-blue-600 text-white shadow-md' : 'text-slate-500 hover:text-slate-800 hover:bg-slate-100'}`}
+                >
+                    <Activity size={18}/> Analytics Dashboard
+                </button>
+                <button 
+                    onClick={() => setActiveTab('manage')} 
+                    className={`px-4 sm:px-8 py-2.5 rounded-lg font-bold text-xs sm:text-sm transition-all flex items-center gap-2 whitespace-nowrap ${activeTab === 'manage' ? 'bg-blue-600 text-white shadow-md' : 'text-slate-500 hover:text-slate-800 hover:bg-slate-100'}`}
+                >
+                    <Settings size={18}/> Kelola Lomba
+                </button>
             </div>
          </div>
 
-         {showCreate && (
-            <form onSubmit={handleCreate} className="bg-white p-6 rounded-2xl shadow-sm border border-blue-100 mb-8 grid md:grid-cols-2 gap-6 animate-in fade-in">
-               <div className="space-y-4">
-                  <h3 className="font-bold text-blue-900 border-b pb-2">Informasi Umum</h3>
-                  <div className="grid grid-cols-2 gap-2">
-                      <div className="col-span-2 sm:col-span-1">
-                          <label className="block text-xs font-bold text-slate-500 mb-1">Nama Kejuaraan</label>
-                          <input required type="text" value={form.title} onChange={e=>setForm({...form, title: e.target.value})} className="w-full p-2 border rounded bg-slate-50" />
-                      </div>
-                      <div className="col-span-2 sm:col-span-1">
-                          <label className="block text-xs font-bold text-slate-500 mb-1">Cabang Olahraga</label>
-                          <select value={form.sportType} onChange={e=>setForm({...form, sportType: e.target.value})} className="w-full p-2 border rounded bg-slate-50">
-                              <option value="Renang">Renang (Swim)</option>
-                              <option value="Selam">Selam (Finswimming)</option>
-                          </select>
-                      </div>
-                  </div>
-                  <div><label className="block text-xs font-bold text-slate-500 mb-1">Lokasi / Venue</label><input required type="text" value={form.venue} onChange={e=>setForm({...form, venue: e.target.value})} className="w-full p-2 border rounded bg-slate-50" /></div>
-                  <div className="grid grid-cols-2 gap-2">
-                    <div><label className="block text-xs font-bold text-slate-500 mb-1">Tanggal Mulai</label><input required type="date" value={form.eventDate} onChange={e=>setForm({...form, eventDate: e.target.value})} className="w-full p-2 border rounded bg-slate-50" /></div>
-                    <div><label className="block text-xs font-bold text-slate-500 mb-1">Tanggal Selesai</label><input required type="date" value={form.endDate} onChange={e=>setForm({...form, endDate: e.target.value})} className="w-full p-2 border rounded bg-slate-50" min={form.eventDate} /></div>
-                  </div>
-               </div>
-               <div className="space-y-4">
-                  <h3 className="font-bold text-blue-900 border-b pb-2">Pengaturan Akses (PIN)</h3>
-                  <div><label className="block text-xs font-bold text-slate-500 mb-1">PIN Admin Lomba</label><input required type="text" value={form.adminPin} onChange={e=>setForm({...form, adminPin: e.target.value})} className="w-full p-2 border rounded bg-slate-50" /></div>
-                  <div><label className="block text-xs font-bold text-slate-500 mb-1">PIN Announcer</label><input required type="text" value={form.announcerPin} onChange={e=>setForm({...form, announcerPin: e.target.value})} className="w-full p-2 border rounded bg-slate-50" /></div>
-                  <div><label className="block text-xs font-bold text-slate-500 mb-1">PIN Call Room</label><input required type="text" value={form.callroomPin} onChange={e=>setForm({...form, callroomPin: e.target.value})} className="w-full p-2 border rounded bg-slate-50" /></div>
-               </div>
-              <div className="md:col-span-2 flex justify-end gap-2 border-t pt-4">
-                  <button type="button" onClick={()=>setShowCreate(false)} className="px-6 py-2 rounded text-slate-500 hover:bg-slate-100 font-bold">Batal</button>
-                  <button type="submit" className="px-8 py-2 rounded bg-blue-600 text-white font-bold shadow-lg">SIMPAN & BUAT LOMBA</button>
-              </div>
-            </form>
+         {/* TAB: ANALYTICS DASHBOARD */}
+         {activeTab === 'analytics' && (
+             <div className="space-y-6 animate-in fade-in zoom-in-95 duration-300">
+                 <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
+                     <div>
+                         <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2"><Activity className="text-blue-600"/> System Analytics Overview</h2>
+                         <p className="text-sm text-slate-500 mt-1">Pantau performa dan traffic sistem secara real-time.</p>
+                     </div>
+                     <button onClick={handleDownloadReport} className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2.5 rounded-lg text-sm font-bold flex items-center gap-2 shadow transition">
+                         <Download size={16}/> Download Report (.CSV)
+                     </button>
+                 </div>
+                 
+                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                     <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm flex flex-col items-center text-center hover:border-red-300 transition-colors">
+                         <div className="bg-red-100 text-red-500 p-3 rounded-full mb-3"><Users size={24} /></div>
+                         <div className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Live Viewers</div>
+                         <div className="text-3xl font-black text-slate-800 flex items-center gap-2">
+                             {liveViewers} <span className="w-2.5 h-2.5 rounded-full bg-red-500 animate-pulse shadow-[0_0_8px_rgba(239,68,68,0.8)]"></span>
+                         </div>
+                     </div>
+
+                     <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm flex flex-col items-center text-center hover:border-blue-300 transition-colors">
+                         <div className="bg-blue-100 text-blue-500 p-3 rounded-full mb-3"><TrendingUp size={24} /></div>
+                         <div className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Peak Viewers</div>
+                         <div className="text-3xl font-black text-slate-800">{peakStats.peak}</div>
+                         <div className="text-[9px] text-slate-400 mt-1 uppercase">Rekor Tertinggi</div>
+                     </div>
+
+                     <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm flex flex-col items-center text-center hover:border-purple-300 transition-colors">
+                         <div className="bg-purple-100 text-purple-600 p-3 rounded-full mb-3"><List size={24} /></div>
+                         <div className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Total Lomba</div>
+                         <div className="text-3xl font-black text-slate-800">{tournaments.length}</div>
+                         <div className="text-[9px] text-slate-400 mt-1 uppercase">Dalam Sistem</div>
+                     </div>
+
+                     <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm flex flex-col items-center text-center hover:border-emerald-300 transition-colors">
+                         <div className="bg-emerald-100 text-emerald-600 p-3 rounded-full mb-3"><MonitorPlay size={24} /></div>
+                         <div className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Sedang Live</div>
+                         <div className="text-3xl font-black text-slate-800">{activeTournamentsCount}</div>
+                         <div className="text-[9px] text-slate-400 mt-1 uppercase">Lomba Berjalan</div>
+                     </div>
+                 </div>
+
+                 <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
+                     <div className="flex justify-between items-center mb-6">
+                        <h3 className="text-sm font-bold text-slate-600 uppercase tracking-wider flex items-center gap-2">
+                            <Activity size={16} className="text-blue-500"/> Tren Penonton (30 Menit Terakhir)
+                        </h3>
+                        <span className="text-xs font-mono bg-slate-100 text-slate-500 px-2 py-1 rounded border border-slate-200">Auto-sync</span>
+                     </div>
+                     <div className="h-80 w-full bg-slate-50/50 rounded-xl p-2 border border-slate-100">
+                         <CustomLineChart data={chartData} />
+                     </div>
+                 </div>
+             </div>
          )}
 
-         <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-            <table className="w-full text-left">
-              <thead className="bg-slate-50 border-b"><tr><th className="p-4 font-bold text-slate-600">Lomba</th><th className="p-4 font-bold text-slate-600">Cabang</th><th className="p-4 font-bold text-slate-600">Status</th><th className="p-4 font-bold text-slate-600 text-right">Aksi</th></tr></thead>
-              <tbody>
-                {tournaments.map((tItem:any) => (
-                  <tr key={tItem.id} className="border-b last:border-0 hover:bg-slate-50">
-                    <td className="p-4">
-                      <div className="font-bold text-blue-900 text-lg">{tItem.title}</div>
-                      <div className="text-sm text-slate-500">{formatDateRange(tItem.eventDate, tItem.endDate)} | {tItem.venue}</div>
-                    </td>
-                    <td className="p-4">
-                       <span className={`text-[10px] font-bold px-2 py-1 rounded-full whitespace-nowrap ${tItem.sportType === 'Selam' ? 'bg-emerald-100 text-emerald-700' : 'bg-blue-100 text-blue-700'}`}>
-                         {tItem.sportType === 'Selam' ? (lang === 'id' ? 'Selam' : 'Finswimming') : (lang === 'id' ? 'Renang' : 'Swim')}
-                       </span>
-                    </td>
-                    <td className="p-4">
-                      <span className={`text-xs font-bold px-2 py-1 rounded-full uppercase ${tItem.status === 'live' ? 'bg-red-100 text-red-600' : tItem.status === 'finished' ? 'bg-blue-100 text-blue-600' : tItem.status === 'paused' ? 'bg-yellow-100 text-yellow-600' : 'bg-slate-100 text-slate-600'}`}>{tItem.status}</span>
-                    </td>
-                    <td className="p-4 text-right space-x-2">
-                      <button onClick={() => onEdit(tItem.id)} className="bg-slate-800 text-white px-4 py-2 rounded font-bold text-sm hover:bg-slate-700 transition shadow">Kelola Event (Admin)</button>
-                      <button onClick={() => setDeleteId(tItem.id)} className="bg-red-50 text-red-500 hover:bg-red-100 px-3 py-2 rounded transition"><Trash2 size={16}/></button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-         </div>
+         {/* TAB: KELOLA LOMBA */}
+         {activeTab === 'manage' && (
+             <div className="space-y-6 animate-in fade-in zoom-in-95 duration-300">
+                 <div className="flex flex-col md:flex-row justify-between items-center mb-4 gap-4">
+                    <h2 className="text-2xl font-bold text-slate-800 flex items-center gap-2"><Settings className="text-blue-600"/> Daftar Semua Lomba</h2>
+                    <div className="flex gap-2">
+                       <button onClick={() => setShowCreate(!showCreate)} className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2.5 rounded-lg font-bold flex items-center gap-2 shadow-sm transition"><Plus size={18}/> Buat Lomba Baru</button>
+                    </div>
+                 </div>
+
+                 {showCreate && (
+                    <form onSubmit={handleCreate} className="bg-white p-6 rounded-2xl shadow-md border border-blue-100 mb-8 grid md:grid-cols-2 gap-6 animate-in slide-in-from-top-4">
+                       {/* ... form content ... */}
+                       <div className="space-y-4">
+                          <h3 className="font-bold text-blue-900 border-b pb-2">Informasi Umum</h3>
+                          <div className="grid grid-cols-2 gap-2">
+                              <div className="col-span-2 sm:col-span-1">
+                                  <label className="block text-xs font-bold text-slate-500 mb-1">Nama Kejuaraan</label>
+                                  <input required type="text" value={form.title} onChange={e=>setForm({...form, title: e.target.value})} className="w-full p-2 border rounded bg-slate-50" />
+                              </div>
+                              <div className="col-span-2 sm:col-span-1">
+                                  <label className="block text-xs font-bold text-slate-500 mb-1">Cabang Olahraga</label>
+                                  <select value={form.sportType} onChange={e=>setForm({...form, sportType: e.target.value})} className="w-full p-2 border rounded bg-slate-50">
+                                      <option value="Renang">Renang (Swim)</option>
+                                      <option value="Selam">Selam (Finswimming)</option>
+                                  </select>
+                              </div>
+                          </div>
+                          <div><label className="block text-xs font-bold text-slate-500 mb-1">Lokasi / Venue</label><input required type="text" value={form.venue} onChange={e=>setForm({...form, venue: e.target.value})} className="w-full p-2 border rounded bg-slate-50" /></div>
+                          <div className="grid grid-cols-2 gap-2">
+                            <div><label className="block text-xs font-bold text-slate-500 mb-1">Tanggal Mulai</label><input required type="date" value={form.eventDate} onChange={e=>setForm({...form, eventDate: e.target.value})} className="w-full p-2 border rounded bg-slate-50" /></div>
+                            <div><label className="block text-xs font-bold text-slate-500 mb-1">Tanggal Selesai</label><input required type="date" value={form.endDate} onChange={e=>setForm({...form, endDate: e.target.value})} className="w-full p-2 border rounded bg-slate-50" min={form.eventDate} /></div>
+                          </div>
+                       </div>
+                       <div className="space-y-4">
+                          <h3 className="font-bold text-blue-900 border-b pb-2">Pengaturan Akses (PIN)</h3>
+                          <div><label className="block text-xs font-bold text-slate-500 mb-1">PIN Admin Lomba</label><input required type="text" value={form.adminPin} onChange={e=>setForm({...form, adminPin: e.target.value})} className="w-full p-2 border rounded bg-slate-50" /></div>
+                          <div><label className="block text-xs font-bold text-slate-500 mb-1">PIN Announcer</label><input required type="text" value={form.announcerPin} onChange={e=>setForm({...form, announcerPin: e.target.value})} className="w-full p-2 border rounded bg-slate-50" /></div>
+                          <div><label className="block text-xs font-bold text-slate-500 mb-1">PIN Call Room</label><input required type="text" value={form.callroomPin} onChange={e=>setForm({...form, callroomPin: e.target.value})} className="w-full p-2 border rounded bg-slate-50" /></div>
+                       </div>
+                      <div className="md:col-span-2 flex justify-end gap-2 border-t pt-4">
+                          <button type="button" onClick={()=>setShowCreate(false)} className="px-6 py-2 rounded text-slate-500 hover:bg-slate-100 font-bold">Batal</button>
+                          <button type="submit" className="px-8 py-2 rounded bg-blue-600 text-white font-bold shadow-lg">SIMPAN & BUAT LOMBA</button>
+                      </div>
+                    </form>
+                 )}
+
+                 <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+                    <table className="w-full text-left">
+                      <thead className="bg-slate-50 border-b"><tr><th className="p-4 font-bold text-slate-600">Lomba</th><th className="p-4 font-bold text-slate-600">Cabang</th><th className="p-4 font-bold text-slate-600">Status</th><th className="p-4 font-bold text-slate-600 text-right">Aksi</th></tr></thead>
+                      <tbody>
+                        {tournaments.map((tItem:any) => (
+                          <tr key={tItem.id} className="border-b last:border-0 hover:bg-slate-50">
+                            <td className="p-4">
+                              <div className="font-bold text-blue-900 text-lg">{tItem.title}</div>
+                              <div className="text-sm text-slate-500">{formatDateRange(tItem.eventDate, tItem.endDate)} | {tItem.venue}</div>
+                            </td>
+                            <td className="p-4">
+                               <span className={`text-[10px] font-bold px-2 py-1 rounded-full whitespace-nowrap ${tItem.sportType === 'Selam' ? 'bg-emerald-100 text-emerald-700' : 'bg-blue-100 text-blue-700'}`}>
+                                 {tItem.sportType === 'Selam' ? (lang === 'id' ? 'Selam' : 'Finswimming') : (lang === 'id' ? 'Renang' : 'Swim')}
+                               </span>
+                            </td>
+                            <td className="p-4">
+                              <span className={`text-xs font-bold px-2 py-1 rounded-full uppercase ${tItem.status === 'live' ? 'bg-red-100 text-red-600' : tItem.status === 'finished' ? 'bg-blue-100 text-blue-600' : tItem.status === 'paused' ? 'bg-yellow-100 text-yellow-600' : 'bg-slate-100 text-slate-600'}`}>{tItem.status}</span>
+                            </td>
+                            <td className="p-4 text-right space-x-2">
+                              <button onClick={() => onEdit(tItem.id)} className="bg-slate-800 text-white px-4 py-2 rounded font-bold text-sm hover:bg-slate-700 transition shadow">Kelola Event (Admin)</button>
+                              <button onClick={() => setDeleteId(tItem.id)} className="bg-red-50 text-red-500 hover:bg-red-100 px-3 py-2 rounded transition"><Trash2 size={16}/></button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                 </div>
+             </div>
+         )}
       </main>
 
+      {}
       {showPinModal && (
         <div className="fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-[70] animate-in fade-in">
           <div className="bg-white rounded-2xl w-full max-w-sm p-8 relative zoom-in-95 duration-200 shadow-2xl">
