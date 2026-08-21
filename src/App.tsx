@@ -32,10 +32,11 @@ import {
   Upload,
   Globe,
   Activity,
-  TrendingUp
+  TrendingUp,
+  Download
 } from 'lucide-react';
 
-// --- FIREBASE IMPORTS ---
+// --- STREAMING_CHUNK:Importing Firebase modules... ---
 import { initializeApp } from 'firebase/app';
 import { 
   getAuth, 
@@ -56,21 +57,25 @@ import {
   setDoc
 } from 'firebase/firestore';
 
-// --- GLOBAL TYPE DECLARATIONS ---
+// --- STREAMING_CHUNK:Importing Google Analytics... ---
+import { getAnalytics, logEvent } from 'firebase/analytics';
+
+// --- STREAMING_CHUNK:Defining global window types... ---
 declare global {
   var __firebase_config: any;
   var __app_id: string | undefined;
   var __initial_auth_token: string | undefined;
 }
 
-// --- FIREBASE CONFIGURATION ---
+// --- STREAMING_CHUNK:Configuring Firebase credentials... ---
 const fallbackConfig = {
   apiKey: "AIzaSyBJfXbDljpyTdnbWjbNzGfAQE4TgKvTQf4",
   authDomain: "sangkuriang-swimorg.firebaseapp.com",
   projectId: "sangkuriang-swimorg",
   storageBucket: "sangkuriang-swimorg.firebasestorage.app",
   messagingSenderId: "833562093721",
-  appId: "1:833562093721:web:36308c9770eb8e94c37008"
+  appId: "1:833562093721:web:36308c9770eb8e94c37008",
+  measurementId: "G-XXXXXXXXXX" 
 };
 
 let firebaseConfig = fallbackConfig;
@@ -88,10 +93,19 @@ const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 
+// --- STREAMING_CHUNK:Initializing Analytics safely with try-catch ---
+let analytics: any = null;
+try {
+  if (typeof window !== 'undefined' && firebaseConfig.measurementId && !firebaseConfig.measurementId.includes('XXXX')) {
+    analytics = getAnalytics(app);
+  }
+} catch (e) {
+  console.warn("Analytics initialization skipped or not configured yet.", e);
+}
+
 const rawAppId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
 const appId = rawAppId.split('/')[0];
 
-// --- UTILS ---
 const getWIBTime = () => {
   return new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' }) + ' WIB';
 };
@@ -132,6 +146,7 @@ const simpleHash = (str: string) => {
 
 const MASTER_PIN_HASH = "1450575459"; 
 
+// --- STREAMING_CHUNK:Defining multilingual dictionary... ---
 const t = {
   id: {
     connecting: "Menghubungkan ke Server...",
@@ -381,7 +396,6 @@ const t = {
   }
 };
 
-// --- DQ REASONS LISTS ---
 const DQ_REASONS_RENANG = [
   "5.1.5.2 - Mengundurkan diri tanpa alasan setelah TLM/Penyisihan/Final",
   "4.1.1/4.1.3 - Menghambat start gaya bebas, dada, kupu, ganti",
@@ -546,17 +560,14 @@ const DQ_REASONS_SELAM = [
   "Lainnya (Input Manual)"
 ];
 
-
 type LangType = 'id' | 'en';
 
 function useLiveClock() {
   const [time, setTime] = useState(new Date());
-
   useEffect(() => {
     const timerId = setInterval(() => setTime(new Date()), 1000);
     return () => clearInterval(timerId);
   }, []);
-
   return time;
 }
 
@@ -566,7 +577,6 @@ const ClockDisplay = ({ time }: { time: Date }) => (
   </div>
 );
 
-// --- TIPE DATA ---
 type LiveState = {
   currentEventId: string | null;
   currentEventNumber?: number; 
@@ -600,7 +610,6 @@ type Tournament = {
 type EventItem = { id: string; tournamentId: string; number: number; name: string; totalSeries: number; resultUrl?: string; };
 type DQRecord = { id: string; tournamentId: string; eventNumber: number; series: number; lane: number; reason: string; timestamp: string; createdAt: number; };
 
-// --- DEFAULT STATES ---
 const DEFAULT_LIVE_STATE: LiveState = {
   currentEventId: null, currentSeries: 1, callRoomEventId: null, callRoomSeries: 1, lastUpdate: '-', callRoomLastUpdate: '-'
 };
@@ -624,13 +633,18 @@ export default function App() {
   
   const [masterPinHash, setMasterPinHash] = useState(MASTER_PIN_HASH);
 
-  // --- SISTEM HEARTBEAT ANALYTICS ---
+  // --- STREAMING_CHUNK:Presence & Analytics Heartbeat ---
   useEffect(() => {
     const sessionId = Math.random().toString(36).substring(2, 15) + Date.now().toString(36);
     const presenceRef = doc(db, 'artifacts', appId, 'public', 'data', 'presence', sessionId);
 
     const updatePresence = async () => {
-        try { await setDoc(presenceRef, { lastSeen: Date.now() }); } catch(e){}
+        try { 
+          await setDoc(presenceRef, { lastSeen: Date.now() }); 
+          if (analytics) {
+            logEvent(analytics, 'heartbeat_ping', { app_id: appId });
+          }
+        } catch(e){}
     };
 
     updatePresence();
@@ -734,7 +748,6 @@ export default function App() {
     return () => { unsubTournaments(); unsubEvents(); unsubDqs(); unsubSettings(); };
   }, [user]);
 
-  // --- ACTIONS ---
   const handleCreateTournament = async (data: Partial<Tournament>) => {
     if (!user) return;
     await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'tournaments'), {
@@ -766,12 +779,10 @@ export default function App() {
 
   const updateLiveState = async (newState: Partial<LiveState>) => {
     if (!user || !activeTournamentId) return;
-    
     const updatePayload: Record<string, any> = {};
     Object.entries(newState).forEach(([key, value]) => {
       updatePayload[`liveState.${key}`] = value;
     });
-
     await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'tournaments', activeTournamentId), updatePayload);
   };
 
@@ -894,7 +905,6 @@ export default function App() {
 
 const Header = ({ role, onHome, onLogout, isOnline, lang, setLang, t }: any) => {
   const currentTime = useLiveClock();
-
   return (
     <header className="bg-slate-900 text-white p-3 sm:p-4 shadow-lg sticky top-0 z-50">
       <div className="max-w-7xl mx-auto flex justify-between items-center relative">
@@ -990,7 +1000,6 @@ const TourCard = ({ tour, badge, badgeColor, onSelectTournament, lang }: any) =>
 
 function GlobalLandingPage({ tournaments, onSelectTournament, onMasterLogin, lang, setLang, t }: any) {
   const [activeTab, setActiveTab] = useState<'Renang' | 'Selam'>('Renang');
-
   const filteredTournaments = tournaments.filter((tour: any) => tour.sportType === activeTab || (!tour.sportType && activeTab === 'Renang'));
 
   const activeTournaments = filteredTournaments.filter((tour: any) => tour.status === 'live' || tour.status === 'paused');
@@ -1069,7 +1078,6 @@ function MasterDashboard({ tournaments, onCreate, onEdit, onDelete, onLogout, on
   const [newMasterPin, setNewMasterPin] = useState('');
   const [deleteId, setDeleteId] = useState<string | null>(null);
 
-  // --- STATE ANALYTICS ---
   const [liveViewers, setLiveViewers] = useState(0);
   const [peakStats, setPeakStats] = useState({ peak: 0, timestamp: 0 });
 
@@ -1097,6 +1105,28 @@ function MasterDashboard({ tournaments, onCreate, onEdit, onDelete, onLogout, on
          }).catch(()=>{});
      }
   }, [liveViewers, peakStats.peak]);
+
+  const handleDownloadReport = () => {
+    const reportData = [
+      ["Sangkuriang Swim Organizer - Analytics Report"],
+      ["Waktu Export", new Date().toLocaleString('id-ID')],
+      [""],
+      ["Metrik", "Nilai"],
+      ["Live Viewers Saat Ini", liveViewers],
+      ["Peak Viewers (Rekor)", peakStats.peak],
+      ["Waktu Rekor Tercapai", peakStats.timestamp ? new Date(peakStats.timestamp).toLocaleString('id-ID') : '-'],
+      ["Total Kejuaraan dalam Sistem", tournaments.length]
+    ];
+
+    let csvContent = "data:text/csv;charset=utf-8," + reportData.map(e => e.join(",")).join("\n");
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", `Sangkuriang_Analytics_Report_${Date.now()}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
 
   const handleCreate = (e: any) => {
     e.preventDefault();
@@ -1130,9 +1160,13 @@ function MasterDashboard({ tournaments, onCreate, onEdit, onDelete, onLogout, on
       </header>
       
       <main className="max-w-6xl mx-auto p-6">
-         {/* --- ANALYTICS DASHBOARD --- */}
          <div className="mb-8 bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
-             <h2 className="text-xl font-bold text-slate-800 mb-4 flex items-center gap-2"><Activity className="text-blue-600"/> Real-time Analytics</h2>
+             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-4">
+                 <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2"><Activity className="text-blue-600"/> Real-time Analytics</h2>
+                 <button onClick={handleDownloadReport} className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 shadow transition">
+                     <Download size={16}/> Download Report (.CSV)
+                 </button>
+             </div>
              <div className="grid md:grid-cols-2 gap-4">
                  <div className="bg-slate-50 p-6 rounded-xl border border-slate-100 flex items-center gap-4 shadow-inner">
                      <div className="bg-red-100 text-red-500 p-4 rounded-full"><Users size={32} /></div>
@@ -1155,7 +1189,6 @@ function MasterDashboard({ tournaments, onCreate, onEdit, onDelete, onLogout, on
                  </div>
              </div>
          </div>
-         {/* --- END ANALYTICS DASHBOARD --- */}
 
          <div className="flex flex-col md:flex-row justify-between items-center mb-8 gap-4">
             <h2 className="text-2xl font-bold text-slate-800">Daftar Semua Lomba</h2>
@@ -1285,20 +1318,16 @@ function TournamentPublicView({ tournament, dqs, events, isOnline, onBack, onLog
 
   useEffect(() => {
     if (tournament.status === 'live' || tournament.status === 'finished') return;
-    
     const timer = setInterval(() => {
       const now = new Date().getTime();
       let targetDateStr = tournament.status === 'paused' ? tournament.liveState?.pauseUntil : tournament.eventDate;
-      
       if (!targetDateStr) {
         setTimeLeft({ days: 0, hours: 0, minutes: 0, seconds: 0 });
         return;
       }
-
       const targetDate = new Date(targetDateStr);
       const target = isNaN(targetDate.getTime()) ? now : targetDate.getTime();
       const distance = target - now;
-
       if (distance < 0) {
         setTimeLeft({ days: 0, hours: 0, minutes: 0, seconds: 0 });
       } else {
@@ -1497,7 +1526,6 @@ function TournamentPublicView({ tournament, dqs, events, isOnline, onBack, onLog
 
 function LiveScoreboard({ tournament, dqs, events, isOnline, onBack, onLoginRequest, lang, setLang, t }: any) {
   const ls = tournament.liveState || DEFAULT_LIVE_STATE;
-  
   const [dqPage, setDqPage] = useState(1);
   const itemsPerPage = 10;
   const totalPages = Math.ceil(dqs.length / itemsPerPage) || 1;
@@ -1544,7 +1572,6 @@ function LiveScoreboard({ tournament, dqs, events, isOnline, onBack, onLoginRequ
               return null;
           }
       }
-
       return { event: currentEvent, series: targetSeries };
   };
 
@@ -1553,7 +1580,6 @@ function LiveScoreboard({ tournament, dqs, events, isOnline, onBack, onLoginRequ
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col relative">
-        {}
         <header className="bg-slate-900 text-white h-auto sm:h-16 shrink-0 flex flex-wrap sm:flex-nowrap items-center justify-between px-3 sm:px-6 py-2 sm:py-0 border-b border-slate-800 shadow-xl z-50">
             <div className="flex items-center gap-2 sm:gap-4 w-full sm:w-auto mb-2 sm:mb-0 relative">
                 <img src="/sangkuriang%201.png" alt="Logo" className="h-8 sm:h-10 w-auto object-contain" onError={(e:any) => e.target.style.display='none'} />
@@ -1585,13 +1611,9 @@ function LiveScoreboard({ tournament, dqs, events, isOnline, onBack, onLoginRequ
             </div>
         </header>
 
-        {}
         <div className="flex flex-col md:flex-row w-full border-b border-slate-200 shadow-sm shrink-0">
-            {/* Panel Call Room (Kiri) */}
             <div className="w-full md:w-1/2 bg-slate-900 relative flex flex-col justify-between min-h-[300px] md:min-h-[48vh]">
                 <div className="absolute inset-0 bg-gradient-to-br from-blue-900/40 via-slate-900 to-slate-900 z-0"></div>
-                
-                {/* Header Call Room */}
                 <div className="relative z-10 px-4 py-5 md:px-8 md:pt-6 flex justify-between items-center w-full">
                     <h2 className="text-white text-lg sm:text-2xl md:text-3xl font-bold flex items-center gap-1.5 sm:gap-2"><Users className="text-blue-400 w-5 h-5 sm:w-8 sm:h-8" /> {t[lang].call_room}</h2>
                     <div className="text-right">
@@ -1600,7 +1622,6 @@ function LiveScoreboard({ tournament, dqs, events, isOnline, onBack, onLoginRequ
                     </div>
                 </div>
 
-                {/* Kotak Angka Event & Heat Call Room */}
                 <div className="relative z-10 px-4 md:px-8 w-full max-w-lg mx-auto my-auto">
                     <div className="flex gap-2 sm:gap-4">
                         <div className="flex-1 bg-white/5 border border-white/10 rounded-xl sm:rounded-2xl p-2 sm:p-4 text-center shadow-lg">
@@ -1614,12 +1635,10 @@ function LiveScoreboard({ tournament, dqs, events, isOnline, onBack, onLoginRequ
                     </div>
                 </div>
 
-                {/* Nama Acara Call Room */}
                 <div className="relative z-10 w-full bg-slate-950/80 border-t border-slate-800 py-2 sm:py-3 px-4 text-center">
                     <p className="text-slate-200 text-sm sm:text-base md:text-lg font-bold tracking-widest uppercase line-clamp-1">{ls.callRoomEventName || t[lang].waiting}</p>
                 </div>
 
-                {/* Baris Antrean di bawah Panel Call Room: In The Next & Ready To Race */}
                 <div className="relative z-10 w-full flex flex-col sm:flex-row divide-y sm:divide-y-0 sm:divide-x divide-slate-700 bg-slate-800/90 border-t border-slate-700">
                     <div className="flex-1 p-2.5 sm:p-3.5 flex items-center justify-center gap-2">
                         <div className="bg-slate-700 text-slate-300 text-[9px] sm:text-[10px] font-bold px-2 py-1 rounded uppercase tracking-wider whitespace-nowrap">In The Next</div>
@@ -1647,9 +1666,7 @@ function LiveScoreboard({ tournament, dqs, events, isOnline, onBack, onLoginRequ
                 </div>
             </div>
             
-            {/* Panel Live (Kanan) */}
             <div className="w-full md:w-1/2 bg-white relative flex flex-col justify-between border-t md:border-t-0 md:border-l border-slate-200 min-h-[300px] md:min-h-[48vh]">
-                {/* Header Live & Jam Real-time di area hijau */}
                 <div className="relative z-10 px-4 py-5 md:px-8 md:pt-6 flex justify-between items-center w-full">
                     <h2 className="text-slate-800 text-lg sm:text-2xl md:text-3xl font-bold flex items-center gap-1.5 sm:gap-2">
                         <MonitorPlay className="text-red-500 w-5 h-5 sm:w-8 sm:h-8" /> {t[lang].racing_now}
@@ -1663,7 +1680,6 @@ function LiveScoreboard({ tournament, dqs, events, isOnline, onBack, onLoginRequ
                     </div>
                 </div>
 
-                {/* Kotak Angka Event & Heat Live */}
                 <div className="relative z-10 px-4 md:px-8 w-full max-w-lg mx-auto my-auto">
                     <div className="flex gap-2 sm:gap-4">
                         <div className="flex-1 bg-slate-50 border border-slate-200 rounded-xl sm:rounded-2xl p-2 sm:p-4 text-center shadow-inner">
@@ -1677,14 +1693,12 @@ function LiveScoreboard({ tournament, dqs, events, isOnline, onBack, onLoginRequ
                     </div>
                 </div>
 
-                {/* Nama Acara Live di bawah */}
                 <div className="relative z-10 w-full bg-slate-100 border-t border-slate-200 py-3 sm:py-4 px-4 text-center mt-auto">
                     <p className="text-slate-800 text-sm sm:text-base md:text-lg font-bold tracking-widest uppercase line-clamp-1">{ls.currentEventName || t[lang].waiting}</p>
                 </div>
             </div>
         </div>
         
-        {}
         <div className="w-full max-w-7xl mx-auto p-3 sm:p-4 md:p-8 flex-1 flex flex-col">
             <h3 className="text-slate-800 font-extrabold text-sm sm:text-lg md:text-xl mb-2 sm:mb-4 flex items-center gap-1.5 sm:gap-2 uppercase">
                 <AlertOctagon className="text-red-500 w-4 h-4 sm:w-6 sm:h-6" /> {t[lang].dq_info}
@@ -1738,7 +1752,6 @@ function LiveScoreboard({ tournament, dqs, events, isOnline, onBack, onLoginRequ
             </div>
         </div>
 
-        {}
         <footer className="bg-slate-900 text-slate-500 text-center py-2 sm:py-3 text-[10px] sm:text-xs font-mono tracking-widest border-t border-slate-800 shrink-0 mt-auto">{t[lang].footer_text}</footer>
 
         {showResultsList && (
