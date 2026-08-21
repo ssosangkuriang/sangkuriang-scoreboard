@@ -73,7 +73,7 @@ const fallbackConfig = {
   storageBucket: "sangkuriang-swimorg.firebasestorage.app",
   messagingSenderId: "833562093721",
   appId: "1:833562093721:web:36308c9770eb8e94c37008",
-  measurementId: "G-XXXXXXXXXX" // Akan bekerja jika GA diaktifkan
+  measurementId: "G-7C68G6HPTZ" // Akan bekerja jika GA diaktifkan
 };
 
 let firebaseConfig = fallbackConfig;
@@ -832,7 +832,22 @@ export default function App() {
       {viewMode === 'global' && (
         <GlobalLandingPage 
           tournaments={tournaments}
-          onSelectTournament={(id: string) => { setActiveTournamentId(id); setRole('public'); setViewMode('tournament'); }}
+          onSelectTournament={(id: string) => { 
+            setActiveTournamentId(id); 
+            setRole('public'); 
+            setViewMode('tournament'); 
+            
+            // --- PELACAKAN GOOGLE ANALYTICS ---
+            if (analytics) {
+              const selectedTour = tournaments.find(t => t.id === id);
+              logEvent(analytics, 'select_content', {
+                content_type: 'tournament',
+                item_id: id,
+                item_name: selectedTour?.title || 'Unknown'
+              });
+            }
+            // ----------------------------------
+          }}
           onMasterLogin={() => { setTargetLoginRole('master'); setShowLoginModal(true); }}
           lang={lang} setLang={setLang} t={t}
         />
