@@ -29,7 +29,6 @@ import { 
   CheckCircle, 
   Timer,
   ShieldAlert,
-  Trophy,
   Upload,
   Globe
 } from 'lucide-react';
