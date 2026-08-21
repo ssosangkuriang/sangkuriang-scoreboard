@@ -34,6 +34,7 @@ import {
   Globe
 } from 'lucide-react';
 
+// --- FIREBASE IMPORTS ---
 import { initializeApp } from 'firebase/app';
 import { 
   getAuth, 
@@ -128,13 +129,13 @@ const simpleHash = (str: string) => {
   return hash.toString();
 };
 
-const MASTER_PIN_HASH = "1450575459"; // Hasil hash dari "123456" (teks asli tidak terekspos di kode)
+const MASTER_PIN_HASH = "1450575459"; 
 
 // --- DICTIONARY BILINGUAL ---
 const t = {
   id: {
     connecting: "Menghubungkan ke Server...",
-    title_swimming_portal: "Portal Kejuaraan Renang",
+    title_swimming_portal: "Portal Kejuaraan Akuatik",
     subtitle_swimming_portal: "Pilih kompetisi untuk melihat Live Scoreboard & Jadwal",
     status_live: "Sedang Berlangsung",
     status_upcoming: "Akan Datang",
@@ -186,7 +187,6 @@ const t = {
     tournament_upcoming: "AKAN DATANG",
     waiting_results: "Menunggu admin mengunggah hasil perlombaan...",
     
-    // Admin Panel & Callroom ID
     admin_control: "Kontrol Lomba",
     current_status: "Status Saat Ini",
     status_live_caps: "SEDANG BERLANGSUNG (LIVE)",
@@ -232,17 +232,16 @@ const t = {
     google_drive_url: "Google Drive / PDF URL",
     btn_save_link: "Simpan Link",
     set_pause_time: "Atur Waktu Jeda",
-    pause_time_desc: "Pilih waktu kapan perlombaan ini akan dilanjutkan. Ini akan memunculkan hitung mundur bagi penonton di beranda.",
+    pause_time_desc: "Pilih waktu kapan perlombaan ini akan dilanjutkan.",
     resume_time: "Waktu Dilanjutkan",
     btn_pause_now: "Jeda Lomba Sekarang",
     reset_race_title: "Reset Lomba",
-    reset_race_desc: "Tindakan ini akan mengembalikan status lomba ke \"Akan Datang\" dan menghapus seluruh riwayat diskualifikasi. Masukkan PIN Superuser untuk konfirmasi.",
+    reset_race_desc: "Mengembalikan status lomba ke \"Akan Datang\" dan menghapus riwayat diskualifikasi. Masukkan PIN Superuser untuk konfirmasi.",
     btn_confirm_reset: "Konfirmasi Reset Lomba",
     finish_race_title: "Selesaikan Lomba?",
-    finish_race_desc: "Penonton di beranda akan melihat halaman hasil lomba secara penuh. Jika ini tidak disengaja, Anda dapat membuka kembali (Live) lomba ini nanti lewat menu kontrol.",
+    finish_race_desc: "Penonton di beranda akan melihat halaman hasil lomba secara penuh.",
     btn_finish: "Selesaikan",
     
-    // Callroom ID
     callroom_status: "STATUS PEMANGGILAN",
     live_control: "LIVE CONTROL",
     ready_to_call: "Siap Memanggil Peserta.",
@@ -257,7 +256,7 @@ const t = {
   },
   en: {
     connecting: "Connecting to Server...",
-    title_swimming_portal: "Swimming Championship Portal",
+    title_swimming_portal: "Aquatic Championship Portal",
     subtitle_swimming_portal: "Select a competition to view Live Scoreboard & Schedule",
     status_live: "Live Now",
     status_upcoming: "Upcoming",
@@ -309,7 +308,6 @@ const t = {
     tournament_upcoming: "UPCOMING",
     waiting_results: "Waiting for admin to upload the results...",
     
-    // Admin Panel & Callroom EN
     admin_control: "Event Control",
     current_status: "Current Status",
     status_live_caps: "IN PROGRESS (LIVE)",
@@ -355,17 +353,16 @@ const t = {
     google_drive_url: "Google Drive / PDF URL",
     btn_save_link: "Save Link",
     set_pause_time: "Set Pause Time",
-    pause_time_desc: "Select the time when this event will resume. This will show a countdown for spectators on the homepage.",
+    pause_time_desc: "Select the time when this event will resume.",
     resume_time: "Resume Time",
     btn_pause_now: "Pause Event Now",
     reset_race_title: "Reset Event",
-    reset_race_desc: "This action will revert the event status to \"Upcoming\" and delete all disqualification history. Enter Superuser PIN to confirm.",
+    reset_race_desc: "Reverts status to 'Upcoming' and deletes disqualification history.",
     btn_confirm_reset: "Confirm Reset Event",
     finish_race_title: "Finish Event?",
-    finish_race_desc: "Spectators on the homepage will see the full event results page. If this is accidental, you can reopen (Live) this event later via the control menu.",
+    finish_race_desc: "Spectators will see the full event results page.",
     btn_finish: "Finish",
     
-    // Callroom EN
     callroom_status: "CALLING STATUS",
     live_control: "LIVE CONTROL",
     ready_to_call: "Ready to Call Swimmers.",
@@ -379,6 +376,165 @@ const t = {
     no_next_event: "No next event."
   }
 };
+
+// --- DQ REASONS LISTS ---
+const DQ_REASONS_RENANG = [
+  "5.1.5.2 - Mengundurkan diri tanpa alasan setelah TLM/Penyisihan/Final",
+  "4.1.1/4.1.3 - Menghambat start gaya bebas, dada, kupu, ganti",
+  "4.2.1 - Menghambat start gaya punggung dan ganti estafet",
+  "4.4 - Melakukan start sebelum tanda start",
+  "2.6.1a - Pakaian tidak sesuai dengan yang diizinkan",
+  "2.6.1b - Atlet tidak hadir saat dipanggil",
+  "3.5 - Tidak lapor ke Call Room Judges",
+  "5.2 a - (Bebas) Tidak menyentuh dinding saat pembalikan",
+  "5.2 b - (Bebas) Tidak menyentuh dinding saat finish",
+  "5.3 a - (Bebas) Tidak memecah permukaan air (menyelam)",
+  "5.3 b - (Bebas) Kepala blm memecah air sblm 15m (start)",
+  "5.3 c - (Bebas) Kepala blm memecah air sblm 15m (turn)",
+  "5.4 - (Bebas) Menyelam sepenuhnya saat finish (kepala blm lewat 5m)",
+  "6.1 a - (Punggung) Tidak segera mendekat ke grip",
+  "6.1 b - (Punggung) Memegang grip start dgn 1 tangan",
+  "6.1 c - (Punggung) Berdiri/menekuk kaki di gutter/tdk sentuh dinding",
+  "6.1 d - (Punggung) Menekuk jari kaki di atas touchpad",
+  "6.2 a - (Punggung) Meninggalkan posisi telentang",
+  "6.2 b - (Punggung) Tolakan start posisi tidak telentang",
+  "6.2 c - (Punggung) Tolakan pembalikan posisi tidak telentang",
+  "6.3 a - (Punggung) Tubuh tidak memecah air selama lomba",
+  "6.3 b - (Punggung) Kepala blm memecah air sblm 15m (start)",
+  "6.3 c - (Punggung) Kepala blm memecah air sblm 15m (turn)",
+  "6.4 a - (Punggung) Saat turn, tidak menyentuh dinding",
+  "6.4 b - (Punggung) Setelah telungkup, tdk langsung membalik",
+  "6.4 c - (Punggung) Meninggalkan dinding posisi tidak telentang",
+  "6.4 d - (Punggung) Setelah telungkup, tarikan tangan > 1 kali",
+  "6.5 a - (Punggung) Saat finish, tidak menyentuh dinding",
+  "6.5 b - (Punggung) Menyelam sebelum finish (kepala blm lewat 5m)",
+  "6.5 c - (Punggung) Saat finish, sentuh dinding tidak telentang",
+  "7.1 a - (Dada) Tarikan melebihi pinggang > 1x (start)",
+  "7.1 b - (Dada) Tarikan melebihi pinggang > 1x (turn)",
+  "7.1 c - (Dada) Tendangan kupu 1x/lebih setelah gerakan dada 1 (start)",
+  "7.1 d - (Dada) Tendangan kupu 1x/lebih setelah gerakan dada 1 (turn)",
+  "7.1 e - (Dada) Tendangan kupu > 1x sebelum gerakan dada 1 (start)",
+  "7.1 f - (Dada) Tendangan kupu > 1x sebelum gerakan dada 1 (turn)",
+  "7.1 g - (Dada) Kepala blm memecah air saat tarikan ke-2 (start)",
+  "7.1 h - (Dada) Kepala blm memecah air saat tarikan ke-2 (turn)",
+  "7.2 a - (Dada) Gerakan setelah start tdk diawali lengan",
+  "7.2 b - (Dada) Gerakan setelah start diawali lengan selain dada",
+  "7.2 c - (Dada) Gerakan setelah turn tdk diawali lengan",
+  "7.2 d - (Dada) Gerakan setelah turn diawali lengan selain dada",
+  "7.2 e - (Dada) Posisi badan tidak telungkup",
+  "7.3 a - (Dada) Meninggalkan dinding, badan tidak telungkup",
+  "7.3 b - (Dada) Siklus tdk 1 tarikan & 1 tendangan / Tangan tdk bersamaan",
+  "7.4 a - (Dada) Tangan tidak didorong ke depan bersama-sama",
+  "7.4 b - (Dada) Kedua siku tidak berada di bawah permukaan air",
+  "7.4 c - (Dada) Tarikan tangan melebihi garis pinggang",
+  "7.5 a - (Dada) Kepala tidak memecah air selama 1 siklus",
+  "7.5 b - (Dada) Gerakan tungkai tidak bersamaan (bergantian)",
+  "7.6 a - (Dada) Tendangan kaki tidak diputar keluar",
+  "7.6 b - (Dada) Melakukan gerakan tungkai kupu (flutter/crawl) saat lomba",
+  "7.6 c - (Dada) Melakukan gerakan tungkai kupu setelah start",
+  "7.6 d - (Dada) Melakukan gerakan tungkai kupu setelah pembalikan",
+  "7.6 e - (Dada) Melakukan gerakan tungkai kupu sebelum finish",
+  "7.7 a - (Dada) Saat turn, tangan menumpuk",
+  "7.7 b - (Dada) Saat turn, sentuh dinding dgn 1 tangan",
+  "7.7 c - (Dada) Saat turn, tangan tidak bersamaan",
+  "7.7 d - (Dada) Saat turn, sentuh dinding dgn kaki (salto)",
+  "7.7 e - (Dada) Saat finish, tangan menumpuk",
+  "7.7 f - (Dada) Saat finish, sentuh dinding dgn 1 tangan",
+  "7.7 g - (Dada) Saat finish, tangan tidak bersamaan",
+  "7.7 h - (Dada) Selama siklus sblm turn, kepala tdk memecah air",
+  "7.7 i - (Dada) Selama siklus sblm finish, kepala tdk memecah air",
+  "8.1 - (Kupu) Posisi badan tidak telungkup selama lomba",
+  "8.2 - (Kupu) Meninggalkan dinding setelah turn tidak telungkup",
+  "8.3 a - (Kupu) Kedua lengan dibawa ke depan tidak bersamaan",
+  "8.3 b - (Kupu) Kedua lengan dibawa ke depan tidak di atas air",
+  "8.3 c - (Kupu) Kedua lengan ditarik ke belakang tidak bersamaan",
+  "8.3 d - (Kupu) Awal gerakan dibawa ke depan tidak dgn 2 tangan (start)",
+  "8.3 e - (Kupu) Awal gerakan dibawa ke depan tidak dgn 2 tangan (turn)",
+  "8.4 a - (Kupu) Gerakan tungkai tidak bersamaan",
+  "8.4 b - (Kupu) Tungkai melakukan gerakan lain",
+  "8.5 a - (Kupu) Saat turn, sentuh dinding dgn tangan menumpuk",
+  "8.5 b - (Kupu) Saat turn, sentuh dinding dgn 1 tangan",
+  "8.5 c - (Kupu) Saat turn, tangan tidak bersamaan",
+  "8.5 d - (Kupu) Saat turn, sentuh dinding dgn kaki (salto)",
+  "8.5 e - (Kupu) Saat finish, sentuh dinding dgn tangan menumpuk",
+  "8.5 f - (Kupu) Saat finish, sentuh dinding dgn 1 tangan",
+  "8.5 g - (Kupu) Saat finish, tangan tidak bersamaan",
+  "8.6 a - (Kupu) Tubuh tidak memecah air selama lomba",
+  "8.6 b - (Kupu) Tarikan pertama tdk membawa tubuh ke permukaan (start)",
+  "8.6 c - (Kupu) Tarikan pertama tdk membawa tubuh ke permukaan (turn)",
+  "8.6 d - (Kupu) Gerakan lengan > 1x di bawah air (start)",
+  "8.6 e - (Kupu) Gerakan lengan > 1x di bawah air (turn)",
+  "8.6 f - (Kupu) Kepala blm memecah air sblm 15m (start)",
+  "8.6 g - (Kupu) Kepala blm memecah air sblm 15m (turn)",
+  "8.6 h - (Kupu) Menyelam sepenuhnya saat finish",
+  "8.6 i - (Kupu) Menyelam sepenuhnya selama lomba",
+  "9.1 a - (Ganti) Salah urutan gaya ganti individu",
+  "9.1 b - (Ganti) Salah satu gaya lebih/kurang dari 1/4 jarak (individu)",
+  "9.2 a - (Ganti) Salah urutan gaya ganti estafet",
+  "9.2 b - (Ganti) Salah satu gaya lebih/kurang dari 1/4 jarak (estafet)",
+  "9.3 a - (Ganti) Porsi gaya bebas tidak telungkup",
+  "9.3 b - (Ganti) Pergantian dada ke bebas tidak sah",
+  "9.4 - (Ganti) Menyelesaikan jarak tdk sesuai aturan gaya",
+  "10.1 - Berlomba tidak sesuai kelompok jenis kelamin",
+  "10.2.1 a - Tidak menyelesaikan jarak (individu)",
+  "10.2.1 b - Tidak menyelesaikan 1/4 jarak (estafet)",
+  "10.2.2 a - Melintas ke lintasan lain",
+  "10.2.2 b - Finish tidak pada lintasan yg sama saat start",
+  "10.2.3 a - Saat turn tidak menyentuh dinding",
+  "10.2.3 b - Membalik dari dasar kolam",
+  "10.2.4 a - Berdiri di dasar kolam (kecuali gaya bebas)",
+  "10.2.4 b - Melangkah di dasar kolam",
+  "10.2.4 c - Berjalan di dasar kolam",
+  "10.2.5 - Menarik tali lintasan",
+  "10.2.6 a - Menghalangi Atlet lain",
+  "10.2.6 b - Menghentikan timing system",
+  "10.2.7 - Atlet tdk terdaftar masuk ke kolam",
+  "10.2.8 - Setelah finish, tdk segera naik & mengganggu",
+  "10.2.9 a - Bertindak pengatur kecepatan",
+  "10.2.9 b - Memakai perangkat pengatur kecepatan",
+  "10.4.1 a - Anggota estafet < 4 Atlet",
+  "10.4.1 b - Anggota estafet campuran tidak 2 Pa 2 Pi",
+  "10.4.2 a - Terlambat serahkan form urutan",
+  "10.4.2 b - Urutan Atlet tidak sesuai form",
+  "10.4.2.1 a - Ganti anggota estafet tanpa ket dokter",
+  "10.4.2.1 b - Ganti anggota estafet tanpa izin",
+  "10.4.2.2 - Anggota estafet tidak memenuhi syarat",
+  "10.4.4 - Pergantian relay tidak dari starting platform",
+  "10.4.5 - Meninggalkan platform sblm Atlet terdahulu finish",
+  "10.4.6 - Anggota estafet bkn giliran masuk ke kolam",
+  "10.4.7 - Setelah finish, estafet tdk segera naik",
+  "Lain - Pakaian tidak memenuhi syarat / Transparan",
+  "Lain - Memakai perangkat bantu / plester berlebihan",
+  "Lainnya (Input Manual)"
+];
+
+const DQ_REASONS_SELAM = [
+  "2.1.5 - ESTAFET 4 anggota estafet jenis kelamin tdk sama",
+  "2.1.5.1 - ESTAFET Peralatan berbeda",
+  "2.1.5.2 - ESTAFET Susunan tdk sesuai (Pa-Pi-Pa-Pi)",
+  "2.2.1.2 - (SF) Setelah start snorkel/kepala muncul lwt 15m",
+  "2.2.1.3 - (SF) Bagian tubuh/alat tdk muncul di permukaan",
+  "2.2.1.4 - (SF) Tidak menggunakan snorkel",
+  "2.2.2.4.3 - (AP) Alat/badan/jidat keluar air. Mata/hidung/mulut di dlm air",
+  "2.2.2.4.4 - (AP) Alat, badan, wajah (jidat, mata, hidung, mulut) keluar air",
+  "2.2.2.5 - (AP) Saat finish tidak sentuh dinding/papan",
+  "2.2.4.1 - (BF) Tidak pakai gaya bebas (crawl) & snorkel",
+  "2.2.4.3 - (BF) Setelah start/turn snorkel/kepala muncul lwt 15m",
+  "2.2.4.4 - (BF) Saat start posisi kaki/fins tidak sejajar",
+  "START - Mendahului aba-aba start",
+  "START - (Estafet) Mendahului peselam datang sentuh dinding",
+  "BALIKAN - Tubuh/peralatan tidak sentuh dinding (8.1.3.3)",
+  "BALIKAN - Snorkel/kepala memecah air lwt 15m",
+  "LAIN - Berpindah lintasan / tidak di posisi",
+  "LAIN - Keluar melalui papan sentuh/startblock (8.1.4.3)",
+  "LAIN - Mencapai finish perlengkapan tidak lengkap (8.1.4.5)",
+  "LAIN - Tidak menyelesaikan lomba / tdk mencapai finish",
+  "LAIN - Pakaian tidak sesuai aturan CMAS",
+  "LAIN - Menggunakan kaos kaki / pakaian double",
+  "LAIN - Menggunakan selotip pada tubuh (kinesio tape)",
+  "Lainnya (Input Manual)"
+];
+
 
 type LangType = 'id' | 'en';
 
@@ -417,14 +573,6 @@ type LiveState = {
   pauseUntil?: string | null; 
 };
 
-type EventItem = { id: string; tournamentId: string; number: number; name: string; totalSeries: number; resultUrl?: string; };
-type DQRecord = { id: string; tournamentId: string; eventNumber: number; series: number; lane: number; reason: string; timestamp: string; createdAt: number; };
-
-// --- DEFAULT STATES ---
-const DEFAULT_LIVE_STATE: LiveState = {
-  currentEventId: null, currentSeries: 1, callRoomEventId: null, callRoomSeries: 1, lastUpdate: '-', callRoomLastUpdate: '-'
-};
-
 type Tournament = {
   id: string;
   title: string;
@@ -433,46 +581,47 @@ type Tournament = {
   endDate?: string;
   status: 'upcoming' | 'live' | 'paused' | 'finished';
   resultUrl: string; 
-  sportType: 'Renang' | 'Selam'; // Added sportType
+  sportType: 'Renang' | 'Selam'; 
   pins: { admin: string, announcer: string, callroom: string };
   liveState: LiveState;
   createdAt: number;
 };
 
-// --- MAIN APP COMPONENT ---
+type EventItem = { id: string; tournamentId: string; number: number; name: string; totalSeries: number; resultUrl?: string; };
+type DQRecord = { id: string; tournamentId: string; eventNumber: number; series: number; lane: number; reason: string; timestamp: string; createdAt: number; };
+
+// --- DEFAULT STATES ---
+const DEFAULT_LIVE_STATE: LiveState = {
+  currentEventId: null, currentSeries: 1, callRoomEventId: null, callRoomSeries: 1, lastUpdate: '-', callRoomLastUpdate: '-'
+};
+
+// --- MAIN COMPONENT ---
 export default function App() {
   const [user, setUser] = useState<User | null>(null);
+  const [isOnline, setIsOnline] = useState(navigator.onLine);
+  
+  const [viewMode, setViewMode] = useState<'global' | 'tournament' | 'master_dashboard'>('global');
+  const [activeTournamentId, setActiveTournamentId] = useState<string | null>(null);
+  const [role, setRole] = useState<'master' | 'admin' | 'announcer' | 'callroom' | 'public' | null>(null);
+  const [lang, setLang] = useState<LangType>('id');
+  const [hasSelectedLang, setHasSelectedLang] = useState<boolean>(false);
+  
+  const [showLoginModal, setShowLoginModal] = useState<boolean>(false);
+  const [targetLoginRole, setTargetLoginRole] = useState<'master' | 'admin' | 'announcer' | 'callroom' | null>(null);
+
   const [tournaments, setTournaments] = useState<Tournament[]>([]);
   const [allEvents, setAllEvents] = useState<EventItem[]>([]);
   const [allDqs, setAllDqs] = useState<DQRecord[]>([]);
+  
+  const [masterPinHash, setMasterPinHash] = useState(MASTER_PIN_HASH);
 
-  const [masterPinHash, setMasterPinHash] = useState<string>(MASTER_PIN_HASH);
-  const [viewMode, setViewMode] = useState<'global' | 'master_dashboard' | 'tournament'>('global');
-  const [activeTournamentId, setActiveTournamentId] = useState<string | null>(null);
-  
-  const [role, setRole] = useState<'public' | 'admin' | 'announcer' | 'callroom' | 'master' | null>(null);
-  const [showLoginModal, setShowLoginModal] = useState(false);
-  const [targetLoginRole, setTargetLoginRole] = useState<'admin' | 'announcer' | 'callroom' | 'master'>('admin');
-  
-  const [lang, setLang] = useState<LangType>('id');
-  const [hasSelectedLang, setHasSelectedLang] = useState(false);
-
-  const [isOnline, setIsOnline] = useState(navigator.onLine);
-  
   const activeTournament = tournaments.find(t => t.id === activeTournamentId);
-  const activeEvents = allEvents.filter(e => e.tournamentId === activeTournamentId).sort((a,b) => a.number - b.number);
-  const activeDqs = allDqs.filter(d => d.tournamentId === activeTournamentId).sort((a,b) => b.createdAt - a.createdAt);
+  const activeEvents = allEvents.filter(e => e.tournamentId === activeTournamentId).sort((a, b) => a.number - b.number);
+  const activeDqs = allDqs.filter(d => d.tournamentId === activeTournamentId).sort((a, b) => b.createdAt - a.createdAt);
 
   useEffect(() => {
     let wakeLock: any = null;
-    const requestWakeLock = async () => {
-      try {
-        if ('wakeLock' in navigator) {
-          wakeLock = await (navigator as any).wakeLock.request('screen');
-        }
-      } catch (err: any) {}
-    };
-
+    const requestWakeLock = async () => { try { if ('wakeLock' in navigator) wakeLock = await (navigator as any).wakeLock.request('screen'); } catch (err) { } };
     if (viewMode === 'tournament' || viewMode === 'master_dashboard') requestWakeLock();
     
     const handleVis = () => { if (document.visibilityState === 'visible' && (viewMode === 'tournament' || viewMode === 'master_dashboard')) requestWakeLock(); };
@@ -672,7 +821,7 @@ export default function App() {
             />
           ) : (
             <div className="flex flex-col min-h-screen">
-               <Header role={role} title={activeTournament.title} venue={activeTournament.venue} onHome={() => { setRole('public'); }} onLogout={() => { setRole('public'); }} isOnline={isOnline} lang={lang} setLang={setLang} t={t}/>
+               <Header role={role} isOnline={isOnline} lang={lang} setLang={setLang} t={t} onHome={() => { setRole('public'); }} onLogout={() => { setRole('public'); }} />
                <main className="flex-1 max-w-7xl mx-auto w-full p-4 md:p-6">
                   {role === 'admin' && (
                     <AdminPanel 
@@ -779,8 +928,6 @@ const LogoBar = ({ onMasterLogin, lang, setLang }: any) => {
             </div>
         </div>
 
-        {/* Menghapus fitur jam di LogoBar (Versi Desktop/Mobile) karena kita tidak jadi pakai ini di halaman login depan */}
-
         <div className="flex items-center gap-2 sm:gap-3 shrink-0 ml-auto">
           <button 
              onClick={() => setLang(lang === 'id' ? 'en' : 'id')} 
@@ -817,22 +964,21 @@ const TourCard = ({ tour, badge, badgeColor, onSelectTournament }: any) => (
 function GlobalLandingPage({ tournaments, onSelectTournament, onMasterLogin, lang, setLang, t }: any) {
   const [activeTab, setActiveTab] = useState<'Renang' | 'Selam'>('Renang');
 
-  const filteredTournaments = tournaments.filter((t: any) => t.sportType === activeTab || (!t.sportType && activeTab === 'Renang'));
+  const filteredTournaments = tournaments.filter((tour: any) => tour.sportType === activeTab || (!tour.sportType && activeTab === 'Renang'));
 
-  const activeTournaments = filteredTournaments.filter((t: any) => t.status === 'live' || t.status === 'paused');
-  const upcoming = filteredTournaments.filter((t: any) => t.status === 'upcoming');
-  const finished = filteredTournaments.filter((t: any) => t.status === 'finished');
+  const activeTournaments = filteredTournaments.filter((tour: any) => tour.status === 'live' || tour.status === 'paused');
+  const upcoming = filteredTournaments.filter((tour: any) => tour.status === 'upcoming');
+  const finished = filteredTournaments.filter((tour: any) => tour.status === 'finished');
 
   return (
     <div className="min-h-screen bg-slate-950 text-white font-sans flex flex-col relative overflow-y-auto">
-      <LogoBar onMasterLogin={onMasterLogin} lang={lang} setLang={setLang} t={t} />
+      <LogoBar onMasterLogin={onMasterLogin} lang={lang} setLang={setLang} />
       <div className="flex-1 max-w-6xl mx-auto w-full p-4 sm:p-6 py-8 sm:py-12">
         <div className="text-center mb-8 sm:mb-12">
           <h1 className="text-3xl sm:text-4xl md:text-5xl font-extrabold mb-3 sm:mb-4 bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-emerald-400">{t[lang].title_swimming_portal}</h1>
           <p className="text-slate-400 text-sm sm:text-lg px-4">{t[lang].subtitle_swimming_portal}</p>
         </div>
 
-        {}
         <div className="flex justify-center mb-8">
             <div className="bg-slate-900 p-1 rounded-xl flex gap-1 border border-slate-800">
                 <button 
@@ -888,7 +1034,7 @@ function GlobalLandingPage({ tournaments, onSelectTournament, onMasterLogin, lan
 
 function MasterDashboard({ tournaments, onCreate, onEdit, onDelete, onLogout, onChangeMasterPin, lang, t }: any) {
   const [showCreate, setShowCreate] = useState(false);
-  const [form, setForm] = useState({ title: '', venue: '', eventDate: '', endDate: '', adminPin: '1234', announcerPin: '1234', callroomPin: '1234', sportType: 'Renang' });
+  const [form, setForm] = useState({ title: '', venue: '', eventDate: '', endDate: '', sportType: 'Renang', adminPin: '1234', announcerPin: '1234', callroomPin: '1234' });
 
   const [showPinModal, setShowPinModal] = useState(false);
   const [newMasterPin, setNewMasterPin] = useState('');
@@ -926,79 +1072,76 @@ function MasterDashboard({ tournaments, onCreate, onEdit, onDelete, onLogout, on
       </header>
       
       <main className="max-w-6xl mx-auto p-6">
-        <div className="flex flex-col md:flex-row justify-between items-center mb-8 gap-4">
-          <h2 className="text-2xl font-bold text-slate-800">Daftar Semua Lomba</h2>
-          <div className="flex gap-2">
-             <button onClick={() => setShowCreate(!showCreate)} className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2.5 rounded-lg font-bold flex items-center gap-2 shadow-sm transition"><Plus size={18}/> Buat Lomba Baru</button>
-          </div>
-        </div>
-
-        {showCreate && (
-              <form onSubmit={handleCreate} className="bg-white p-6 rounded-2xl shadow-sm border border-blue-100 mb-8 grid md:grid-cols-2 gap-6 animate-in fade-in">
-                 <div className="space-y-4">
-                    <h3 className="font-bold text-blue-900 border-b pb-2">Informasi Umum</h3>
-                    {}
-                    <div className="grid grid-cols-2 gap-2">
-                        <div className="col-span-2 sm:col-span-1">
-                            <label className="block text-xs font-bold text-slate-500 mb-1">Nama Kejuaraan</label>
-                            <input required type="text" value={form.title} onChange={e=>setForm({...form, title: e.target.value})} className="w-full p-2 border rounded bg-slate-50" />
-                        </div>
-                        <div className="col-span-2 sm:col-span-1">
-                            <label className="block text-xs font-bold text-slate-500 mb-1">Cabang Olahraga</label>
-                            <select value={form.sportType} onChange={e=>setForm({...form, sportType: e.target.value})} className="w-full p-2 border rounded bg-slate-50">
-                                <option value="Renang">Renang</option>
-                                <option value="Selam">Selam</option>
-                            </select>
-                        </div>
-                    </div>
-                    <div><label className="block text-xs font-bold text-slate-500 mb-1">Lokasi / Venue</label><input required type="text" value={form.venue} onChange={e=>setForm({...form, venue: e.target.value})} className="w-full p-2 border rounded bg-slate-50" /></div>
-                    <div className="grid grid-cols-2 gap-2">
-                      <div><label className="block text-xs font-bold text-slate-500 mb-1">Tanggal Mulai</label><input required type="date" value={form.eventDate} onChange={e=>setForm({...form, eventDate: e.target.value})} className="w-full p-2 border rounded bg-slate-50" /></div>
-                      <div><label className="block text-xs font-bold text-slate-500 mb-1">Tanggal Selesai</label><input required type="date" value={form.endDate} onChange={e=>setForm({...form, endDate: e.target.value})} className="w-full p-2 border rounded bg-slate-50" min={form.eventDate} /></div>
-                    </div>
-                 </div>
-                 <div className="space-y-4">
-                    <h3 className="font-bold text-blue-900 border-b pb-2">Pengaturan Akses (PIN)</h3>
-                    <div><label className="block text-xs font-bold text-slate-500 mb-1">PIN Admin Lomba</label><input required type="text" value={form.adminPin} onChange={e=>setForm({...form, adminPin: e.target.value})} className="w-full p-2 border rounded bg-slate-50" /></div>
-                    <div><label className="block text-xs font-bold text-slate-500 mb-1">PIN Announcer</label><input required type="text" value={form.announcerPin} onChange={e=>setForm({...form, announcerPin: e.target.value})} className="w-full p-2 border rounded bg-slate-50" /></div>
-                    <div><label className="block text-xs font-bold text-slate-500 mb-1">PIN Call Room</label><input required type="text" value={form.callroomPin} onChange={e=>setForm({...form, callroomPin: e.target.value})} className="w-full p-2 border rounded bg-slate-50" /></div>
-                 </div>
-                 <div className="md:col-span-2 flex justify-end gap-2 border-t pt-4">
-                   <button type="button" onClick={()=>setShowCreate(false)} className="px-6 py-2 rounded text-slate-500 hover:bg-slate-100 font-bold">Batal</button>
-                   <button type="submit" className="px-8 py-2 rounded bg-blue-600 text-white font-bold shadow-lg">SIMPAN & BUAT LOMBA</button>
-                 </div>
-              </form>
-            )}
-
-            <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-              <table className="w-full text-left">
-                {}
-                <thead className="bg-slate-50 border-b"><tr><th className="p-4 font-bold text-slate-600">Lomba</th><th className="p-4 font-bold text-slate-600">Cabang</th><th className="p-4 font-bold text-slate-600">Status</th><th className="p-4 font-bold text-slate-600 text-right">Aksi</th></tr></thead>
-                <tbody>
-                  {tournaments.map((tItem:any) => (
-                    <tr key={tItem.id} className="border-b last:border-0 hover:bg-slate-50">
-                      <td className="p-4">
-                        <div className="font-bold text-blue-900 text-lg">{tItem.title}</div>
-                        <div className="text-sm text-slate-500">{formatDateRange(tItem.eventDate, tItem.endDate)} | {tItem.venue}</div>
-                      </td>
-                      <td className="p-4">
-                         <span className={`text-[10px] font-bold px-2 py-1 rounded-full whitespace-nowrap ${tItem.sportType === 'Selam' ? 'bg-emerald-100 text-emerald-700' : 'bg-blue-100 text-blue-700'}`}>
-                           {tItem.sportType || 'Renang'}
-                         </span>
-                      </td>
-                      <td className="p-4">
-                        <span className={`text-xs font-bold px-2 py-1 rounded-full uppercase ${tItem.status === 'live' ? 'bg-red-100 text-red-600' : tItem.status === 'finished' ? 'bg-blue-100 text-blue-600' : tItem.status === 'paused' ? 'bg-yellow-100 text-yellow-600' : 'bg-slate-100 text-slate-600'}`}>{tItem.status}</span>
-                      </td>
-                      <td className="p-4 text-right space-x-2">
-                        <button onClick={() => onEdit(tItem.id)} className="bg-slate-800 text-white px-4 py-2 rounded font-bold text-sm hover:bg-slate-700 transition shadow">Kelola Event (Admin)</button>
-                        <button onClick={() => setDeleteId(tItem.id)} className="bg-red-50 text-red-500 hover:bg-red-100 px-3 py-2 rounded transition"><Trash2 size={16}/></button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+         <div className="flex flex-col md:flex-row justify-between items-center mb-8 gap-4">
+            <h2 className="text-2xl font-bold text-slate-800">Daftar Semua Lomba</h2>
+            <div className="flex gap-2">
+               <button onClick={() => setShowCreate(!showCreate)} className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2.5 rounded-lg font-bold flex items-center gap-2 shadow-sm transition"><Plus size={18}/> Buat Lomba Baru</button>
             </div>
+         </div>
 
+         {showCreate && (
+            <form onSubmit={handleCreate} className="bg-white p-6 rounded-2xl shadow-sm border border-blue-100 mb-8 grid md:grid-cols-2 gap-6 animate-in fade-in">
+               <div className="space-y-4">
+                  <h3 className="font-bold text-blue-900 border-b pb-2">Informasi Umum</h3>
+                  <div className="grid grid-cols-2 gap-2">
+                      <div className="col-span-2 sm:col-span-1">
+                          <label className="block text-xs font-bold text-slate-500 mb-1">Nama Kejuaraan</label>
+                          <input required type="text" value={form.title} onChange={e=>setForm({...form, title: e.target.value})} className="w-full p-2 border rounded bg-slate-50" />
+                      </div>
+                      <div className="col-span-2 sm:col-span-1">
+                          <label className="block text-xs font-bold text-slate-500 mb-1">Cabang Olahraga</label>
+                          <select value={form.sportType} onChange={e=>setForm({...form, sportType: e.target.value})} className="w-full p-2 border rounded bg-slate-50">
+                              <option value="Renang">Renang</option>
+                              <option value="Selam">Selam</option>
+                          </select>
+                      </div>
+                  </div>
+                  <div><label className="block text-xs font-bold text-slate-500 mb-1">Lokasi / Venue</label><input required type="text" value={form.venue} onChange={e=>setForm({...form, venue: e.target.value})} className="w-full p-2 border rounded bg-slate-50" /></div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div><label className="block text-xs font-bold text-slate-500 mb-1">Tanggal Mulai</label><input required type="date" value={form.eventDate} onChange={e=>setForm({...form, eventDate: e.target.value})} className="w-full p-2 border rounded bg-slate-50" /></div>
+                    <div><label className="block text-xs font-bold text-slate-500 mb-1">Tanggal Selesai</label><input required type="date" value={form.endDate} onChange={e=>setForm({...form, endDate: e.target.value})} className="w-full p-2 border rounded bg-slate-50" min={form.eventDate} /></div>
+                  </div>
+               </div>
+               <div className="space-y-4">
+                  <h3 className="font-bold text-blue-900 border-b pb-2">Pengaturan Akses (PIN)</h3>
+                  <div><label className="block text-xs font-bold text-slate-500 mb-1">PIN Admin Lomba</label><input required type="text" value={form.adminPin} onChange={e=>setForm({...form, adminPin: e.target.value})} className="w-full p-2 border rounded bg-slate-50" /></div>
+                  <div><label className="block text-xs font-bold text-slate-500 mb-1">PIN Announcer</label><input required type="text" value={form.announcerPin} onChange={e=>setForm({...form, announcerPin: e.target.value})} className="w-full p-2 border rounded bg-slate-50" /></div>
+                  <div><label className="block text-xs font-bold text-slate-500 mb-1">PIN Call Room</label><input required type="text" value={form.callroomPin} onChange={e=>setForm({...form, callroomPin: e.target.value})} className="w-full p-2 border rounded bg-slate-50" /></div>
+               </div>
+               <div className="md:col-span-2 flex justify-end gap-2 border-t pt-4">
+                 <button type="button" onClick={()=>setShowCreate(false)} className="px-6 py-2 rounded text-slate-500 hover:bg-slate-100 font-bold">Batal</button>
+                 <button type="submit" className="px-8 py-2 rounded bg-blue-600 text-white font-bold shadow-lg">SIMPAN & BUAT LOMBA</button>
+               </div>
+            </form>
+         )}
+
+         <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+            <table className="w-full text-left">
+              <thead className="bg-slate-50 border-b"><tr><th className="p-4 font-bold text-slate-600">Lomba</th><th className="p-4 font-bold text-slate-600">Cabang</th><th className="p-4 font-bold text-slate-600">Status</th><th className="p-4 font-bold text-slate-600 text-right">Aksi</th></tr></thead>
+              <tbody>
+                {tournaments.map((tItem:any) => (
+                  <tr key={tItem.id} className="border-b last:border-0 hover:bg-slate-50">
+                    <td className="p-4">
+                      <div className="font-bold text-blue-900 text-lg">{tItem.title}</div>
+                      <div className="text-sm text-slate-500">{formatDateRange(tItem.eventDate, tItem.endDate)} | {tItem.venue}</div>
+                    </td>
+                    <td className="p-4">
+                       <span className={`text-[10px] font-bold px-2 py-1 rounded-full whitespace-nowrap ${tItem.sportType === 'Selam' ? 'bg-emerald-100 text-emerald-700' : 'bg-blue-100 text-blue-700'}`}>
+                         {tItem.sportType || 'Renang'}
+                       </span>
+                    </td>
+                    <td className="p-4">
+                      <span className={`text-xs font-bold px-2 py-1 rounded-full uppercase ${tItem.status === 'live' ? 'bg-red-100 text-red-600' : tItem.status === 'finished' ? 'bg-blue-100 text-blue-600' : tItem.status === 'paused' ? 'bg-yellow-100 text-yellow-600' : 'bg-slate-100 text-slate-600'}`}>{tItem.status}</span>
+                    </td>
+                    <td className="p-4 text-right space-x-2">
+                      <button onClick={() => onEdit(tItem.id)} className="bg-slate-800 text-white px-4 py-2 rounded font-bold text-sm hover:bg-slate-700 transition shadow">Kelola Event (Admin)</button>
+                      <button onClick={() => setDeleteId(tItem.id)} className="bg-red-50 text-red-500 hover:bg-red-100 px-3 py-2 rounded transition"><Trash2 size={16}/></button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+         </div>
       </main>
 
       {showPinModal && (
@@ -1043,7 +1186,6 @@ function TournamentPublicView({ tournament, dqs, events, isOnline, onBack, onLog
   
   const currentTime = useLiveClock();
 
-  // State untuk navigasi antar hasil acara
   const eventsWithResults = events.filter((ev: any) => ev.resultUrl);
   const currentResultIndex = eventsWithResults.findIndex((ev: any) => ev.resultUrl === showPdfUrl);
 
@@ -1064,9 +1206,6 @@ function TournamentPublicView({ tournament, dqs, events, isOnline, onBack, onLog
     
     const timer = setInterval(() => {
       const now = new Date().getTime();
-      
-      // Jika status Jeda dan Admin menyetel waktu pauseUntil, gunakan waktu itu. 
-      // Jika Upcoming, gunakan eventDate.
       let targetDateStr = tournament.status === 'paused' ? tournament.liveState?.pauseUntil : tournament.eventDate;
       
       if (!targetDateStr) {
@@ -1100,7 +1239,6 @@ function TournamentPublicView({ tournament, dqs, events, isOnline, onBack, onLog
 
   return (
     <div className="min-h-screen bg-slate-900 text-white font-sans flex flex-col relative overflow-hidden">
-      {/* POP-UP HASIL PDF KESELURUHAN (Hanya Untuk Status Selesai) */}
       {showPdf && tournament.resultUrl ? (
           <div className="fixed inset-0 z-[100] bg-black/90 flex flex-col p-4 animate-in fade-in">
               <div className="flex justify-between items-center mb-4 text-white">
@@ -1134,7 +1272,6 @@ function TournamentPublicView({ tournament, dqs, events, isOnline, onBack, onLog
                  <span className="font-bold text-xs hidden sm:inline sm:ml-1.5">{lang === 'id' ? 'ID' : 'EN'}</span>
                </button>
 
-              {/* TOMBOL HASIL ACARA (Muncul di Header saat Jeda atau Selesai) */}
               {(tournament.status === 'paused' || isFinished) && (
                 <button onClick={() => setShowResultsList(true)} className="w-9 h-9 sm:w-auto sm:h-auto sm:px-3 sm:py-1.5 flex items-center justify-center bg-blue-600 hover:bg-blue-500 text-white rounded-xl transition shadow-md" title={t[lang].btn_results}>
                   <FileText size={18} className="sm:w-4 sm:h-4" /> <span className="hidden sm:inline sm:ml-1.5 text-xs font-bold">{t[lang].btn_results}</span>
@@ -1149,7 +1286,6 @@ function TournamentPublicView({ tournament, dqs, events, isOnline, onBack, onLog
       </header>
       
       <div className="flex-1 flex flex-col justify-center items-center text-center p-4 sm:p-6 z-10 relative">
-        {/* JAM REAL-TIME UNTUK MOBILE */}
         <div className="absolute top-4 w-full flex justify-center sm:hidden">
             <div className="bg-slate-900/60 backdrop-blur border border-slate-800/50 px-4 py-1.5 rounded-full flex items-center gap-2 shadow-lg">
                 <Clock size={12} className="text-blue-400"/>
@@ -1206,7 +1342,6 @@ function TournamentPublicView({ tournament, dqs, events, isOnline, onBack, onLog
       </div>
       <footer className="bg-slate-950 text-slate-600 py-3 sm:py-4 text-center text-[10px] sm:text-xs border-t border-slate-800 z-10 shrink-0">{t[lang].footer_text}</footer>
 
-      {/* MODAL DAFTAR HASIL ACARA */}
       {showResultsList && (
           <div className="fixed inset-0 z-[80] bg-black/80 flex items-center justify-center p-4 animate-in fade-in">
              <div className="bg-white rounded-2xl w-full max-w-2xl max-h-[80vh] flex flex-col relative shadow-2xl">
@@ -1244,7 +1379,6 @@ function TournamentPublicView({ tournament, dqs, events, isOnline, onBack, onLog
           </div>
         )}
 
-        {/* MODAL PDF VIEWER DENGAN NAVIGASI */}
         {showPdfUrl && (
           <div className="fixed inset-0 z-[90] bg-black/90 flex flex-col p-2 sm:p-4 animate-in fade-in">
               <div className="flex justify-between items-center mb-2 sm:mb-4 text-white">
@@ -1286,7 +1420,6 @@ function TournamentPublicView({ tournament, dqs, events, isOnline, onBack, onLog
   );
 }
 
-// 3A. LIVE SCOREBOARD (Split Screen)
 function LiveScoreboard({ tournament, dqs, events, isOnline, onBack, onLoginRequest, lang, setLang, t }: any) {
   const ls = tournament.liveState || DEFAULT_LIVE_STATE;
   
@@ -1300,7 +1433,6 @@ function LiveScoreboard({ tournament, dqs, events, isOnline, onBack, onLoginRequ
 
   const currentTime = useLiveClock();
 
-  // State untuk navigasi antar hasil acara
   const eventsWithResults = events.filter((ev: any) => ev.resultUrl);
   const currentResultIndex = eventsWithResults.findIndex((ev: any) => ev.resultUrl === showPdfUrl);
 
@@ -1330,7 +1462,6 @@ function LiveScoreboard({ tournament, dqs, events, isOnline, onBack, onLoginRequ
                     <p className="text-[8px] sm:text-[10px] text-blue-400 font-bold tracking-[0.2em] uppercase">Swim Organizer</p>
                 </div>
                 
-                {/* Jam Real-time untuk layar Mobile ditempatkan di bawah judul khusus untuk halaman Live ini agar lega */}
                 <div className="absolute top-[42px] left-0 w-full sm:hidden">
                     <div className="flex items-center gap-1.5 text-blue-300">
                         <Clock size={10} />
@@ -1339,7 +1470,6 @@ function LiveScoreboard({ tournament, dqs, events, isOnline, onBack, onLoginRequ
                 </div>
             </div>
 
-            {/* Jam Real-time di Desktop ada di tengah */}
             <div className="absolute left-1/2 transform -translate-x-1/2 bg-slate-800/80 px-4 py-1.5 rounded-full border border-slate-700/50 flex-col items-center hidden md:flex">
                <span className="text-[8px] text-slate-400 uppercase font-bold tracking-[0.2em] -mb-1">Time</span>
                <ClockDisplay time={currentTime} />
@@ -1368,7 +1498,6 @@ function LiveScoreboard({ tournament, dqs, events, isOnline, onBack, onLoginRequ
         </header>
 
         <div className="flex flex-col md:flex-row border-b border-slate-200 shadow-sm shrink-0">
-            {/* CALL ROOM */}
             <div className="w-full md:w-1/2 bg-slate-900 relative px-4 py-6 md:p-12 min-h-[180px] sm:min-h-[250px] md:min-h-[45vh] flex flex-col justify-center mt-3 sm:mt-0">
                 <div className="absolute inset-0 bg-gradient-to-br from-blue-900/40 via-slate-900 to-slate-900 z-0"></div>
                 <div className="relative z-10 w-full max-w-lg mx-auto">
@@ -1396,7 +1525,6 @@ function LiveScoreboard({ tournament, dqs, events, isOnline, onBack, onLoginRequ
                 </div>
             </div>
             
-            {/* LIVE SCOREBOARD */}
             <div className="w-full md:w-1/2 bg-white relative px-4 py-6 md:p-12 min-h-[180px] sm:min-h-[250px] md:min-h-[45vh] flex flex-col justify-center">
                 <div className="relative z-10 w-full max-w-lg mx-auto">
                     <div className="flex justify-between items-center mb-3 sm:mb-6">
@@ -1473,7 +1601,6 @@ function LiveScoreboard({ tournament, dqs, events, isOnline, onBack, onLoginRequ
 
         <footer className="bg-slate-900 text-slate-500 text-center py-2 sm:py-3 text-[10px] sm:text-xs font-mono tracking-widest border-t border-slate-800 shrink-0 mt-auto">{t[lang].footer_text}</footer>
 
-        {/* MODAL DAFTAR HASIL ACARA */}
         {showResultsList && (
           <div className="fixed inset-0 z-[80] bg-black/80 flex items-center justify-center p-4 animate-in fade-in">
              <div className="bg-white rounded-2xl w-full max-w-2xl max-h-[80vh] flex flex-col relative shadow-2xl">
@@ -1511,7 +1638,6 @@ function LiveScoreboard({ tournament, dqs, events, isOnline, onBack, onLoginRequ
           </div>
         )}
 
-        {/* MODAL PDF VIEWER DENGAN NAVIGASI */}
         {showPdfUrl && (
           <div className="fixed inset-0 z-[90] bg-black/90 flex flex-col p-2 sm:p-4 animate-in fade-in">
               <div className="flex justify-between items-center mb-2 sm:mb-4 text-white">
@@ -1606,7 +1732,6 @@ function AdminPanel({ tournament, events, masterPinHash, onUpdateTournament, onA
   const [infoForm, setInfoForm] = useState({
     title: tournament.title || '',
     venue: tournament.venue || '',
-    sportType: tournament.sportType || 'Renang',
     eventDate: tournament.eventDate ? tournament.eventDate.substring(0, 10) : '',
     endDate: tournament.endDate ? tournament.endDate.substring(0, 10) : (tournament.eventDate ? tournament.eventDate.substring(0, 10) : '')
   });
@@ -1616,7 +1741,6 @@ function AdminPanel({ tournament, events, masterPinHash, onUpdateTournament, onA
   const [resetPin, setResetPin] = useState('');
   const [resetError, setResetError] = useState(false);
 
-  // Modal Jeda & Selesai
   const [showPauseModal, setShowPauseModal] = useState(false);
   const [pauseResumeTime, setPauseResumeTime] = useState('');
   const [showFinishConfirm, setShowFinishConfirm] = useState(false);
@@ -1725,7 +1849,6 @@ function AdminPanel({ tournament, events, masterPinHash, onUpdateTournament, onA
       await onUpdateTournament({
         title: infoForm.title,
         venue: infoForm.venue,
-        sportType: infoForm.sportType,
         eventDate: new Date(infoForm.eventDate).toISOString(),
         endDate: new Date(infoForm.endDate).toISOString()
       });
@@ -1839,19 +1962,9 @@ function AdminPanel({ tournament, events, masterPinHash, onUpdateTournament, onA
               <label className="text-xs text-slate-500 font-bold mb-1 block">{t[lang].tournament_name}</label>
               <input required type="text" value={infoForm.title} onChange={(e) => setInfoForm({...infoForm, title: e.target.value})} className="w-full p-2 border rounded text-sm bg-slate-50 focus:bg-white transition-colors" />
             </div>
-            {}
-            <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <label className="text-xs text-slate-500 font-bold mb-1 block">Cabang Olahraga</label>
-                  <select value={infoForm.sportType} onChange={(e) => setInfoForm({...infoForm, sportType: e.target.value})} className="w-full p-2 border rounded text-sm bg-slate-50 focus:bg-white transition-colors">
-                    <option value="Renang">Renang</option>
-                    <option value="Selam">Selam</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="text-xs text-slate-500 font-bold mb-1 block">{t[lang].venue}</label>
-                  <input required type="text" value={infoForm.venue} onChange={(e) => setInfoForm({...infoForm, venue: e.target.value})} className="w-full p-2 border rounded text-sm bg-slate-50 focus:bg-white transition-colors" />
-                </div>
+            <div>
+              <label className="text-xs text-slate-500 font-bold mb-1 block">{t[lang].venue}</label>
+              <input required type="text" value={infoForm.venue} onChange={(e) => setInfoForm({...infoForm, venue: e.target.value})} className="w-full p-2 border rounded text-sm bg-slate-50 focus:bg-white transition-colors" />
             </div>
             <div className="grid grid-cols-2 gap-2">
               <div>
@@ -1978,7 +2091,6 @@ function AdminPanel({ tournament, events, masterPinHash, onUpdateTournament, onA
           </div>
       </div>
 
-      {/* MODAL INPUT LINK HASIL */}
       {linkModal.show && (
         <div className="fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-[80] animate-in fade-in">
           <div className="bg-white rounded-2xl w-full max-w-md p-6 relative shadow-2xl">
@@ -2009,7 +2121,6 @@ function AdminPanel({ tournament, events, masterPinHash, onUpdateTournament, onA
         </div>
       )}
 
-      {/* MODAL SETTING JEDA LOMBA */}
       {showPauseModal && (
         <div className="fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-[70] animate-in fade-in">
           <div className="bg-white rounded-2xl w-full max-w-sm p-8 relative shadow-2xl">
@@ -2053,7 +2164,6 @@ function AdminPanel({ tournament, events, masterPinHash, onUpdateTournament, onA
         </div>
       )}
 
-      {/* MODAL KONFIRMASI SELESAI */}
       {showFinishConfirm && (
         <div className="fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-[70] animate-in fade-in">
           <div className="bg-white rounded-2xl w-full max-w-sm p-8 relative shadow-2xl text-center">
@@ -2075,10 +2185,10 @@ function AdminPanel({ tournament, events, masterPinHash, onUpdateTournament, onA
   );
 }
 
-// 6. ANNOUNCER PANEL (Live Display + DQ Input)
 function AnnouncerPanel({ tournament, events, dqs, updateLiveState, onAddDQ, onDeleteDQ, lang, t }: any) {
   const [loading, setLoading] = useState(false);
   const [newDQ, setNewDQ] = useState({ eventNumber: '', series: '', lane: '', reason: '' });
+  const [manualReason, setManualReason] = useState('');
   
   const ls = tournament.liveState || DEFAULT_LIVE_STATE;
   const activeEvent = events.find((e: any) => e.id === ls.currentEventId);
@@ -2117,6 +2227,26 @@ function AnnouncerPanel({ tournament, events, dqs, updateLiveState, onAddDQ, onD
       });
   };
 
+  const dqOptions = tournament.sportType === 'Selam' ? DQ_REASONS_SELAM : DQ_REASONS_RENANG;
+
+  const handleDQSubmit = (e: React.FormEvent) => {
+      e.preventDefault();
+      const finalReason = newDQ.reason === 'Lainnya (Input Manual)' ? manualReason : newDQ.reason;
+      if (!finalReason) return;
+      
+      wrapAsync(async() => { 
+          await onAddDQ({ 
+              eventNumber: parseInt(newDQ.eventNumber), 
+              series: parseInt(newDQ.series), 
+              lane: parseInt(newDQ.lane), 
+              reason: finalReason, 
+              timestamp: getWIBTime() 
+          }); 
+          setNewDQ({ eventNumber: '', series: '', lane: '', reason: '' }); 
+          setManualReason('');
+      });
+  };
+
   return (
     <div className="grid md:grid-cols-3 gap-6 relative max-w-6xl mx-auto">
       {loading && <div className="absolute inset-0 bg-white/50 z-50 flex items-center justify-center rounded-2xl"><Loader2 className="animate-spin text-purple-600" size={40}/></div>}
@@ -2137,7 +2267,6 @@ function AnnouncerPanel({ tournament, events, dqs, updateLiveState, onAddDQ, onD
                 <>
                     <div className="text-blue-400 text-xl sm:text-2xl font-bold uppercase tracking-widest mb-2">{t[lang].event} {activeEvent.number}</div>
                     
-                    {/* Perbaikan Teks Judul Acara (Responsive font-size & max-width) */}
                     <div className="w-full flex items-center justify-center h-24 sm:h-32 mb-6 sm:mb-8">
                        <h1 className="text-3xl sm:text-5xl font-extrabold text-white leading-tight line-clamp-3 overflow-hidden text-balance">
                            {activeEvent.name}
@@ -2164,17 +2293,24 @@ function AnnouncerPanel({ tournament, events, dqs, updateLiveState, onAddDQ, onD
       <div className="md:col-span-1 space-y-6">
         <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
             <h2 className="font-bold mb-4 text-red-600 flex items-center gap-2"><AlertOctagon /> Input Diskualifikasi</h2>
-            <form onSubmit={(e) => { e.preventDefault(); wrapAsync(async()=> { await onAddDQ({ eventNumber: parseInt(newDQ.eventNumber), series: parseInt(newDQ.series), lane: parseInt(newDQ.lane), reason: newDQ.reason, timestamp: getWIBTime() }); setNewDQ({ eventNumber: '', series: '', lane: '', reason: '' }); }) }} className="bg-red-50 p-4 rounded-lg mb-4 border border-red-100">
+            <form onSubmit={handleDQSubmit} className="bg-red-50 p-4 rounded-lg mb-4 border border-red-100">
                 <div className="grid grid-cols-3 gap-2 mb-3">
-                    <div><label className="text-[10px] font-bold text-red-800 uppercase block mb-1">Acara</label><input required type="number" value={newDQ.eventNumber} onChange={e => setNewDQ({...newDQ, eventNumber: e.target.value})} className="w-full p-2 border rounded bg-white text-center font-bold" /></div>
-                    <div><label className="text-[10px] font-bold text-red-800 uppercase block mb-1">Seri</label><input required type="number" value={newDQ.series} onChange={e => setNewDQ({...newDQ, series: e.target.value})} className="w-full p-2 border rounded bg-white text-center font-bold" /></div>
-                    <div><label className="text-[10px] font-bold text-red-800 uppercase block mb-1">Lintasan</label><input required type="number" value={newDQ.lane} onChange={e => setNewDQ({...newDQ, lane: e.target.value})} className="w-full p-2 border rounded bg-white text-center font-bold" /></div>
+                    <div><label className="text-[10px] font-bold text-red-800 uppercase block mb-1">Acara</label><input required type="number" value={newDQ.eventNumber} onChange={e => setNewDQ({...newDQ, eventNumber: e.target.value})} className="w-full p-2 border border-red-200 rounded-lg bg-white text-center font-bold outline-none focus:ring-2 focus:ring-red-500" /></div>
+                    <div><label className="text-[10px] font-bold text-red-800 uppercase block mb-1">Seri</label><input required type="number" value={newDQ.series} onChange={e => setNewDQ({...newDQ, series: e.target.value})} className="w-full p-2 border border-red-200 rounded-lg bg-white text-center font-bold outline-none focus:ring-2 focus:ring-red-500" /></div>
+                    <div><label className="text-[10px] font-bold text-red-800 uppercase block mb-1">Lintasan</label><input required type="number" value={newDQ.lane} onChange={e => setNewDQ({...newDQ, lane: e.target.value})} className="w-full p-2 border border-red-200 rounded-lg bg-white text-center font-bold outline-none focus:ring-2 focus:ring-red-500" /></div>
                 </div>
                 <div className="mb-4">
                     <label className="text-[10px] font-bold text-red-800 uppercase block mb-1">Alasan / Keterangan Pelanggaran</label>
-                    <input required type="text" value={newDQ.reason} onChange={e => setNewDQ({...newDQ, reason: e.target.value})} className="w-full p-2 border rounded bg-white text-sm" placeholder="Contoh: False Start" />
+                    <select required value={newDQ.reason} onChange={e => setNewDQ({...newDQ, reason: e.target.value})} className="w-full p-2 border border-red-200 rounded-lg bg-white text-sm outline-none focus:ring-2 focus:ring-red-500 truncate max-w-full text-ellipsis">
+                       <option value="" disabled>Pilih Alasan DQ...</option>
+                       {dqOptions.map((opt, i) => <option key={i} value={opt} className="text-xs truncate">{opt}</option>)}
+                    </select>
+                    
+                    {newDQ.reason === 'Lainnya (Input Manual)' && (
+                        <input required autoFocus type="text" value={manualReason} onChange={e => setManualReason(e.target.value)} className="w-full p-2 border border-red-300 rounded-lg bg-white text-sm mt-2 outline-none focus:ring-2 focus:ring-red-500" placeholder="Ketik deskripsi pelanggaran..." />
+                    )}
                 </div>
-                <button className="w-full bg-red-600 hover:bg-red-700 transition text-white font-bold py-3 rounded-lg shadow">UMUMKAN DQ</button>
+                <button type="submit" className="w-full bg-red-600 hover:bg-red-700 transition text-white font-bold py-3 rounded-lg shadow">UMUMKAN DQ</button>
             </form>
             <div className="max-h-60 overflow-y-auto space-y-2">
                 <div className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Riwayat DQ</div>
@@ -2246,7 +2382,6 @@ function CallRoomPanel({ tournament, events, updateLiveState, lang, t }: any) {
                 <>
                   <div className="text-emerald-700 font-bold tracking-widest uppercase mb-1">{t[lang].calling_now}</div>
                   
-                  {/* Perbaikan Judul Acara (Responsive) */}
                   <div className="w-full flex items-center justify-center h-20 sm:h-24 mb-4 sm:mb-6">
                       <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-800 leading-tight line-clamp-3 overflow-hidden text-balance">
                           {currentCallEvent.number}. {currentCallEvent.name}
