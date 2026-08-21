@@ -417,19 +417,6 @@ type LiveState = {
   pauseUntil?: string | null; 
 };
 
-type Tournament = {
-  id: string;
-  title: string;
-  venue: string;
-  eventDate: string; 
-  endDate?: string;
-  status: 'upcoming' | 'live' | 'paused' | 'finished';
-  resultUrl: string; 
-  pins: { admin: string, announcer: string, callroom: string };
-  liveState: LiveState;
-  createdAt: number;
-};
-
 type EventItem = { id: string; tournamentId: string; number: number; name: string; totalSeries: number; resultUrl?: string; };
 type DQRecord = { id: string; tournamentId: string; eventNumber: number; series: number; lane: number; reason: string; timestamp: string; createdAt: number; };
 
@@ -487,6 +474,23 @@ export default function App() {
           wakeLock = await (navigator as any).wakeLock.request('screen');
         }
       } catch (err: any) {}
+    };
+
+    if (viewMode === 'tournament' || viewMode === 'master_dashboard') requestWakeLock();
+    
+    const handleVis = () => { if (document.visibilityState === 'visible' && (viewMode === 'tournament' || viewMode === 'master_dashboard')) requestWakeLock(); };
+    document.addEventListener('visibilitychange', handleVis);
+    
+    const handleOnline = () => setIsOnline(true);
+    const handleOffline = () => setIsOnline(false);
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+    
+    return () => {
+      if (wakeLock) wakeLock.release();
+      document.removeEventListener('visibilitychange', handleVis);
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
     };
   }, [viewMode]);
 
@@ -749,7 +753,7 @@ export default function App() {
 
 // --- SUB-COMPONENTS ---
 
-const Header = ({ role, title, venue, onHome, onLogout, isOnline, lang, setLang, t }: any) => {
+const Header = ({ role, onHome, onLogout, isOnline, lang, setLang, t }: any) => {
   const currentTime = useLiveClock();
 
   return (
@@ -802,9 +806,7 @@ const Header = ({ role, title, venue, onHome, onLogout, isOnline, lang, setLang,
   );
 };
 
-const LogoBar = ({ onMasterLogin, lang, setLang, t }: any) => {
-  const currentTime = useLiveClock();
-
+const LogoBar = ({ onMasterLogin, lang, setLang }: any) => {
   return (
     <nav className="border-b border-white/10 bg-slate-900/80 backdrop-blur-md sticky top-0 z-50 p-3 sm:p-4">
       <div className="max-w-6xl mx-auto flex justify-between items-center relative">
@@ -839,7 +841,7 @@ const LogoBar = ({ onMasterLogin, lang, setLang, t }: any) => {
   );
 };
 
-const TourCard = ({ tour, badge, badgeColor, onSelectTournament, lang, t }: any) => (
+const TourCard = ({ tour, badge, badgeColor, onSelectTournament }: any) => (
   <div onClick={() => onSelectTournament(tour.id)} className="bg-slate-800/80 backdrop-blur border border-slate-700 p-6 rounded-2xl shadow-xl hover:border-blue-500 transition-colors cursor-pointer group text-left">
       <div className="flex justify-between items-start mb-4">
         <span className={`${badgeColor} text-[10px] sm:text-xs px-2 py-1 rounded font-bold uppercase`}>{badge}</span>
